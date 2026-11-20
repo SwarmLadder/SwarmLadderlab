@@ -53,25 +53,13 @@
   flex: none;
 }
 .native-lesson .native-workspace { margin: 1.5rem 0; }
-.native-editor {
-  display: block;
-  width: 100%;
-  min-height: 16rem;
-  max-height: 50rem;
-  resize: vertical;
-  border: none;
-  border-top: 1px solid var(--rule);
-  background: var(--code-bg);
-  color: var(--code-ink);
-  padding: 1.15rem 1.35rem;
-  font: 500 .87rem/1.7 var(--mono);
-  tab-size: 4;
-  white-space: pre;
-  overflow: auto;
-}
-.native-editor:focus-visible {
-  outline: 2px solid var(--signal);
-  outline-offset: -3px;
+.native-workspace .editor { width: 100%; border-top: 1px solid var(--rule); }
+.native-workspace .cm-editor { min-height: 15rem; max-height: 34rem; overflow: hidden; }
+.native-workspace .cm-scroller { max-height: 34rem; overflow: auto; }
+.native-workspace .cm-line { padding-right: 1rem; }
+.native-workspace .tok-keyword, .native-workspace .tok-typeName, .native-workspace .tok-string,
+.native-workspace .tok-comment, .native-workspace .tok-number, .native-workspace .tok-definition {
+  font-variant-ligatures: none;
 }
 .native-workspace .native-caution { padding: .25rem 1rem .5rem; }
 .native-complete {
@@ -114,7 +102,7 @@
   .native-command { align-items: stretch; }
   .native-command .button { margin-left: auto; }
   .native-lesson .native-workspace .cell-tools { gap: .5rem; flex-wrap: wrap; }
-  .native-editor { min-height: 13rem; font-size: .78rem; padding: .8rem; }
+  .native-workspace .cm-editor { min-height: 13rem; font-size: .8rem; }
 }
 
 .native-catalog-note {
