@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Clipboard, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clipboard, RotateCcw, Play } from "lucide-react";
+import Prism from "prismjs";
+import "prismjs/components/prism-rust";
+import "prismjs/components/prism-bash";
+import { CodeEditor } from "../../components/CodeEditor";
 import { lessonPath, type Catalog } from "../../lib/course";
 import { route } from "../../lib/journey";
 import { doneIn, finish, isFinished, mark, onProgress, read, save, setLast } from "../progress/store";
@@ -81,6 +85,7 @@ function Workspace({ lesson, catalog, courseId }: {
     isGraded ? doneIn(lesson.id).includes("self-reported") : isFinished(lesson.id));
   const [attested, setAttested] = useState(false);
   const [message, setMessage] = useState("");
+  const guideRef = useRef<HTMLDivElement>(null);
   const r = useMemo(() => route(catalog), [catalog, complete]);
   const index = r.all.findIndex((s) => s.item.id === lesson.id);
   const previous = index > 0 ? r.all[index - 1] : null;
@@ -94,6 +99,20 @@ function Workspace({ lesson, catalog, courseId }: {
     document.title = lesson.title + " · SwarmLadder Lab";
     return () => { document.title = "SwarmLadder Lab"; };
   }, [lesson.title]);
+
+  useEffect(() => {
+    guideRef.current?.querySelectorAll<HTMLElement>("pre code").forEach((block) => {
+      if (block.classList.contains("language-sh") || block.classList.contains("language-shell")) {
+        block.classList.add("language-bash");
+      }
+      if (block.className.includes("language-")) Prism.highlightElement(block);
+    });
+  }, [lesson.id]);
+
+  function openInPlayground() {
+    save("playground", courseId === "git" ? "scratch.sh" : "scratch.rs", draft);
+    window.location.assign("/playground?language=" + courseId);
+  }
 
   function updateDraft(value: string) {
     setDraft(value);
@@ -179,7 +198,7 @@ function Workspace({ lesson, catalog, courseId }: {
               <p className="eyebrow">Read · Practice · Verify</p>
               <h2 id="native-guide">Activity guide</h2>
             </header>
-            <div className="prose" dangerouslySetInnerHTML={{ __html: lesson.guideHtml }} />
+            <div ref={guideRef} className="prose" dangerouslySetInnerHTML={{ __html: lesson.guideHtml }} />
             {lesson.hint && (
               <details className="sql-hint">
                 <summary>Show a hint</summary>
@@ -246,22 +265,22 @@ function Workspace({ lesson, catalog, courseId }: {
                       onClick={() => copy(draft, "Draft")}>
                       <Clipboard size={14} /> Copy draft
                     </button>
+                    <button type="button" className="button quiet small" onClick={openInPlayground}>
+                      <Play size={14} /> Try in Playground
+                    </button>
                   </span>
                 </div>
-                <label className="sr-only" htmlFor="native-draft">
-                  {courseId === "git" ? "Git command notes" : "Rust code draft"}
-                </label>
-                <textarea
-                  id="native-draft"
-                  className="native-editor"
-                  spellCheck={false}
+                <CodeEditor
+                  language={courseId}
                   value={draft}
-                  onChange={(event) => updateDraft(event.target.value)}
-                  aria-label={courseId === "git" ? "Git command notes" : "Rust code draft"}
+                  onChange={updateDraft}
+                  onRun={openInPlayground}
+                  label={courseId === "git" ? "Git command notes" : "Rust code draft"}
                 />
                 <p className="native-caution">
-                  This draft is saved locally; paste changes into the actual source file
-                  and run the course checker for a real result.
+                  Highlighted editing, completion and Shift+Enter to open the Playground are available.
+                  The Playground supports a Git command simulator or Rust source compilation;
+                  project-specific checks still run in the original local course.
                 </p>
               </div>
             )}
