@@ -1,6 +1,7 @@
 // End-to-end test of the built site in headless Chromium (needs network for the Pyodide CDN).
 //   python build/build_site.py --course ../python-notebook --out dist
 //   node tests/e2e.cjs            (serves dist/ on a free port)
+//   BASE_URL=https://swarmladder.github.io/SwarmLadderlab/ node tests/e2e.cjs   (test the live site)
 const { chromium } = require("playwright");
 const http = require("http");
 const fs = require("fs");
@@ -41,8 +42,11 @@ async function cellIndexBy(page, predicate) {
 }
 
 (async () => {
-  await new Promise((resolve) => server.listen(0, resolve));
-  const base = `http://localhost:${server.address().port}/`;
+  let base = process.env.BASE_URL;
+  if (!base) {
+    await new Promise((resolve) => server.listen(0, resolve));
+    base = `http://localhost:${server.address().port}/`;
+  }
   const browser = await chromium.launch();
   const page = await browser.newPage();
   page.on("pageerror", (e) => console.log("pageerror:", e.message));
@@ -114,7 +118,7 @@ async function cellIndexBy(page, predicate) {
   expect("claim page lists each workbook and stays locked", /Control Flow/.test(claimText) && /\d+\/\d+/.test(claimText) && claimText.includes("Finish every workbook"), claimText);
 
   await browser.close();
-  server.close();
+  if (server.listening) server.close();
   console.log(failures ? `\n${failures} check(s) failed` : "\nall end-to-end checks passed");
   process.exit(failures ? 1 : 0);
 })();
