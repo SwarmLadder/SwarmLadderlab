@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Check, Search } from "lucide-react";
 import { lessonPath, type Catalog } from "../../lib/course";
 import type { Course } from "../../lib/courses";
-import { lessonNumber, route, visibleWindow, type LevelRoute, type Route, type Stop, type StopKind } from "../../lib/journey";
+import { topic, lessonNumber, route, visibleWindow, type LevelRoute, type Route, type Stop, type StopKind } from "../../lib/journey";
 import { onProgress, read } from "../progress/store";
 import { t } from "../../i18n";
 
@@ -29,9 +29,8 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
     <div className="course shell">
       <header className="course-head">
         <div>
-          <p className="eyebrow">{t("brand.tagline")} · {course.language}</p>
+          <p className="eyebrow">{course.language}</p>
           <h1 className="display">{course.title}</h1>
-          <p className="lede">{course.blurb}</p>
           <p className="course-stats">
             <span>{t("course.lessons", { n: lessons })}</span>
             <span>{t("course.checks", { n: total })}</span>
@@ -152,7 +151,8 @@ function Chapter({ lr, current, active, levels }: { lr: LevelRoute; current: Sto
 }
 
 function Rung({ stop, heading, showLevel }: { stop: Stop; heading?: string | null; showLevel?: boolean }) {
-  const { number, name } = lessonNumber(stop.item.title);
+  const { number, name: full } = lessonNumber(stop.item.title);
+  const name = topic(full);
   const status =
     stop.state === "done"
       ? t("course.complete")

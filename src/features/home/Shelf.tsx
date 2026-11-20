@@ -13,9 +13,8 @@ export function Shelf({ heading = true }: { heading?: boolean }) {
     <section className={"shelf" + (heading ? "" : " bare")} aria-labelledby={heading ? "shelf-title" : undefined} id="shelf">
       {heading && (
         <header className="shelf-head shell">
-          <p className="section-mark">§ 2</p>
+          <p className="section-mark">§ 1</p>
           <h2 id="shelf-title">{t("home.shelf.title")}</h2>
-          <p className="lede">{t("home.shelf.lede")}</p>
         </header>
       )}
       <div className="shell shelf-grid">
