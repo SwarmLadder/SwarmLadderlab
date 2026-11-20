@@ -1,18 +1,21 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { highlightPython } from "../lib/pythonSyntax";
+import { highlightSql } from "../lib/sqlSyntax";
 export function CodeEditor({
   value,
   onChange,
   onRun,
+  language = "python",
 }: {
   value: string;
   onChange: (s: string) => void;
   onRun: () => void;
+  language?: "python" | "sql";
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
   const mirror = useRef<HTMLPreElement>(null);
-  const highlighted = useMemo(() => highlightPython(value + "\n"), [value]);
+  const highlighted = useMemo(() => (language === "sql" ? highlightSql(value + "\n") : highlightPython(value + "\n")), [value, language]);
   function syncScroll() {
     if (!ref.current || !mirror.current) return;
     if (gutter.current) gutter.current.scrollTop = ref.current.scrollTop;
@@ -42,7 +45,7 @@ export function CodeEditor({
         <textarea
           onScroll={syncScroll}
           ref={ref}
-          aria-label="Python code"
+          aria-label={language === "sql" ? "SQL code" : "Python code"}
           spellCheck={false}
           wrap="off"
           value={value}
