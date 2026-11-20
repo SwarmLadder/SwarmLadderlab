@@ -40,6 +40,12 @@ SQL is now an open course at `/learn/sql`. It imports **105 learning activities*
 
 Git & GitHub is open at `/learn/git` with **114 activities**: 36 lessons, 24 locally graded Git labs, 45 interview Q&As, six workshops and three portfolio projects. Rust is open at `/learn/rust` with **227 activities**: 39 guides, 168 coding functions, eight study-log lessons, nine projects and three mastery portfolio briefs. Both have saved drafts and independent progress tracking. **Git commands and Cargo tests run on the learner's own machine, not inside the browser.** Learners must report a local pass explicitly; those marks are not automated online grades. For exact routes, content counts, safety and release checks see [Git/Rust integration guide](docs/GIT_RUST_INTEGRATION.md).
 
+### Four-language Playground and highlighted native lessons
+
+The [Playground](/playground) now supports **Python**, **SQL**, **Rust**, and **Git** with a language selector, colored CodeMirror editors, completions, saved code per language and mode-specific examples. Python and SQLite execute in the existing browser worker. **Rust** compiles on the official external Rust Playground *only when you click Run Rust*; do not submit secrets or private source. **Git** provides a clearly labeled, safe browser practice **simulator**, not the full native Git CLI. Rust functions and the official Git course labs still require their original local Cargo/Git graders. Rust and Git lesson pages also get highlighted code and a one-click transfer to the appropriate Playground.
+
+For the exact execution model, privacy limits and tests see [the four-language Playground guide](docs/PLAYGROUND_LANGUAGES.md).
+
 ### Adding a course
 
 Add an entry to `src/lib/courses.ts` with `status: "soon"` to show it on the shelf. When its content is ready, prepare its data the way `build/prepare.py` does for Python and switch it to `"open"`. Its route is `/learn/<id>`.
