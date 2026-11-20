@@ -41,7 +41,7 @@ def test_colab_setup_cell_is_dropped_and_links_rewritten(dist):
     lesson = json.loads((dist / "data" / "nb" / "basics__notebooks__06_loops.json").read_text())
     assert not any(c.get("kind") == "colab" or "git clone" in c.get("source", "") for c in lesson["cells"])
     html = " ".join(c["html"] for c in lesson["cells"] if c["type"] == "md")
-    assert "lesson.html?nb=basics/notebooks/07_lists" in html, "Next link should point to the site"
+    assert "/lesson/basics/notebooks/07_lists" in html, "Next link should point to the site"
     assert ".ipynb" not in html.replace("github.com", "")
 
 
@@ -54,8 +54,3 @@ def test_course_files_for_python_are_present(dist):
     assert "faulthandler_timeout" not in (dist / "course" / "pytest.ini").read_text()
 
 
-def test_pages_reference_existing_assets(dist):
-    for page in ("index.html", "lesson.html", "claim.html"):
-        text = (dist / page).read_text()
-        for asset in [a for a in ("assets/style.css", "assets/home.js", "assets/notebook.js", "assets/claim.js") if a in text]:
-            assert (dist / asset).exists(), asset

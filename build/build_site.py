@@ -4,7 +4,6 @@
     python build/build_site.py --course ../python-notebook --out dist
 
 Output (dist/):
-  index.html, lesson.html, claim.html, assets/   copied from site/
   data/catalog.json        levels -> sections -> notebooks, plus totals for progress
   data/nb/<id>.json        one notebook: rendered Markdown and code cells
   course/...               the helper files Python needs in the browser (lesson.py,
@@ -25,7 +24,6 @@ from pathlib import Path
 import markdown
 
 HERE = Path(__file__).resolve().parent
-SITE = HERE.parent / "site"
 COURSE_REPO_URL = "https://github.com/SwarmLadder/python-notebook"
 LEVELS = [("basics", "Basics", "🥉"), ("intermediate", "Intermediate", "🥈"), ("advanced", "Advanced", "🥇")]
 SECTIONS = [("notebooks", "Lessons"), ("exercises", "Workbooks"), ("worked_examples", "Worked examples"), ("projects", "Projects")]
@@ -56,7 +54,7 @@ def rewrite_links(html: str, nb_path: str) -> str:
         target, _, anchor = url.partition("#")
         resolved = posixpath.normpath(posixpath.join(folder, target))
         if resolved.endswith(".ipynb"):
-            new = "lesson.html?nb=" + resolved[:-len(".ipynb")]
+            new = "/lesson/" + resolved[:-len(".ipynb")]
         elif resolved.endswith("/") or "." not in posixpath.basename(resolved):
             new = f"{COURSE_REPO_URL}/tree/main/{resolved.rstrip('/')}"
         else:
@@ -153,7 +151,6 @@ def workbook_modules(course: Path) -> dict:
 def build(course: Path, out: Path) -> dict:
     if out.exists():
         shutil.rmtree(out)
-    shutil.copytree(SITE, out)
     (out / "data" / "nb").mkdir(parents=True)
     catalog = {"course": COURSE_REPO_URL, "levels": []}
     for level, label, medal in LEVELS:
