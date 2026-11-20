@@ -1,10 +1,5 @@
-import { Curriculum } from "../../features/curriculum/Curriculum";
-import { Personal } from "../Personal";
-import { catalog } from "../catalog";
+import { redirect } from "next/navigation";
+// The old flat curriculum now lives on the course route.
 export default function Page() {
-  return (
-    <Personal>
-      <Curriculum catalog={catalog()} />
-    </Personal>
-  );
+  redirect("/learn/python");
 }

@@ -3,6 +3,8 @@ type State = {
   done?: Record<string, number>;
   code?: Record<string, Record<string, string>>;
   last?: string | null;
+  reached?: Record<string, number>; // furthest step revealed in each lesson
+  finished?: Record<string, number>; // lessons read to the end (for ungraded pages)
 };
 export function read(): State {
   try {
@@ -13,6 +15,7 @@ export function read(): State {
 }
 function write(state: State) {
   localStorage.setItem(STORE, JSON.stringify(state));
+  if (typeof window !== "undefined") dispatchEvent(new Event("swl-progress"));
 }
 export const doneIn = (id: string) =>
   Object.keys(read().done ?? {})
@@ -35,6 +38,34 @@ export function save(id: string, cell: string, value?: string) {
 export function setLast(id: string) {
   write({ ...read(), last: id });
 }
+export const reachedIn = (id: string) => read().reached?.[id] ?? 0;
+export function reach(id: string, step: number) {
+  const s = read();
+  s.reached ??= {};
+  if ((s.reached[id] ?? 0) < step) {
+    s.reached[id] = step;
+    write(s);
+  }
+}
+export const isFinished = (id: string) => Boolean(read().finished?.[id]);
+export function finish(id: string) {
+  const s = read();
+  s.finished ??= {};
+  s.finished[id] ??= Date.now();
+  write(s);
+}
+// Lets components re-render when progress changes in this or another tab.
+export function onProgress(listener: () => void) {
+  const handler = (e: Event) => {
+    if (e.type !== "storage" || (e as StorageEvent).key === STORE) listener();
+  };
+  addEventListener("storage", handler);
+  addEventListener("swl-progress", handler);
+  return () => {
+    removeEventListener("storage", handler);
+    removeEventListener("swl-progress", handler);
+  };
+}
 export function exportData() {
   return JSON.stringify(
     { format: STORE, exported: new Date().toISOString(), ...read() },
@@ -53,6 +84,12 @@ export function importData(text: string) {
     (data.done !== undefined &&
       (!record(data.done) ||
         !Object.values(data.done).every((v) => typeof v === "number"))) ||
+    !["reached", "finished"].every(
+      (k) =>
+        data[k] === undefined ||
+        (record(data[k]) &&
+          Object.values(data[k] as object).every((v) => typeof v === "number")),
+    ) ||
     (data.code !== undefined &&
       (!record(data.code) ||
         !Object.values(data.code).every(

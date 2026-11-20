@@ -1,52 +1,23 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  BookOpen,
-  FileCode2,
-  Play,
-  RotateCcw,
-  Square,
-  Terminal,
-} from "lucide-react";
-import {
-  courseRepo,
-  lessonPath,
-  notebookData,
-  type Catalog,
-  type CodeCell,
-  type Notebook,
-} from "../../lib/course";
-import {
-  doneIn,
-  graduatedKeys,
-  mark,
-  read,
-  save,
-  setLast,
-} from "../progress/store";
+import { ArrowLeft, ArrowRight, Check, ListOrdered, Play, RotateCcw, Rows3, Square } from "lucide-react";
+import { courseRepo, lessonPath, notebookData, type Catalog, type CodeCell, type Notebook } from "../../lib/course";
+import { coursePath } from "../../lib/courses";
+import { lessonNumber, route } from "../../lib/journey";
+import { doneIn, finish, graduatedKeys, mark, onProgress, reach, reachedIn, read, save, setLast } from "../progress/store";
 import { highlightPython } from "../../lib/pythonSyntax";
 import { Runner } from "../../workers/runner";
 import { CodeEditor } from "../../components/CodeEditor";
-import { ProgressMeter } from "../../components/ProgressMeter";
+import { buildSteps, keysFor, quizFingerprint, type QuizData, type Step } from "./steps";
+import { t } from "../../i18n";
+
 type Output = { name: string; text: string };
-function forCell(c: CodeCell) {
-  if (c.kind === "quiz")
-    return Array.from(
-      c.source.matchAll(/quiz\.answer\((\d+),/g),
-      (m) => "q" + m[1],
-    );
-  const m =
-    c.kind === "exercise"
-      ? c.source.match(/check\((\d+),/)
-      : c.kind === "check"
-        ? c.source.match(/check\('([^']+)'\)/)
-        : null;
-  return m ? [(c.kind === "exercise" ? "ex" : "wb:") + m[1]] : [];
-}
+const VIEW_KEY = "swarmladderlab.view";
+
 export function Lesson({ id, catalog }: { id: string; catalog: Catalog }) {
-  const [nb, setNb] = useState<Notebook>(),
-    [error, setError] = useState("");
+  const [nb, setNb] = useState<Notebook>();
+  const [error, setError] = useState("");
   useEffect(() => {
     const ctl = new AbortController();
     notebookData(id, ctl.signal)
@@ -56,32 +27,42 @@ export function Lesson({ id, catalog }: { id: string; catalog: Catalog }) {
           setNb(n);
         }
       })
-      .catch((e) => {
-        if (!ctl.signal.aborted) setError(String(e));
-      });
+      .catch((e) => !ctl.signal.aborted && setError(String(e)));
     return () => ctl.abort();
   }, [id]);
-  return nb ? (
-    <Workspace nb={nb} catalog={catalog} />
-  ) : (
-    <p role="status">
-      {error || "Loading notebook…"} <Link href="/curriculum">Curriculum</Link>
+  if (nb) return <Workspace nb={nb} catalog={catalog} />;
+  return (
+    <p className="page-loading" role="status">
+      {error ? t("lesson.notFound") : t("loading.lesson")} {error && <Link href={coursePath("python")}>{t("lesson.complete.route")}</Link>}
     </p>
   );
 }
+
+function useDone(id: string) {
+  const [done, setDone] = useState(() => doneIn(id));
+  useEffect(() => onProgress(() => setDone(doneIn(id))), [id]);
+  return done;
+}
+
 function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
-  const [status, setStatus] = useState("Loading Python…"),
-    [edits, edit] = useState(() => read().code?.[nb.id] ?? {}),
-    [outputs, output] = useState<Record<string, Output[]>>({}),
-    [busy, setBusy] = useState<string | null>(null),
-    [batch, setBatch] = useState(false);
-  const runner = useRef<Runner | null>(null),
-    running = useRef(false),
-    article = useRef<HTMLElement>(null);
-  const [outline, setOutline] = useState<{ id: string; title: string }[]>([]),
-    [active, setActive] = useState("");
+  const steps = useMemo(() => buildSteps(nb), [nb]);
+  const done = useDone(nb.id);
+  const [status, setStatus] = useState(t("runtime.loading"));
+  const [edits, setEdits] = useState<Record<string, string>>(() => read().code?.[nb.id] ?? {});
+  const [outputs, setOutputs] = useState<Record<string, Output[]>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [batch, setBatch] = useState(false);
+  const [reached, setReached] = useState(() => Math.min(reachedIn(nb.id), steps.length - 1));
+  const [showAll, setShowAll] = useState(() => localStorage.getItem(VIEW_KEY) === "all");
+  const runner = useRef<Runner | null>(null);
+  const running = useRef(false);
+  const setupRan = useRef(false);
+  const article = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<(HTMLElement | null)[]>([]);
+  const [focusStep, setFocusStep] = useState<number | null>(null);
+
   useEffect(() => {
-    runner.current = new Runner(setStatus);
+    runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
     document.title = nb.title + " · SwarmLadder Lab";
     return () => {
       runner.current?.dispose();
@@ -89,76 +70,87 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       document.title = "SwarmLadder Lab";
     };
   }, [nb]);
+
+  // Highlight code examples that live inside the lesson text.
   useEffect(() => {
-    for (const block of article.current!.querySelectorAll(
-      ".md pre code.language-python, .md pre code.language-py",
-    )) {
-      block.innerHTML = highlightPython(block.textContent ?? "");
+    for (const block of article.current?.querySelectorAll(".prose pre code.language-python, .prose pre code.language-py") ?? []) {
+      if (!block.querySelector(".token")) block.innerHTML = highlightPython(block.textContent ?? "");
     }
-    const headings = [
-      ...article.current!.querySelectorAll(".md h2,.md h3"),
-    ].slice(0, 25);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setActive(e.target.id);
-      },
-      { rootMargin: "0px 0px -60% 0px" },
-    );
-    setOutline(
-      headings.map((h, i) => {
-        h.id ||= "lesson-section-" + i;
-        observer.observe(h);
-        return { id: h.id, title: h.textContent || "" };
-      }),
-    );
-    if (location.hash)
-      document
-        .getElementById(decodeURIComponent(location.hash.slice(1)))
-        ?.scrollIntoView();
-    return () => observer.disconnect();
-  }, [nb]);
+  });
+
+  useEffect(() => {
+    if (focusStep === null) return;
+    const el = stepRefs.current[focusStep];
+    el?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    el?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+    setFocusStep(null);
+  }, [focusStep]);
+
+  const visible = showAll ? steps.length - 1 : reached;
+  const lastStep = steps.length - 1;
+  const atEnd = visible >= lastStep;
+  useEffect(() => {
+    if (atEnd) finish(nb.id);
+  }, [atEnd, nb.id]);
+
+  function goTo(i: number) {
+    const target = Math.min(i, lastStep);
+    if (target > reached) {
+      reach(nb.id, target);
+      setReached(target);
+    }
+    setFocusStep(target);
+  }
+
   function change(c: CodeCell, v?: string) {
     save(nb.id, c.id, v);
-    edit((old) => ({ ...old, [c.id]: v ?? c.source }));
+    setEdits((old) => {
+      const next = { ...old };
+      if (v === undefined) delete next[c.id];
+      else next[c.id] = v;
+      return next;
+    });
   }
-  function append(id: string, name: string, text: string) {
-    output((o) => ({ ...o, [id]: [...(o[id] ?? []), { name, text }] }));
+  const append = (id: string, name: string, text: string) => setOutputs((o) => ({ ...o, [id]: [...(o[id] ?? []), { name, text }] }));
+
+  const setupCells = nb.cells.filter((c): c is CodeCell => c.type === "code" && c.kind === "setup");
+  // Runs are queued so a cell started while the hidden setup is still running waits its turn.
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  const requested = useRef<string | null>(null);
+  function execute(cells: CodeCell[], all = false) {
+    const target = cells.filter((c) => c.kind !== "setup").at(-1);
+    if (target) requested.current = target.id;
+    const next = chain.current.then(() => runCells(cells, all));
+    chain.current = next.catch(() => undefined);
+    return next;
   }
-  async function execute(cells: CodeCell[], all = false) {
+  async function runCells(cells: CodeCell[], all: boolean) {
     const session = runner.current;
     if (!session || running.current) return;
     running.current = true;
     setBatch(all);
     try {
-      for (const c of cells) {
+      // Setup cells (helpers, checkers) run once per Python session, silently.
+      const queue = !setupRan.current && !cells.every((c) => c.kind === "setup") ? [...setupCells.filter((s) => !cells.includes(s)), ...cells] : cells;
+      for (const c of queue) {
+        const quiet = c.kind === "setup" && !cells.includes(c);
         setBusy(c.id);
-        output((o) => ({ ...o, [c.id]: [] }));
+        if (!quiet) setOutputs((o) => ({ ...o, [c.id]: [] }));
         let text = "";
         const code = read().code?.[nb.id]?.[c.id] ?? c.source;
-        const result = await session.run(
-          code,
-          "/course/" + nb.folder,
-          (name, chunk) => {
-            text += chunk;
-            append(c.id, name, chunk);
-          },
-        );
+        const result = await session.run(code, "/course/" + nb.folder, (name, chunk) => {
+          text += chunk;
+          if (!quiet) append(c.id, name, chunk);
+        });
         if (session !== runner.current) return;
-        if (result.error)
-          append(
-            c.id,
-            "stderr",
-            [
-              result.friendly,
-              (!result.friendly || !code.includes("___")) && result.error,
-            ]
-              .filter(Boolean)
-              .join("\n"),
-          );
+        if (c.kind === "setup" && !result.error) setupRan.current = true;
+        if (result.error && !quiet)
+          append(c.id, "stderr", [result.friendly, (!result.friendly || !code.includes("___")) && result.error].filter(Boolean).join("\n"));
         const keys = graduatedKeys(text);
         if (keys.length) mark(nb.id, keys);
         if (result.stopped) break;
       }
+      requested.current = null;
     } finally {
       if (session === runner.current) {
         running.current = false;
@@ -169,172 +161,311 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   }
   function restart(clear: boolean) {
     runner.current?.dispose();
-    runner.current = new Runner(setStatus);
-    setStatus("Loading Python…");
-    if (clear) output({});
-    else if (busy)
-      append(busy, "stderr", "Stopped. Run the cells above again.");
+    runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
+    setupRan.current = false;
+    setStatus(t("runtime.loading"));
+    chain.current = Promise.resolve();
+    const stoppedCell = requested.current ?? busy;
+    requested.current = null;
+    if (clear) setOutputs({});
+    else if (stoppedCell) append(stoppedCell, "stderr", t("lesson.stopped"));
     running.current = false;
     setBusy(null);
     setBatch(false);
   }
-  const level = catalog.levels.find((l) => nb.id.startsWith(l.id + "/"));
-  const items = level?.sections.flatMap((s) => s.items) ?? [];
-  const pos = items.findIndex((i) => i.id === nb.id);
-  const done = doneIn(nb.id);
+
+  // Where this lesson sits on the route, for the header and the completion card.
+  const r = useMemo(() => route(catalog), [catalog, done.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const here = r.all.findIndex((s) => s.item.id === nb.id);
+  const stop = r.all[here];
+  const prevStop = here > 0 ? r.all[here - 1] : null;
+  const nextStop = here >= 0 ? r.all[here + 1] ?? null : null;
+  const { number, name } = lessonNumber(nb.title);
+  const solvedHere = nb.graded.filter((k) => done.includes(k)).length;
+  const stepDone = (s: Step, i: number) => (s.keys.length ? s.keys.every((k) => done.includes(k)) : i < reached);
+
   return (
-    <>
-      <p className="page-context">
-        <BookOpen size={16} />
-        <Link href="/curriculum">Python curriculum</Link> / {level?.title}
-      </p>
-      <h1>{nb.title}</h1>
-      <div className="workspace">
-        <aside className="panel outline">
-          <h2>Lesson outline</h2>
-          <ProgressMeter
-            value={nb.graded.filter((k) => done.includes(k)).length}
-            total={nb.graded.length}
-          />
-          {outline.map((h) => (
-            <a
-              key={h.id}
-              aria-current={active === h.id ? "location" : undefined}
-              href={"#" + h.id}
-            >
-              {h.title}
-            </a>
-          ))}
-        </aside>
-        <article ref={article}>
-          <div className="toolbar">
+    <div className="lesson">
+      <div className="lesson-bar" role="region" aria-label={t("lesson.steps")}>
+        <div className="lesson-bar-row">
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <Link href={coursePath("python")}>Python</Link>
+            <span aria-hidden="true">/</span>
+            <span>{stop?.level.title}</span>
+          </nav>
+          <span className="lesson-bar-progress">{t("lesson.of", { n: Math.min(visible, lastStep) + 1, total: steps.length })}</span>
+          <span className={"runtime " + (status === t("runtime.ready") ? "ready" : "")} role="status">
+            <span className="runtime-dot" aria-hidden="true" />
+            {status}
+          </span>
+          <div className="lesson-bar-actions">
+            <button className="button quiet small" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)}>
+              <Play size={14} strokeWidth={1.8} /> {batch ? t("lesson.runningAll") : t("lesson.runAll")}
+            </button>
+            <button className="button quiet small" onClick={() => restart(false)}>
+              <Square size={13} strokeWidth={1.8} /> {t("lesson.stop")}
+            </button>
+            <button className="button quiet small" onClick={() => restart(true)}>
+              <RotateCcw size={14} strokeWidth={1.8} /> {t("lesson.restart")}
+            </button>
             <button
-              disabled={!!busy}
-              onClick={() =>
-                execute(
-                  nb.cells.filter((c) => c.type === "code"),
-                  true,
-                )
-              }
+              className="button quiet small"
+              aria-pressed={showAll}
+              onClick={() => {
+                localStorage.setItem(VIEW_KEY, showAll ? "steps" : "all");
+                setShowAll(!showAll);
+              }}
             >
-              <Play size={14} /> {batch ? "Running all…" : "Run All"}
+              {showAll ? <ListOrdered size={14} strokeWidth={1.8} /> : <Rows3 size={14} strokeWidth={1.8} />} {showAll ? t("lesson.stepByStep") : t("lesson.showAll")}
             </button>
-            <button onClick={() => restart(false)}>
-              <Square size={13} /> Stop
-            </button>
-            <button onClick={() => restart(true)}>
-              <RotateCcw size={14} /> Restart
-            </button>
-            <small className="runtime-state" role="status">
-              {status}
-            </small>
           </div>
-          <p className="sources">
-            <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub ↗</a>{" "}
-            ·{" "}
-            <a
-              href={
-                "https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" +
-                nb.id +
-                ".ipynb"
-              }
-            >
-              Colab ↗
-            </a>
-          </p>
-          {nb.cells.map((c, i) => {
-            if (c.type === "md")
+        </div>
+        <div className="lesson-bar-track" aria-hidden="true">
+          <span style={{ width: `${(100 * (Math.min(visible, lastStep) + 1)) / steps.length}%` }} />
+        </div>
+      </div>
+
+      <header className="lesson-head shell">
+        <p className="eyebrow">
+          {stop?.level.title} {stop && stop.kind !== "lesson" ? "· " + t(stop.kind === "practice" ? "course.practice" : stop.kind === "build" ? "course.build" : "course.examples") : ""}
+        </p>
+        <h1 className="lesson-title">
+          {number && <span className="lesson-number">{number}</span>}
+          {name}
+        </h1>
+        <p className="lesson-meta">
+          {nb.graded.length > 0 && <span>{solvedHere} / {nb.graded.length} {t("course.checks", { n: "" }).trim()}</span>}
+          <span>{t("lesson.stepCount", { n: steps.length })}</span>
+          <span>
+            {t("lesson.sources")}{" "}
+            <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a> ·{" "}
+            <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
+          </span>
+        </p>
+      </header>
+
+      <div className="lesson-layout shell">
+        <aside className="step-rail" aria-label={t("lesson.steps")}>
+          <p className="eyebrow">{t("lesson.steps")}</p>
+          <ol>
+            {steps.map((s, i) => {
+              const state = stepDone(s, i) ? "done" : i === visible && !showAll ? "current" : i <= visible ? "open" : "ahead";
               return (
-                <section
-                  className="md"
-                  key={i}
-                  dangerouslySetInnerHTML={{
-                    __html: c.html,
-                  }}
-                />
+                <li key={i} className={state}>
+                  {s.part && <span className="step-rail-part">{s.part}</span>}
+                  <button onClick={() => goTo(i)} aria-current={i === visible && !showAll ? "step" : undefined}>
+                    <span className="step-rail-node" aria-hidden="true">{state === "done" ? <Check size={11} strokeWidth={2.6} /> : i + 1}</span>
+                    <span className="step-rail-title">{s.title}</span>
+                  </button>
+                </li>
               );
-            const keys = forCell(c);
-            return (
-              <section
-                className={"code-cell panel " + (busy === c.id ? "busy" : "")}
-                key={c.id}
-              >
-                <div className="cell-tools">
-                  <strong>
-                    <FileCode2 size={16} />
-                    {c.kind === "code" ? "Python" : c.kind}
-                    {keys.length > 0 && keys.every((k) => done.includes(k))
-                      ? " ✓"
-                      : ""}
-                  </strong>
-                  <div>
-                    <button
-                      onClick={() => {
-                        if (
-                          (edits[c.id] ?? c.source) === c.source ||
-                          confirm(
-                            "Replace your code in this cell with the original?",
-                          )
-                        )
-                          change(c);
-                      }}
-                    >
-                      Reset
-                    </button>
-                    <button
-                      className="run"
-                      disabled={!!busy}
-                      onClick={() => execute([c])}
-                    >
-                      <Play size={13} /> Run
-                    </button>
-                  </div>
+            })}
+          </ol>
+        </aside>
+
+        <div className="steps" ref={article}>
+          {steps.slice(0, visible + 1).map((s, i) => (
+            <section key={i} className={"step" + (stepDone(s, i) ? " done" : "")} ref={(el) => { stepRefs.current[i] = el; }} aria-labelledby={`step-${i}`}>
+              <header className="step-head">
+                {s.part && <p className="step-part">{s.part}</p>}
+                <p className="eyebrow">{t("lesson.step", { n: i + 1 })}</p>
+                <h2 id={`step-${i}`} tabIndex={-1}>{s.title}</h2>
+              </header>
+              {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} />}
+              {s.cells.map((c, ci) => {
+                if (c.type === "md") return <div key={ci} className="prose" dangerouslySetInnerHTML={{ __html: c.html }} />;
+                if (c.kind === "quiz" && s.quiz) return null;
+                if (c.kind === "setup")
+                  return (
+                    <details key={c.id} className="setup-cell">
+                      <summary>{t("lesson.setup")}</summary>
+                      <pre>{c.source}</pre>
+                    </details>
+                  );
+                const before = s.cells.slice(0, ci).filter((x): x is CodeCell => x.type === "code" && x.kind === "code");
+                return (
+                  <CodeSpecimen
+                    key={c.id}
+                    cell={c}
+                    value={edits[c.id] ?? c.source}
+                    busy={busy}
+                    output={outputs[c.id]}
+                    solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}
+                    onChange={(v) => change(c, v)}
+                    onRun={() => execute(c.kind === "check" ? [...before, c] : [c])}
+                  />
+                );
+              })}
+              {!showAll && i === visible && i < lastStep && (
+                <div className="step-continue">
+                  <button className="button primary" onClick={() => goTo(i + 1)}>
+                    {t("lesson.continueTo", { title: steps[i + 1].title })} <ArrowRight size={18} strokeWidth={1.8} />
+                  </button>
+                  <span className="step-continue-count">{t("lesson.of", { n: i + 2, total: steps.length })}</span>
                 </div>
-                <CodeEditor
-                  value={edits[c.id] ?? c.source}
-                  onChange={(v) => change(c, v)}
-                  onRun={() => execute([c])}
-                />
-                <div className="cell-console">
-                  <small>
-                    <Terminal size={14} /> Output
-                  </small>
-                  <kbd>Shift + Enter</kbd>
-                </div>
-                <pre className="output" aria-live="polite">
-                  {!outputs[c.id]?.length && (
-                    <span className="output-hint">
-                      {busy === c.id
-                        ? "Running…"
-                        : outputs[c.id]
-                          ? "Finished without output."
-                          : "—"}
-                    </span>
+              )}
+            </section>
+          ))}
+
+          {atEnd && (
+            <section className="lesson-end" aria-labelledby="lesson-end">
+              <span className="lesson-end-mark" aria-hidden="true">✓</span>
+              <div>
+                <h2 id="lesson-end">{t("lesson.complete.title")}</h2>
+                <p>{t("lesson.complete.body")}</p>
+                <div className="lesson-end-actions">
+                  {nextStop && (
+                    <Link className="button primary" href={lessonPath(nextStop.item.id)}>
+                      {t("lesson.complete.next", { title: lessonNumber(nextStop.item.title).name })} <ArrowRight size={18} strokeWidth={1.8} />
+                    </Link>
                   )}
-                  {outputs[c.id]?.map((o, i) => (
-                    <span key={i} className={o.name}>
-                      {o.text}
-                    </span>
-                  ))}
-                </pre>
-              </section>
-            );
-          })}
-          <nav className="pager">
-            {pos > 0 && (
-              <Link href={lessonPath(items[pos - 1].id)}>
-                ← {items[pos - 1].title}
+                  <Link className="button quiet" href={coursePath("python")}>{t("lesson.complete.route")}</Link>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <nav className="pager" aria-label="Lessons">
+            {prevStop ? (
+              <Link href={lessonPath(prevStop.item.id)}>
+                <ArrowLeft size={16} strokeWidth={1.8} /> <span><small>{t("lesson.prev")}</small>{lessonNumber(prevStop.item.title).name}</span>
               </Link>
-            )}
-            <Link href="/curriculum">All lessons</Link>
-            {pos >= 0 && pos < items.length - 1 && (
-              <Link href={lessonPath(items[pos + 1].id)}>
-                {items[pos + 1].title} →
+            ) : <span />}
+            {nextStop && (
+              <Link href={lessonPath(nextStop.item.id)} className="pager-next">
+                <span><small>{t("lesson.nextLesson")}</small>{lessonNumber(nextStop.item.title).name}</span> <ArrowRight size={16} strokeWidth={1.8} />
               </Link>
             )}
           </nav>
-        </article>
+        </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+function label(cell: CodeCell) {
+  if (cell.kind === "exercise") return t("lesson.exercise", { n: cell.source.match(/check\((\d+),/)?.[1] ?? "" });
+  if (cell.kind === "check") return t("lesson.check") + " · " + (cell.source.match(/check\('([^']+)'\)/)?.[1] ?? "");
+  if (/___/.test(cell.source)) return t("lesson.yourCode");
+  return t("lesson.example");
+}
+
+function lineClass(line: string) {
+  if (/^\s*✅/.test(line)) return "ok";
+  if (/^\s*❌/.test(line)) return "no";
+  if (/^\s*✏️/.test(line)) return "todo";
+  if (/hint \d\/\d:/.test(line)) return "hint";
+  return "";
+}
+
+function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun }: {
+  cell: CodeCell; value: string; busy: string | null; output?: Output[]; solved: boolean;
+  onChange: (v?: string) => void; onRun: () => void;
+}) {
+  const isCheck = cell.kind === "check";
+  const text = output?.map((o) => o.text).join("") ?? "";
+  const errText = output?.filter((o) => o.name === "stderr").map((o) => o.text).join("") ?? "";
+  return (
+    <div className={"code-cell kind-" + cell.kind + (busy === cell.id ? " busy" : "") + (solved ? " solved" : "")}>
+      <div className="cell-tools">
+        <span className="cell-label">
+          {label(cell)}
+          {solved && <span className="cell-solved"><Check size={13} strokeWidth={2.4} /> {t("lesson.solved")}</span>}
+        </span>
+        <span className="cell-buttons">
+          {!isCheck && (
+            <button
+              className="button quiet small"
+              onClick={() => {
+                if (value === cell.source || confirm(t("lesson.resetConfirm"))) onChange(undefined);
+              }}
+            >
+              {t("lesson.reset")}
+            </button>
+          )}
+          <button className="button ink small run" disabled={!!busy} onClick={onRun}>
+            <Play size={13} strokeWidth={2} /> {isCheck ? t("lesson.check") : t("lesson.run")}
+          </button>
+        </span>
+      </div>
+      {isCheck ? (
+        <div className="check-line"><code>{cell.source.trim()}</code></div>
+      ) : (
+        <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} />
+      )}
+      {(output !== undefined || busy === cell.id) && (
+        <div className="output-wrap">
+          <span className="output-label">{t("lesson.output")}</span>
+          <pre className="output" aria-live="polite">
+            {!text && <span className="output-hint">{busy === cell.id ? t("lesson.running") : t("lesson.noOutput")}</span>}
+            {text
+              .replace(errText, "")
+              .split(/(?<=\n)/)
+              .map((line, i) => (
+                <span key={i} className={lineClass(line)}>{line}</span>
+              ))}
+            {errText && <span className="stderr">{errText}</span>}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Quiz({ quiz, nbId, done }: { quiz: QuizData; nbId: string; done: string[] }) {
+  const [picked, setPicked] = useState<Record<number, { letter: string; ok: boolean }>>({});
+  const [correct, setCorrect] = useState<Record<number, string>>({});
+  // Reveal which option was right for questions already answered correctly.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const found: Record<number, string> = {};
+      for (const q of quiz.questions) {
+        if (!done.includes("q" + q.number)) continue;
+        for (const o of q.options) if ((await quizFingerprint(quiz.id, q.number, o.letter)) === quiz.hashes[q.number]) found[q.number] = o.letter;
+      }
+      if (alive) setCorrect(found);
+    })();
+    return () => { alive = false; };
+  }, [quiz, done]);
+  async function choose(n: number, letter: string) {
+    const ok = (await quizFingerprint(quiz.id, n, letter)) === quiz.hashes[n];
+    setPicked((p) => ({ ...p, [n]: { letter, ok } }));
+    if (ok) {
+      mark(nbId, ["q" + n]);
+      setCorrect((c) => ({ ...c, [n]: letter }));
+    }
+  }
+  return (
+    <ol className="quiz">
+      {quiz.questions.map((q) => {
+        const answered = correct[q.number];
+        const pick = picked[q.number];
+        return (
+          <li key={q.number} className={"quiz-q" + (answered ? " right" : "")}>
+            <fieldset>
+              <legend>
+                <span className="quiz-n">{q.number}</span>
+                <span dangerouslySetInnerHTML={{ __html: q.html }} />
+              </legend>
+              <div className="quiz-options">
+                {q.options.map((o) => {
+                  const state = answered === o.letter ? "right" : pick?.letter === o.letter && !pick.ok ? "wrong" : "";
+                  return (
+                    <button key={o.letter} className={"quiz-option " + state} aria-pressed={pick?.letter === o.letter || answered === o.letter} disabled={Boolean(answered)} onClick={() => choose(q.number, o.letter)}>
+                      <span className="quiz-letter">{o.letter}</span>
+                      <span dangerouslySetInnerHTML={{ __html: o.html }} />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="quiz-feedback" role="status">
+                {answered ? t("lesson.quizCorrect") : pick && !pick.ok ? t("lesson.quizWrong") : ""}
+              </p>
+            </fieldset>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
