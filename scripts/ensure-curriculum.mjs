@@ -29,7 +29,13 @@ if (!existsSync(course)) {
 try {
   execFileSync(python, ["-c", "import markdown"], { stdio: "ignore" });
 } catch {
-  run(python, ["-m", "pip", "install", "--user", "--quiet", "markdown"]);
+  const pip = [python, "-m", "pip", "install", "--user", "--quiet", "markdown"];
+  try {
+    run(pip[0], pip.slice(1));
+  } catch {
+    // Newer system Pythons refuse user installs without this flag (PEP 668).
+    run(pip[0], [...pip.slice(1), "--break-system-packages"]);
+  }
 }
 console.log(`Preparing the curriculum from ${course}`);
 run(python, ["build/prepare.py", "--course", course]);
