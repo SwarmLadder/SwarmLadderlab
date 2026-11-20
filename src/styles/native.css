@@ -116,3 +116,13 @@
   .native-lesson .native-workspace .cell-tools { gap: .5rem; flex-wrap: wrap; }
   .native-editor { min-height: 13rem; font-size: .78rem; padding: .8rem; }
 }
+
+.native-catalog-note {
+  margin: -.2rem 0 1.75rem;
+  padding: 1rem 1.2rem;
+  background: var(--sheet);
+  border-left: 3px solid var(--signal);
+  color: var(--ink-2);
+  font-size: .93rem;
+  line-height: 1.6;
+}
