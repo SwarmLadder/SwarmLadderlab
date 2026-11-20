@@ -20,7 +20,7 @@ const runtime = (page: Page) => page.locator(".runtime");
 test("home, course route, mobile theme, data migration and achievement gating", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 });
   await page.goto("/");
-  await expect(page.getByRole("link", { name: /Begin with Python/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Begin with Python/ }).first()).toBeVisible();
   await page.getByRole("button", { name: /Switch to/ }).click();
   const theme = await page.locator("html").getAttribute("data-theme");
   await page.reload();
@@ -28,7 +28,7 @@ test("home, course route, mobile theme, data migration and achievement gating", 
   expect(await page.evaluate(() => document.body.scrollWidth <= innerWidth)).toBeTruthy();
 
   // New visitors go straight to the first lesson; the route lives at /learn/python.
-  await expect(page.getByRole("link", { name: /Begin with Python/ })).toHaveAttribute("href", /\/lesson\//);
+  await expect(page.getByRole("link", { name: /Begin with Python/ }).first()).toHaveAttribute("href", /\/lesson\//);
   await page.goto("/learn/python");
   // Progressive discovery: later chapters stay closed until opened.
   await expect(page.getByRole("button", { name: "Peek inside" }).first()).toBeVisible();

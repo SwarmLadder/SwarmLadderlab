@@ -14,6 +14,8 @@ npm run curriculum
 npm run dev
 ```
 
+Every build (the Vite config runs `scripts/ensure-curriculum.mjs`) prepares the curriculum automatically when `public/data` is missing: it uses `$COURSE` or `../python-notebook`, or clones the course into `.generated/`. This lets hosted builders such as Cloudflare Workers Builds build from this repository alone.
+
 Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/checkout` for another curriculum checkout. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
 
 ## Structure
