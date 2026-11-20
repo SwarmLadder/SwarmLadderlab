@@ -62,6 +62,14 @@ test("Playground switches between Python, SQL, Rust and Git with independent sav
 test("Rust Run sends code only on click and displays real compiler response", async ({ page }) => {
   let requests = 0;
   await page.route("https://play.rust-lang.org/execute", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "content-type",
+      } });
+      return;
+    }
     requests++;
     const body = route.request().postDataJSON();
     expect(body).toMatchObject({ channel: "stable", mode: "debug", edition: "2021",
@@ -89,6 +97,14 @@ test("Rust Run sends code only on click and displays real compiler response", as
 
 test("Rust compiler errors are shown on the correct CodeMirror line", async ({ page }) => {
   await page.route("https://play.rust-lang.org/execute", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "content-type",
+      } });
+      return;
+    }
     await route.fulfill({ status: 200, contentType: "application/json",
       headers: { "access-control-allow-origin": "*" },
       body: JSON.stringify({
