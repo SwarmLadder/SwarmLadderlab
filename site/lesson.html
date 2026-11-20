@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson · SwarmLadderlab</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">🪜 SwarmLadderlab</a>
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+    <nav class="toolbar">
+      <button id="run-all" title="Run every cell from the top">▶▶ Run all</button>
+      <button id="stop" title="Stop running code and restart Python">■ Stop</button>
+      <button id="restart" title="Forget all variables and start Python again">↻ Restart</button>
+    </nav>
+  </header>
+  <main id="notebook" class="notebook" aria-busy="true"></main>
+  <footer class="pager" id="pager"></footer>
+  <script type="module" src="assets/notebook.js"></script>
+</body>
+</html>

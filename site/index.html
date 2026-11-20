@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SwarmLadderlab · Learn Python by doing</title>
+  <meta name="description" content="A free, hands-on Python course that runs in your browser: lessons, fill-in exercises with instant checks, quizzes and projects.">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">🪜 SwarmLadderlab</a>
+    <nav class="toolbar"><a href="claim.html">🏆 Achievements</a></nav>
+  </header>
+  <main class="home">
+    <section class="hero">
+      <h1>Learn Python by doing</h1>
+      <p>Short lessons, then fill-in-the-blank exercises with instant checks. Python runs <strong>in your browser</strong>: nothing to install, and your code never leaves your computer. Your progress is saved in this browser.</p>
+      <p id="continue"></p>
+    </section>
+    <section id="levels" class="levels" aria-busy="true"></section>
+    <section class="data">
+      <h2>Your progress file</h2>
+      <p>Progress is stored only in this browser. Export it to keep a backup or move to another computer.</p>
+      <button id="export">⬇ Export progress</button>
+      <label class="button">⬆ Import progress <input id="import" type="file" accept="application/json" hidden></label>
+      <button id="reset" class="danger">Reset everything</button>
+    </section>
+  </main>
+  <footer class="pager">Course content: <a href="https://github.com/SwarmLadder/python-notebook">SwarmLadder/python-notebook</a> (CC BY 4.0) · Code: MIT</footer>
+  <script type="module" src="assets/home.js"></script>
+</body>
+</html>
