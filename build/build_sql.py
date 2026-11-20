@@ -48,12 +48,12 @@ def build_sql(course: Path, out: Path) -> dict:
 
         def put(section: str, path: str, title: str, guide: str, sql: str,
                 source: str, *, runnable: bool = True, grade: dict | None = None,
-                hint: str = "", dialect: str = "sqlite"):
+                hint: str = "", dialect: str = "sqlite", schema_task: str = ""):
             lesson_id = f"sql/{level}/{section}/{path}"
             item = {
                 "id": lesson_id,
                 "title": title,
-                "graded": 1 if grade else 0,
+                "graded": 1 if grade or schema_task else 0,
             }
             entries[lesson_id] = {
                 "id": lesson_id,
@@ -64,7 +64,8 @@ def build_sql(course: Path, out: Path) -> dict:
                 "dialect": dialect,
                 "runnable": runnable,
                 "grade": grade,
-                "graded": ["challenge"] if grade else [],
+                "schemaTask": schema_task or None,
+                "graded": ["challenge"] if grade or schema_task else [],
                 "hint": hint,
             }
             return item
@@ -105,6 +106,25 @@ def build_sql(course: Path, out: Path) -> dict:
                                   grade=signatures, hint=q["hint"]))
         sections.append({"id": "exercises", "title": "Graded SQL challenges", "items": challenges})
 
+        if level == "advanced":
+            schema_challenges = []
+            for file in sorted((course / "interview" / "schema" / "starter").glob("C*.sql")):
+                task = file.stem
+                lines = file.read_text(encoding="utf-8").splitlines()
+                title = lines[0].removeprefix("-- ").strip()
+                description = lines[1].removeprefix("-- ").strip()
+                hint = lines[2].removeprefix("-- Hint: ").strip()
+                guide = (f"# {title}\n\n**Schema design:** {description}\n\n"
+                         "Create tables and indexes that enforce the business "
+                         "rules. The built-in checker tests valid inserts, "
+                         "invalid inserts, and required indexes on a fresh "
+                         "SQLite database.\n")
+                schema_challenges.append(put(
+                    "schema", task, title, guide, file.read_text(encoding="utf-8"),
+                    file.relative_to(course).as_posix(), schema_task=task, hint=hint))
+            sections.append({"id": "exercises", "title": "Schema design challenges",
+                             "items": schema_challenges})
+
         backend = []
         if level == "advanced":
             for sql_file in sorted((course / "backend" / "sql").glob("*.sql")):
@@ -144,7 +164,7 @@ def build_sql(course: Path, out: Path) -> dict:
 
         catalog["levels"].append({
             "id": level, "title": label, "medal": medal, "sections": sections,
-            "total": len(challenges),
+            "total": len(challenges) + (len(schema_challenges) if level == "advanced" else 0),
         })
 
     target = out / "data" / "sql"
@@ -169,4 +189,12 @@ def build_sql(course: Path, out: Path) -> dict:
             restored.executescript(dump)
             restored.execute("SELECT 1 FROM customers LIMIT 1").fetchone()
         (fixtures / f"{variant}.sql").write_text(dump, encoding="utf-8")
+    # Ship the existing behavioral DDL checker, not the reference solutions.
+    tools = out / "course" / "sql" / "tools"
+    tools.mkdir(parents=True, exist_ok=True)
+    for source in ("tools/run_sql.py", "tools/schema_practice.py",
+                   "data/schema.sql", "data/seed.sql"):
+        dest = out / "course" / "sql" / source
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes((course / source).read_bytes())
     return catalog
