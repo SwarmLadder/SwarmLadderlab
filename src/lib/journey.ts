@@ -31,6 +31,9 @@ export function lessonNumber(title: string) {
   return m ? { number: m[1], name: m[2] } : { number: "", name: title };
 }
 
+// "Practice Pack — Control Flow" and "Practice 2 — Iteration…" read better as just the topic.
+export const topic = (title: string) => title.replace(/^Practice(?: Pack| \d+)?\s*[—–-]\s*/i, "");
+
 export function isComplete(item: Item) {
   return item.graded > 0 ? Math.min(item.graded, doneIn(item.id).length) >= item.graded : isFinished(item.id);
 }
