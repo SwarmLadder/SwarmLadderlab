@@ -1,5 +1,6 @@
 import { Header } from "./Header";
 import "../styles/app.css";
+import "../styles/learning.css";
 import { labRepo, courseRepo } from "../lib/course";
 export const metadata = {
   title: "SwarmLadder Lab",

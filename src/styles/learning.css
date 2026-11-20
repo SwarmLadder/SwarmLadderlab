@@ -1,0 +1,539 @@
+.catalog-page,
+.playground-page {
+  --wash: color-mix(in srgb, var(--color-teal) 10%, var(--surface));
+  --soft-line: color-mix(in srgb, var(--line) 65%, transparent);
+}
+.catalog-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  background:
+    radial-gradient(ellipse at 90% 120%, #164b50, transparent 62%), #142338;
+  color: #fff;
+  border-radius: 18px;
+  padding: clamp(1.65rem, 4vw, 3.4rem);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.catalog-banner:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.19;
+  background-image: radial-gradient(#99dace 1px, transparent 1px);
+  background-size: 15px 15px;
+  mask-image: linear-gradient(115deg, transparent 20%, #000 85%);
+}
+.catalog-banner h1,
+.playground-page h1 {
+  font-size: clamp(2.2rem, 4.4vw, 3.75rem);
+  letter-spacing: -0.055em;
+  margin: 0;
+}
+.catalog-banner p {
+  color: #d6e5eb;
+}
+.catalog-banner p span {
+  margin: 0 0.4em;
+}
+.banner-meta,
+.page-context,
+.catalog-banner .cta,
+.rail-play,
+.studio h2,
+.cell-tools strong,
+.cell-console small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.catalog-banner .banner-meta {
+  color: #a0f0dd;
+  margin: 0 0 0.75rem;
+  font-weight: 650;
+}
+.catalog-banner .cta {
+  margin-top: 0.4rem;
+}
+.catalog-progress {
+  width: clamp(12rem, 24vw, 18rem);
+  border-left: 1px solid #66918e;
+  padding-left: clamp(1rem, 3vw, 2.5rem);
+  display: grid;
+  gap: 0.4rem;
+}
+.catalog-progress p {
+  margin: 0;
+  font-weight: 650;
+}
+.catalog-progress strong {
+  font: 600 2.8rem/1.15 var(--font-sans);
+  letter-spacing: -0.06em;
+}
+.catalog-progress small {
+  color: #b8dbd8;
+  font-size: 1.35rem;
+  margin-left: 0.1em;
+}
+.catalog-progress span {
+  font-size: 0.82rem;
+  color: #c1d5d9;
+}
+.catalog-layout {
+  display: grid;
+  grid-template-columns: clamp(12rem, 18vw, 16rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 4vw, 4rem);
+  margin-top: 2.25rem;
+}
+.catalog-rail {
+  align-self: start;
+  position: sticky;
+  top: 1.2rem;
+}
+.catalog-rail h2 {
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin: 0.65rem 0.6rem 0.8rem;
+}
+.level-choices {
+  display: grid;
+  gap: 0.2rem;
+}
+.level-choices button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  min-height: 42px;
+}
+.level-choices small {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.level-choices button[aria-pressed="true"] {
+  color: var(--link);
+  background: var(--wash);
+  font-weight: 700;
+  border-color: color-mix(in srgb, var(--color-teal) 30%, transparent);
+}
+.level-choices button:hover,
+.catalog-row:hover {
+  background: var(--wash);
+}
+.rail-play {
+  border-top: 1px solid var(--line);
+  margin-top: 1.2rem;
+  padding: 1.1rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+.library-tools {
+  display: flex;
+  gap: 0.65rem;
+}
+.catalog-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  padding-left: 0.85rem;
+}
+.catalog-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 400;
+}
+.result-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.7rem 0 1.4rem;
+}
+.track-list {
+  margin-bottom: 2rem;
+}
+.track-title,
+.section-list summary,
+.catalog-row,
+.studio-command,
+.studio-command > div,
+.cell-console {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.track-title {
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+}
+.track-title h2,
+.studio h2 {
+  margin: 0;
+}
+.track-title span,
+.catalog-row small {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.section-list {
+  background: var(--surface);
+  margin: 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+}
+.section-list:first-of-type {
+  border-radius: 0.85rem 0.85rem 0 0;
+}
+.section-list:last-of-type {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0 0 0.85rem 0.85rem;
+  overflow: hidden;
+}
+.section-list:only-of-type {
+  border-radius: 0.85rem;
+}
+.section-list summary {
+  list-style: none;
+  padding: 0.75rem 0.95rem;
+  gap: 0.7rem;
+}
+.section-list summary::-webkit-details-marker {
+  display: none;
+}
+.section-list summary small {
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0 0.35rem;
+  font-weight: 500;
+}
+.section-symbol,
+.row-state {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.section-symbol {
+  color: var(--link);
+  width: 32px;
+  height: 32px;
+  background: var(--wash);
+  border-radius: 0.55rem;
+}
+.section-symbol svg {
+  width: 17px;
+}
+.disclosure {
+  margin-left: auto;
+}
+.section-list[open] .disclosure {
+  transform: rotate(90deg);
+}
+.catalog-row {
+  padding: 0.75rem 1rem 0.75rem 1.45rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-top: 1px solid var(--soft-line);
+  font-weight: 550;
+  min-height: 45px;
+}
+.catalog-row small {
+  white-space: nowrap;
+  margin-left: auto;
+}
+.catalog-row > svg {
+  flex: none;
+  color: var(--muted);
+}
+.row-state {
+  width: 18px;
+  height: 18px;
+}
+.row-state span {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+.row-state.finished {
+  background: var(--wash);
+  color: var(--link);
+  border-radius: 50%;
+}
+.empty-results {
+  text-align: center;
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 0.8rem;
+  border: 1px dashed var(--line);
+}
+.empty-results svg {
+  margin: 0 auto 0.8rem;
+}
+.page-context {
+  font-size: 0.87rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+.play-intro {
+  color: var(--muted);
+  max-width: 56ch;
+  margin-bottom: 1.8rem;
+}
+.studio,
+.workspace .code-cell {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 4px 14px #101f3209;
+}
+.studio-command,
+.workspace .toolbar {
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--surface);
+}
+.studio-command {
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.studio-command > div {
+  flex-wrap: wrap;
+}
+.studio button,
+.workspace .toolbar button,
+.cell-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-height: 34px;
+}
+.studio button svg {
+  width: 14px;
+  height: 14px;
+}
+.runtime-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.runtime-state:before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-teal);
+}
+.studio-split {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+.studio h2 {
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+  border-bottom: 1px solid var(--line);
+  width: 100%;
+  padding: 0.78rem 1rem;
+}
+.studio h2 svg {
+  width: 16px;
+  color: var(--link);
+}
+.scratch-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.console-pane {
+  min-width: 0;
+  border-left: 1px solid var(--line);
+}
+.console-pane pre {
+  padding: 1.1rem;
+  margin: 0;
+  max-height: 65vh;
+  overflow: auto;
+}
+.editor-foot,
+.cell-console {
+  font-size: 0.76rem;
+  color: var(--muted);
+  padding: 0.4rem 0.85rem;
+}
+.editor-foot {
+  border-top: 1px solid var(--line);
+}
+kbd {
+  font:
+    normal 0.72rem ui-monospace,
+    monospace;
+}
+.studio .editor,
+.code-cell .editor {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  grid-template-columns: 2.8rem minmax(0, 1fr);
+}
+.editor-source {
+  position: relative;
+  min-width: 0;
+}
+.line-gutter {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  height: 0;
+  min-height: 100%;
+  padding: 0.8rem 0.45rem;
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+  color: var(--code-comment);
+  border-right: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  font:
+    normal 0.9rem/1.5 ui-monospace,
+    monospace;
+}
+.line-gutter > div {
+  height: 1.5em;
+}
+.studio .editor textarea {
+  min-height: clamp(16rem, 48vh, 36rem);
+}
+.editor:focus-within {
+  outline-offset: -2px;
+}
+.workspace .code-cell {
+  padding: 0;
+  margin: 1.35rem 0;
+}
+.cell-tools {
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+.cell-tools strong {
+  font-size: 0.83rem;
+  letter-spacing: 0.01em;
+}
+.cell-tools strong svg {
+  color: var(--link);
+}
+.cell-console {
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+}
+.cell-console small {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.code-cell .output {
+  margin: 0;
+  padding: 0.1rem 0.9rem 0.65rem;
+  max-height: 24rem;
+  overflow: auto;
+}
+.output-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.workspace .md:first-of-type > h1:first-child {
+  display: none;
+}
+.workspace .outline a {
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+.workspace .outline a[aria-current] {
+  border-left: 3px solid var(--color-teal);
+  padding-left: 0.65rem;
+}
+@media (max-width: 760px) {
+  .catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .catalog-rail {
+    position: static;
+  }
+  .level-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .level-choices button {
+    width: auto;
+    min-height: 36px;
+    gap: 0.35rem;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.82rem;
+  }
+  .level-choices svg {
+    display: none;
+  }
+  .rail-play {
+    margin: 0;
+    padding: 0.6rem 0;
+    border: 0;
+  }
+  .studio-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .console-pane {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    min-height: 9rem;
+  }
+  .catalog-progress {
+    display: none;
+  }
+  .catalog-row {
+    padding-left: 0.7rem;
+  }
+  .track-title h2 {
+    font-size: 1.35rem;
+  }
+  .catalog-search input {
+    padding-left: 0.4rem;
+  }
+  .library-tools select {
+    max-width: 45%;
+    font-size: 0.85rem;
+  }
+  .nav nav {
+    column-gap: 0.1rem;
+  }
+  .nav nav a {
+    font-size: 0.8rem;
+  }
+  .workspace .toolbar {
+    justify-content: flex-start;
+  }
+  .nav {
+    flex-wrap: wrap;
+  }
+}

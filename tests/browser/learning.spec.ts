@@ -143,3 +143,29 @@ test("Python syntax colors follow edits and theme while preserving literal code"
   await expect(editor).toHaveValue(code);
   await expect(layer.locator("tag")).toHaveCount(0);
 });
+
+test("playground runs independent scratch code and restores edits", async ({
+  page,
+}) => {
+  await page.goto("/curriculum");
+  await page.getByRole("button", { name: /Intermediate/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Intermediate", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Python playground" }).click();
+  const editor = page.getByRole("textbox", { name: "Python code" });
+  await editor.fill("print(21 * 2)");
+  await editor.press("Shift+Enter");
+  await expect(page.locator(".console-pane .output")).toHaveText("42", {
+    timeout: 120000,
+  });
+  await page.reload();
+  await expect(editor).toHaveValue("print(21 * 2)");
+  await page.setViewportSize({ width: 390, height: 820 });
+  await expect(page.getByRole("heading", { name: "Console" })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+});

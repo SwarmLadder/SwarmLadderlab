@@ -37,6 +37,7 @@ export function Header() {
             {[
               ["/", "Dashboard"],
               ["/curriculum", "Curriculum"],
+              ["/playground", "Playground"],
               ["/achievements", "Achievements"],
               ["/progress", "Progress"],
             ].map(([to, label]) => (

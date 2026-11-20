@@ -2,6 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BookOpen,
+  FileCode2,
+  Play,
+  RotateCcw,
+  Square,
+  Terminal,
+} from "lucide-react";
+import {
   courseRepo,
   lessonPath,
   notebookData,
@@ -176,7 +184,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const done = doneIn(nb.id);
   return (
     <>
-      <p>
+      <p className="page-context">
+        <BookOpen size={16} />
         <Link href="/curriculum">Python curriculum</Link> / {level?.title}
       </p>
       <h1>{nb.title}</h1>
@@ -208,11 +217,17 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                 )
               }
             >
-              {batch ? "Running all…" : "Run All"}
+              <Play size={14} /> {batch ? "Running all…" : "Run All"}
             </button>
-            <button onClick={() => restart(false)}>Stop</button>
-            <button onClick={() => restart(true)}>Restart</button>
-            <small role="status">{status}</small>
+            <button onClick={() => restart(false)}>
+              <Square size={13} /> Stop
+            </button>
+            <button onClick={() => restart(true)}>
+              <RotateCcw size={14} /> Restart
+            </button>
+            <small className="runtime-state" role="status">
+              {status}
+            </small>
           </div>
           <p className="sources">
             <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub ↗</a>{" "}
@@ -246,6 +261,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               >
                 <div className="cell-tools">
                   <strong>
+                    <FileCode2 size={16} />
                     {c.kind === "code" ? "Python" : c.kind}
                     {keys.length > 0 && keys.every((k) => done.includes(k))
                       ? " ✓"
@@ -270,7 +286,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                       disabled={!!busy}
                       onClick={() => execute([c])}
                     >
-                      Run
+                      <Play size={13} /> Run
                     </button>
                   </div>
                 </div>
@@ -279,8 +295,22 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                   onChange={(v) => change(c, v)}
                   onRun={() => execute([c])}
                 />
-                <small>Output</small>
+                <div className="cell-console">
+                  <small>
+                    <Terminal size={14} /> Output
+                  </small>
+                  <kbd>Shift + Enter</kbd>
+                </div>
                 <pre className="output" aria-live="polite">
+                  {!outputs[c.id]?.length && (
+                    <span className="output-hint">
+                      {busy === c.id
+                        ? "Running…"
+                        : outputs[c.id]
+                          ? "Finished without output."
+                          : "—"}
+                    </span>
+                  )}
                   {outputs[c.id]?.map((o, i) => (
                     <span key={i} className={o.name}>
                       {o.text}
