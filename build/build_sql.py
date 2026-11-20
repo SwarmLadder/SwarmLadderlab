@@ -151,7 +151,7 @@ def build_sql(course: Path, out: Path) -> dict:
                              "title": "Backend recipes & PostgreSQL labs", "items": backend})
 
         projects = []
-        for md in sorted((course / level / "projects").glob("*.md")):
+        for md in sorted((course / level / "projects").glob("[0-9][0-9]_*.md")):
             sql_file = md.with_suffix(".sql")
             if not sql_file.exists():
                 raise FileNotFoundError(sql_file)
