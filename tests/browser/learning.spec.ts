@@ -32,7 +32,9 @@ test("dashboard, filters, mobile theme, data migration and achievement gating", 
   await page.getByLabel("Search notebooks").fill("00_python_introduction");
   await expect(page.getByRole("status")).toContainText("1 matching");
   await page.getByLabel("Search notebooks").fill("");
-  await page.getByLabel("Content", { exact: true }).selectOption("projects");
+  await page
+    .getByRole("combobox", { name: /^Content/ })
+    .selectOption("projects");
   await expect(page.locator("summary").first()).toContainText("Projects");
   await page.goto("/progress");
   const data = {
