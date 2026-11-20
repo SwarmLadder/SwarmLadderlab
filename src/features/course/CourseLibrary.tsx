@@ -75,7 +75,7 @@ export function CourseLibrary({ summaries }: { summaries: CourseOverview[] }) {
               </span>
             </div>
             <p className="library-course-language">{course.language}</p>
-            <h2>{course.title}</h2>
+            <h2>{open ? <Link href={coursePath(course.id)} aria-label={course.title + ", Open now"}>{course.title}</Link> : course.title}</h2>
             <p className="library-card-blurb">{course.blurb}</p>
             {open ? <>
               <p className="library-card-facts"><span><BookOpen size={14}/> {items.length} activities</span><span>{levels} levels</span><span>{checks} checks</span></p>
