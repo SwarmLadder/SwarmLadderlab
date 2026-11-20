@@ -1,6 +1,6 @@
 # SwarmLadder Lab
 
-**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router, strict TypeScript, Tailwind, and Cloudflare Workers. The Python curriculum comes from [SwarmLadder/python-notebook](https://github.com/SwarmLadder/python-notebook).
+**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router (via vinext), strict TypeScript and Cloudflare Workers. The Python curriculum comes from [SwarmLadder/python-notebook](https://github.com/SwarmLadder/python-notebook).
 
 ## Development
 
@@ -14,16 +14,22 @@ npm run curriculum
 npm run dev
 ```
 
-Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/checkout` for another curriculum checkout. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Unavailable tracks are labelled on the dashboard.
+Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/checkout` for another curriculum checkout. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
 
 ## Structure
 
-- `src/app` defines dashboard, curriculum, achievement, progress and catch-all lesson routes. Links use clean paths such as `/lesson/basics/notebooks/00_python_introduction`.
-- `src/features` owns learning views and browser progress. `src/components` contains the reusable editor and progress meter. The logo comes from the SwarmLadder GitHub organization.
-- `src/styles/app.css` defines brand tokens, themes, breakpoints and focus styles.
+- `src/app` defines the routes: home (`/`), the course shelf (`/learn`), a course route (`/learn/python`), lessons (`/lesson/basics/notebooks/00_python_introduction`), playground, achievements and progress. `/curriculum` redirects to `/learn/python`.
+- `src/features` owns the views. `home` greets new visitors and gives returning learners a desk that picks up where they stopped. `course` draws the route: finished rungs fold away, the current rung and the next few show, and later chapters stay closed until opened. `notebook` turns each notebook into steps (`steps.ts`) revealed one at a time, with runnable code, quiz cards and a completion card.
+- `src/lib/journey.ts` orders a course into a route and finds the learner's current rung. `src/lib/courses.ts` lists the courses on the shelf.
+- `src/i18n` holds every interface string. Add a locale by adding a strings file and an entry in `src/i18n/index.ts`, including its text direction.
+- `src/styles/field.css` is the design system: colour tokens for day and night reading, the type scale (Fraunces, Instrument Sans, JetBrains Mono, all self-hosted) and the page layouts. `src/styles/lesson.css` styles lessons, code, quizzes and the playground.
 - `build/` converts the course notebooks to rendered Markdown and code cells. It copies original helpers, assessment code and data into the generated public assets.
 - `src/workers/runner.ts` manages one isolated Python session per notebook. `public/assets/py-worker.js` runs the existing Pyodide runtime and course checks. The first run needs network access to the Pyodide CDN. Workbook checks install pytest inside the browser.
 - The GitHub achievement workflow remains in the course repository. Eligible learners download solution modules, create a claim in their fork, and submit a pull request for verification.
+
+### Adding a course
+
+Add an entry to `src/lib/courses.ts` with `status: "soon"` to show it on the shelf. When its content is ready, prepare its data the way `build/prepare.py` does for Python and switch it to `"open"`. Its route is `/learn/<id>`.
 
 ## Verify and deploy
 
