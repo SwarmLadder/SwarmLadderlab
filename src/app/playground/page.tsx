@@ -62,6 +62,7 @@ export default function Playground() {
     runner = useRef<Runner | null>(null),
     rustController = useRef<AbortController | null>(null),
     gitSession = useRef(newGitSession()),
+    runVersion = useRef(0),
     body = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,6 +95,7 @@ export default function Playground() {
 
   function switchLanguage(next: PlayLanguage) {
     if (next === language) return;
+    runVersion.current++;
     rustController.current?.abort();
     rustController.current = null;
     active.current = false;
@@ -114,32 +116,95 @@ export default function Playground() {
     save("playground", FILE[language], v);
   }
   async function run() {
+    if (active.current) return;
     const session = runner.current;
-    if (!session || active.current) return;
+    const mode = language;
+    if ((mode === "python" || mode === "sql") && !session) return;
+    const runId = ++runVersion.current;
     active.current = true;
     setBusy(true);
     setOutput([]);
     setMeta(null);
     setError(null);
     const start = performance.now();
-    const result = await session.run(source, "/course", (name, text) => {
-      if (runner.current === session) setOutput((v) => [...v, { name, text }]);
-    });
-    if (runner.current !== session) return;
-    if (result.error) {
-      setOutput((v) => [...v, { name: "stderr", text: result.friendly ?? result.error ?? "" }]);
-      if (result.line) setError({ line: result.line, message: result.error.trim().split("\n").pop() ?? "" });
+    try {
+      if (mode === "git") {
+        const result = runGit(gitSession.current, source);
+        setOutput(result.lines);
+        setMeta({ ok: result.ok, ms: Math.round(performance.now() - start) });
+      } else if (mode === "rust") {
+        const controller = new AbortController();
+        rustController.current = controller;
+        setStatus("Compiling on the official Rust Playground…");
+        const result = await executeRust(source, controller.signal);
+        if (runVersion.current !== runId) return;
+        const lines: Line[] = [];
+        if (result.stderr) lines.push({ name: "stderr", text: result.stderr });
+        if (result.stdout) lines.push({ name: "stdout", text: result.stdout });
+        if (!lines.length) lines.push({ name: "stdout", text: result.exitDetail || "Program finished without output." });
+        setOutput(lines);
+        if (!result.success) {
+          const match = result.stderr.match(/(?:--> |at )[^:\n]+:(\d+):\d+/);
+          if (match) setError({ line: Number(match[1]), message: "Rust compiler error" });
+        }
+        setMeta({ ok: result.success, ms: Math.round(performance.now() - start) });
+      } else if (session) {
+        const program = mode === "sql" ? sqlProgram(source, "run") : source;
+        const directory = mode === "sql" ? "/course/sql" : "/course";
+        const result = await session.run(program, directory, (name, text) => {
+          if (runner.current === session && runVersion.current === runId) {
+            setOutput((old) => [...old, { name, text }]);
+          }
+        });
+        if (runner.current !== session || runVersion.current !== runId) return;
+        if (result.error) {
+          setOutput((old) => [...old, {
+            name: "stderr", text: result.friendly ?? result.error ?? "",
+          }]);
+          if (mode === "python" && result.line) setError({
+            line: result.line,
+            message: result.error.trim().split("\n").pop() ?? "",
+          });
+        }
+        setMeta({ ok: !result.error, ms: Math.round(performance.now() - start) });
+      }
+    } catch (cause) {
+      if (runVersion.current !== runId) return;
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setOutput([{ name: "stderr", text: message +
+        (mode === "rust" ? "\nTry the link to the official Rust Playground below." : "") }]);
+      setMeta({ ok: false, ms: Math.round(performance.now() - start) });
+    } finally {
+      if (runVersion.current === runId) {
+        if (mode === "rust") {
+          rustController.current = null;
+          setStatus("Rust Playground ready (online)");
+        }
+        active.current = false;
+        setBusy(false);
+      }
     }
-    setMeta({ ok: !result.error, ms: Math.round(performance.now() - start) });
-    active.current = false;
-    setBusy(false);
   }
   function restart(stop: boolean) {
+    runVersion.current++;
+    rustController.current?.abort();
+    rustController.current = null;
     runner.current?.dispose();
-    runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
-    setStatus(t("runtime.loading"));
+    runner.current = null;
+    if (language === "git") {
+      gitSession.current = newGitSession();
+      setStatus("Git simulator ready");
+    } else if (language === "rust") {
+      setStatus("Rust Playground ready (online)");
+    } else {
+      const mode = language;
+      runner.current = new Runner((s) => setStatus(s === "Python ready" || s === ""
+        ? mode === "sql" ? "SQLite ready" : t("runtime.ready") : s));
+      setStatus(mode === "sql" ? "Loading SQLite…" : t("runtime.loading"));
+    }
     setBusy(false);
     active.current = false;
+    setError(null);
     setMeta(null);
     setOutput(stop ? [{ name: "stderr", text: t("play.stopped") }] : []);
   }
@@ -161,7 +226,9 @@ export default function Playground() {
     addEventListener("pointerup", up);
   }
 
-  const ready = status === t("runtime.ready");
+  const ready = language === "python" ? status === t("runtime.ready")
+    : language === "sql" ? status === "SQLite ready"
+    : true;
   return (
     <div className="ide">
       <h1 className="sr-only">{t("play.title")}</h1>
