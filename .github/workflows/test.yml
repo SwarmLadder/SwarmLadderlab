@@ -1,12 +1,20 @@
-name: Test
+name: Learning platform
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_staging:
+        type: boolean
+        default: false
+        description: Deploy and verify the staging Worker
+  schedule:
+    - cron: '20 5 * * *'
 permissions:
   contents: read
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -17,18 +25,29 @@ jobs:
           path: course
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-      - name: Install tools
+          node-version: '24'
+          cache: npm
+      - run: python -m pip install markdown pytest
+      - run: npm ci
+      - run: python build/prepare.py --course course
+      - run: COURSE=course python -m pytest tests -q
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Deploy verified staging build
+        if: inputs.deploy_staging
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run deploy:staging
+      - name: Test live staging
+        if: inputs.deploy_staging
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
         run: |
-          python -m pip install markdown pytest
-          npm install --no-save playwright@1
-          npx playwright install --with-deps chromium
-      - name: Build
-        run: python build/build_site.py --course course --out dist
-      - name: Build checks
-        run: COURSE=course python -m pytest tests -q
-      - name: End-to-end in Chromium
-        run: node tests/e2e.cjs
+          test -n "$BASE_URL"
+          npm run test:e2e
