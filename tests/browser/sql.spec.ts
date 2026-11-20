@@ -32,3 +32,17 @@ test("PostgreSQL labs are read-only reference examples, never run in SQLite", as
   await expect(page.getByRole("button", { name: "Run SQL" })).toHaveCount(0);
   await expect(page.getByText(/not runnable with the Lab/)).toBeVisible();
 });
+
+
+test("schema-design challenges validate real SQLite constraints", async ({ page }) => {
+  await page.goto("/lesson/sql/advanced/schema/C01");
+  const editor = page.getByRole("textbox", { name: "SQL code" });
+  await editor.fill(
+    "CREATE TABLE accounts (account_id INTEGER PRIMARY KEY, " +
+    "email TEXT NOT NULL UNIQUE, balance_cents INTEGER NOT NULL CHECK(balance_cents >= 0));",
+  );
+  await page.getByRole("button", { name: "Check answer" }).click();
+  await expect(page.getByLabel("SQL output")).toContainText(
+    "✅ SQL challenge C01: passed schema tests", { timeout: 120000 },
+  );
+});
