@@ -1,6 +1,8 @@
 # 🪜 SwarmLadderlab
 
-**Learn Python by doing, in your browser.** SwarmLadderlab is the web platform for the free [python-notebook](https://github.com/SwarmLadder/python-notebook) course: short lessons, fill-in-the-blank exercises with instant hidden-answer checks, quizzes, workbooks and projects. There's nothing to install.
+**Learn Python by doing, in your browser:** https://swarmladder.github.io/SwarmLadderlab/
+
+ SwarmLadderlab is the web platform for the free [python-notebook](https://github.com/SwarmLadder/python-notebook) course: short lessons, fill-in-the-blank exercises with instant hidden-answer checks, quizzes, workbooks and projects. There's nothing to install.
 
 ![A lesson with an exercise checked in the browser](docs/screenshot-lesson.png)
 
@@ -40,12 +42,13 @@ Tests:
 ```bash
 python -m pytest tests                  # build checks
 node tests/e2e.cjs                      # end-to-end in headless Chromium (needs Playwright and network)
+BASE_URL=https://swarmladder.github.io/SwarmLadderlab/ node tests/e2e.cjs   # same checks on the live site
 ```
 
 ## Deploy
 
 `.github/workflows/deploy.yml` builds from the latest course on every push to `main`, every day, and on demand, then publishes to GitHub Pages.
-One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Keep `deploy.yml` as the only Pages workflow: GitHub's suggested "static" or "Jekyll" workflows would publish the raw repository instead of the built site.
 
 ## License
 
