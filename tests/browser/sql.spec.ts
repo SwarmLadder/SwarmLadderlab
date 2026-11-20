@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("SQL shelf, interactive SQLite lesson, two-dataset grading and progress", async ({ page }) => {
   await page.goto("/learn");
-  await expect(page.getByRole("link", { name: /SQL, Available now/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /SQL, Open now/ })).toBeVisible();
   await page.goto("/learn/sql");
   await expect(page.getByRole("heading", { name: "SQL", exact: true })).toBeVisible();
   await expect(page.getByText(/48 checks/).first()).toBeVisible();
