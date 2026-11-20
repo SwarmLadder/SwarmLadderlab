@@ -10,7 +10,8 @@
     "test": "node --test tests/progress.test.ts",
     "test:e2e": "playwright test",
     "deploy:staging": "cf deploy --prebuilt --mode staging",
-    "deploy:release": "vite build --mode release && cf deploy --prebuilt --mode release"
+    "deploy:release": "vite build --mode release && cf deploy --prebuilt --mode release",
+    "prebuild": "node scripts/ensure-curriculum.mjs"
   },
   "repository": {
     "type": "git",
