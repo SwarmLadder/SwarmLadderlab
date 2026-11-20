@@ -8,6 +8,7 @@ import { lessonNumber, route } from "../../lib/journey";
 import { doneIn, finish, graduatedKeys, mark, onProgress, reach, reachedIn, read, save, setLast } from "../progress/store";
 import { highlightPython } from "../../lib/pythonSyntax";
 import { Runner } from "../../workers/runner";
+import { LadderMark } from "../../components/Brand";
 import { CodeEditor } from "../../components/CodeEditor";
 import { buildSteps, keysFor, quizFingerprint, type QuizData, type Step } from "./steps";
 import { t } from "../../i18n";
@@ -199,24 +200,25 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
             {status}
           </span>
           <div className="lesson-bar-actions">
-            <button className="button quiet small" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)}>
-              <Play size={14} strokeWidth={1.8} /> {batch ? t("lesson.runningAll") : t("lesson.runAll")}
+            <button className="button quiet small" aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")} disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)}>
+              <Play size={14} strokeWidth={1.8} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
             </button>
-            <button className="button quiet small" onClick={() => restart(false)}>
-              <Square size={13} strokeWidth={1.8} /> {t("lesson.stop")}
+            <button className="button quiet small" aria-label={t("lesson.stop")} onClick={() => restart(false)}>
+              <Square size={13} strokeWidth={1.8} /> <span className="bl">{t("lesson.stop")}</span>
             </button>
-            <button className="button quiet small" onClick={() => restart(true)}>
-              <RotateCcw size={14} strokeWidth={1.8} /> {t("lesson.restart")}
+            <button className="button quiet small" aria-label={t("lesson.restart")} onClick={() => restart(true)}>
+              <RotateCcw size={14} strokeWidth={1.8} /> <span className="bl">{t("lesson.restart")}</span>
             </button>
             <button
               className="button quiet small"
               aria-pressed={showAll}
+              aria-label={showAll ? t("lesson.stepByStep") : t("lesson.showAll")}
               onClick={() => {
                 localStorage.setItem(VIEW_KEY, showAll ? "steps" : "all");
                 setShowAll(!showAll);
               }}
             >
-              {showAll ? <ListOrdered size={14} strokeWidth={1.8} /> : <Rows3 size={14} strokeWidth={1.8} />} {showAll ? t("lesson.stepByStep") : t("lesson.showAll")}
+              {showAll ? <ListOrdered size={14} strokeWidth={1.8} /> : <Rows3 size={14} strokeWidth={1.8} />} <span className="bl">{showAll ? t("lesson.stepByStep") : t("lesson.showAll")}</span>
             </button>
           </div>
         </div>
@@ -225,29 +227,35 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
         </div>
       </div>
 
-      <header className="lesson-head shell">
-        <p className="eyebrow">
-          {stop?.level.title} {stop && stop.kind !== "lesson" ? "· " + t(stop.kind === "practice" ? "course.practice" : stop.kind === "build" ? "course.build" : "course.examples") : ""}
-        </p>
-        <h1 className="lesson-title">
-          {number && <span className="lesson-number">{number}</span>}
-          {name}
-        </h1>
-        <p className="lesson-meta">
-          {nb.graded.length > 0 && <span>{solvedHere} / {nb.graded.length} {t("course.checks", { n: "" }).trim()}</span>}
-          <span>{t("lesson.stepCount", { n: steps.length })}</span>
-          <span>
-            {t("lesson.sources")}{" "}
-            <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a> ·{" "}
-            <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
-          </span>
-        </p>
+      <header className="lesson-head">
+        <div className="shell lesson-head-grid">
+          <div>
+            <p className="eyebrow">
+              {stop?.level.title} {stop && stop.kind !== "lesson" ? "· " + t(stop.kind === "practice" ? "course.practice" : stop.kind === "build" ? "course.build" : "course.examples") : ""}
+            </p>
+            <h1 className="lesson-title">
+              {number && <span className="lesson-number">{number}</span>}
+              {name}
+            </h1>
+            <p className="lesson-meta">
+              <span className="meta-chip">{t("lesson.stepCount", { n: steps.length })}</span>
+              {nb.graded.length > 0 && <span className={"meta-chip" + (solvedHere === nb.graded.length ? " complete" : "")}>{solvedHere} / {t("course.checks", { n: nb.graded.length })}</span>}
+              <span className="meta-links">
+                {t("lesson.sources")}{" "}
+                <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a>
+                <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
+              </span>
+            </p>
+          </div>
+
+        </div>
+        {number && <span className="lesson-numeral" aria-hidden="true">{number}</span>}
       </header>
 
       <div className="lesson-layout shell">
         <aside className="step-rail" aria-label={t("lesson.steps")}>
           <p className="eyebrow">{t("lesson.steps")}</p>
-          <ol>
+          <ol style={{ ["--fill" as string]: `${steps.length > 1 ? (100 * (showAll ? lastStep : Math.min(visible, lastStep))) / (steps.length - 1) : 0}%` }}>
             {steps.map((s, i) => {
               const state = stepDone(s, i) ? "done" : i === visible && !showAll ? "current" : i <= visible ? "open" : "ahead";
               return (
@@ -309,10 +317,18 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
 
           {atEnd && (
             <section className="lesson-end" aria-labelledby="lesson-end">
-              <span className="lesson-end-mark" aria-hidden="true">✓</span>
-              <div>
+              <div className="lesson-end-art" aria-hidden="true">
+                <LadderMark size={96} />
+              </div>
+              <div className="lesson-end-body">
+                <p className="eyebrow">{t("lesson.complete.eyebrow", { level: stop?.level.title ?? "" })}</p>
                 <h2 id="lesson-end">{t("lesson.complete.title")}</h2>
                 <p>{t("lesson.complete.body")}</p>
+                <dl className="lesson-end-stats">
+                  <div><dt>{t("lesson.complete.steps")}</dt><dd>{steps.length}</dd></div>
+                  {nb.graded.length > 0 && <div><dt>{t("lesson.complete.checks")}</dt><dd>{solvedHere}<small> / {nb.graded.length}</small></dd></div>}
+                  {here >= 0 && <div><dt>{t("lesson.complete.route2")}</dt><dd>{here + 1}<small> / {r.all.length}</small></dd></div>}
+                </dl>
                 <div className="lesson-end-actions">
                   {nextStop && (
                     <Link className="button primary" href={lessonPath(nextStop.item.id)}>
@@ -383,7 +399,7 @@ function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun }: {
               {t("lesson.reset")}
             </button>
           )}
-          <button className="button ink small run" disabled={!!busy} onClick={onRun}>
+          <button className="button small run cell-run" disabled={!!busy} onClick={onRun}>
             <Play size={13} strokeWidth={2} /> {isCheck ? t("lesson.check") : t("lesson.run")}
           </button>
         </span>

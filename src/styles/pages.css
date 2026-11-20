@@ -160,5 +160,8 @@ i.l3 { background: #0f8a7c; }
 @media (max-width: 900px) {
   .prog-head, .prog-grid, .backup { grid-template-columns: 1fr; }
   .prog .stat-row { grid-template-columns: 1fr 1fr; }
-  .prog-ring { width: 10rem; height: 10rem; }
+  .prog-ring { width: 11rem; height: 11rem; justify-self: center; }
+  .recent li { grid-template-columns: 0.6rem minmax(0, 1fr) auto; row-gap: 0.2rem; }
+  .recent li a { grid-column: 2 / -1; white-space: normal; }
+  .recent-check { grid-column: 2; }
 }

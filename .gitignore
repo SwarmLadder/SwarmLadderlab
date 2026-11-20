@@ -13,3 +13,4 @@ public/data/
 pytest-of-*/
 *.tsbuildinfo
 .vinext/
+scripts/og/.card.rendered.html
