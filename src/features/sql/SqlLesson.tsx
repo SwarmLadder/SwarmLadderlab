@@ -19,6 +19,7 @@ type SqlPage = {
   dialect: "sqlite" | "postgresql";
   runnable: boolean;
   grade: SqlGrade | null;
+  schemaTask?: string | null;
   graded: string[];
   hint: string;
 };
@@ -62,17 +63,17 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
   const [status, setStatus] = useState(lesson.runnable ? "Starting SQLite…" : "PostgreSQL reference");
   const [busy, setBusy] = useState<SqlMode | null>(null);
   const [complete, setComplete] = useState(() =>
-    lesson.grade ? doneIn(lesson.id).includes("challenge") : isFinished(lesson.id));
+    (lesson.grade || lesson.schemaTask) ? doneIn(lesson.id).includes("challenge") : isFinished(lesson.id));
   const runner = useRef<Runner | null>(null);
   const running = useRef(false);
 
-  const isChallenge = !!lesson.grade;
+  const isChallenge = !!(lesson.grade || lesson.schemaTask);
   const qid = lesson.id.split("/").at(-1) ?? "";
 
   // Use exactly the same progress store as the existing Python course, while
   // keeping distinct SQL-prefixed IDs to avoid collisions with Python lessons.
   useEffect(() => onProgress(() =>
-    setComplete(lesson.grade ? doneIn(lesson.id).includes("challenge") : isFinished(lesson.id))
+    setComplete((lesson.grade || lesson.schemaTask) ? doneIn(lesson.id).includes("challenge") : isFinished(lesson.id))
   ), [lesson.id, lesson.grade]);
 
   useEffect(() => {
@@ -114,14 +115,14 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
 
   async function execute(mode: SqlMode) {
     const session = runner.current;
-    if (!session || running.current || !lesson.runnable || (mode === "grade" && !lesson.grade)) return;
+    if (!session || running.current || !lesson.runnable || (mode === "grade" && !isChallenge)) return;
     running.current = true;
     setBusy(mode);
     setOutput("");
     let transcript = "";
     try {
       const result = await session.run(
-        sqlProgram(value, mode, lesson.grade ?? undefined, qid),
+        sqlProgram(value, mode, lesson.grade ?? undefined, qid, lesson.schemaTask ?? ""),
         "/course/sql",
         (name, chunk) => {
           if (runner.current !== session) return;
@@ -133,7 +134,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
       if (result.error) {
         setOutput((old) => old + (old ? "\n" : "") + (result.friendly || result.error));
       } else if (mode === "grade" &&
-                 transcript.includes("✅ SQL challenge " + qid + ": passed both datasets")) {
+                 transcript.includes("✅ SQL challenge " + qid + ": passed")) {
         mark(lesson.id, ["challenge"]);
         setComplete(true);
       }
@@ -274,7 +275,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
                 </button>
               )}
               {isChallenge && !complete && <p>Submit a correct answer to complete this challenge.</p>}
-              {isChallenge && complete && <p>✅ Passed on the base and edge datasets.</p>}
+              {isChallenge && complete && <p>{lesson.schemaTask ? "✅ Schema behavior verified." : "✅ Passed on the base and edge datasets."}</p>}
               {next && <Link className="button quiet" href={lessonPath(next.item.id)}>Next activity <ArrowRight size={17} /></Link>}
             </div>
           </section>
