@@ -12,6 +12,9 @@ const title = "SwarmLadder Lab · Learn to code, one rung at a time";
 const description = "Short lessons, fill-in exercises with instant checks, and real projects. Python runs in your browser. Learn together. Rise together.";
 // Absolute URLs for link previews. Set SITE_URL at build time when the site moves to its own domain.
 const site = process.env.SITE_URL || "https://swarmladder-lab-staging.bitpyrus.workers.dev";
+// Every page is personal (progress lives in the browser), so never let the edge keep
+// rendered HTML: a cached copy would outlive deploys and show an old design.
+export const dynamic = "force-dynamic";
 export const metadata = {
   metadataBase: new URL(site),
   title,
