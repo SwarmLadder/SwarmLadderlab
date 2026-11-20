@@ -5,10 +5,20 @@ import { CodeEditor, type RuntimeError } from "../../components/CodeEditor";
 import { Runner } from "../../workers/runner";
 import { read, save } from "../../features/progress/store";
 import { t } from "../../i18n";
+import { runGit, newGitSession } from "../../lib/gitSandbox";
+import { sqlProgram } from "../../lib/sqlRuntime";
+import { executeRust, rustPlaygroundLink } from "../../lib/rustRuntime";
 
-const STORE_FILE = "scratch.py"; // storage key kept for existing saved code
+type PlayLanguage = "python" | "sql" | "rust" | "git";
+const FILE: Record<PlayLanguage, string> = {
+  python: "scratch.py", sql: "scratch.sql", rust: "scratch.rs", git: "scratch.sh",
+};
+const DISPLAY_FILE: Record<PlayLanguage, string> = {
+  python: "main.py", sql: "query.sql", rust: "main.rs", git: "terminal.sh",
+};
 const SPLIT_KEY = "swarmladderlab.split";
-const EXAMPLES: { label: string; code: string }[] = [
+const LANGUAGE_KEY = "swarmladderlab.playLanguage";
+const EXAMPLES: Record<PlayLanguage, { label: string; code: string }[]> = { python: [
   { label: "Hello", code: 'name = "Ada"\nprint(f"Hello, {name}!")\n' },
   { label: "Loops", code: "total = 0\nfor n in range(1, 101):\n    total += n\nprint(total)\n" },
   { label: "Lists", code: "squares = [n * n for n in range(10)]\nprint(squares)\nprint(sum(squares))\n" },
@@ -16,11 +26,28 @@ const EXAMPLES: { label: string; code: string }[] = [
   { label: "Functions", code: 'def greet(name, punctuation="!"):\n    return f"Welcome, {name}{punctuation}"\n\nprint(greet("Grace"))\nprint(greet("Linus", "?"))\n' },
   { label: "Classes", code: 'from dataclasses import dataclass\n\n@dataclass\nclass Rung:\n    number: int\n    title: str\n\n    def label(self):\n        return f"{self.number:02} — {self.title}"\n\nprint(Rung(6, "Loops").label())\n' },
   { label: "Errors", code: 'def average(values):\n    return sum(values) / len(values)\n\nprint(average([3, 4, 5]))\nprint(average([]))\n' },
-];
+],
+  sql: [
+    { label: "Products", code: "SELECT sku, product_name FROM products WHERE active = 1 ORDER BY sku;\n" },
+    { label: "Customers", code: "SELECT customer_id, email FROM customers LIMIT 10;\n" },
+    { label: "Count", code: "SELECT COUNT(*) AS total_customers FROM customers;\n" },
+  ],
+  rust: [
+    { label: "Hello", code: 'fn main() {\n    println!("Hello from Rust!");\n}\n' },
+    { label: "Iterator", code: 'fn main() {\n    let total: i32 = (1..=10).sum();\n    println!("total = {total}");\n}\n' },
+    { label: "Ownership", code: 'fn main() {\n    let message = String::from("Rust ownership");\n    let borrowed = &message;\n    println!("{borrowed}");\n}\n' },
+  ],
+  git: [
+    { label: "Status", code: "git status\ngit log --oneline\n" },
+    { label: "Commit", code: 'write README.md "Hello Git"\ngit status\ngit add README.md\ngit commit -m "Update README"\ngit log --oneline\n' },
+    { label: "Branches", code: "git switch -c feature\ngit branch\ngit status\n" },
+  ],
+};
 type Line = { name: string; text: string };
 type Meta = { ok: boolean; ms: number } | null;
 
 export default function Playground() {
+  const [language, setLanguage] = useState<PlayLanguage>("python");
   const [source, setSource] = useState(""),
     [status, setStatus] = useState(t("runtime.loading")),
     [busy, setBusy] = useState(false),
@@ -33,23 +60,58 @@ export default function Playground() {
     [menu, setMenu] = useState(false);
   const active = useRef(false),
     runner = useRef<Runner | null>(null),
+    rustController = useRef<AbortController | null>(null),
+    gitSession = useRef(newGitSession()),
     body = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSource(read().code?.playground?.[STORE_FILE] ?? EXAMPLES[0].code);
+    const requested = new URLSearchParams(location.search).get("language");
+    const previous = localStorage.getItem(LANGUAGE_KEY);
+    const picked = [requested, previous].find((item) =>
+      item === "python" || item === "sql" || item === "rust" || item === "git") as PlayLanguage | undefined;
+    const initial = picked ?? "python";
+    setLanguage(initial);
+    setSource(read().code?.playground?.[FILE[initial]] ?? EXAMPLES[initial][0].code);
     const saved = Number(localStorage.getItem(SPLIT_KEY));
     if (saved >= 25 && saved <= 80) setSplit(saved);
-    runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
-    return () => {
-      runner.current?.dispose();
-      runner.current = null;
-    };
+    return () => rustController.current?.abort();
   }, []);
+
+  useEffect(() => {
+    runner.current?.dispose();
+    runner.current = null;
+    if (language === "python" || language === "sql") {
+      const session = new Runner((status) =>
+        setStatus(status === "Python ready" || status === ""
+          ? language === "sql" ? "SQLite ready" : t("runtime.ready")
+          : status));
+      runner.current = session;
+      setStatus(language === "sql" ? "Loading SQLite…" : t("runtime.loading"));
+      return () => { session.dispose(); if (runner.current === session) runner.current = null; };
+    }
+    setStatus(language === "git" ? "Git simulator ready" : "Rust Playground ready (online)");
+  }, [language]);
+
+  function switchLanguage(next: PlayLanguage) {
+    if (next === language) return;
+    rustController.current?.abort();
+    rustController.current = null;
+    active.current = false;
+    setBusy(false);
+    setLanguage(next);
+    setSource(read().code?.playground?.[FILE[next]] ?? EXAMPLES[next][0].code);
+    localStorage.setItem(LANGUAGE_KEY, next);
+    setOutput([]);
+    setMeta(null);
+    setError(null);
+    setProblems(0);
+    setMenu(false);
+  }
 
   function edit(v: string) {
     setSource(v);
     if (error) setError(null);
-    save("playground", STORE_FILE, v);
+    save("playground", FILE[language], v);
   }
   async function run() {
     const session = runner.current;
