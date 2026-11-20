@@ -1,0 +1,63 @@
+:root {
+  --bg: #fbfbfd; --fg: #1d2230; --muted: #5b6275; --card: #fff; --line: #e3e6ee;
+  --accent: #2a5bd7; --accent-fg: #fff; --ok: #1f8a4c; --err: #b42318; --code-bg: #f5f7fb; --out-bg: #fff;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #11141b; --fg: #e7e9ef; --muted: #a2a9ba; --card: #181c25; --line: #2a3040;
+    --accent: #7aa2ff; --accent-fg: #0b1020; --ok: #4cc283; --err: #ff8a80; --code-bg: #141821; --out-bg: #10131a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+code, pre, textarea { font-family: var(--mono); font-size: 14px; }
+
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; gap: 1rem; align-items: center; padding: .6rem 1rem;
+  background: var(--card); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; text-decoration: none; color: var(--fg); }
+.status { flex: 1; color: var(--muted); font-size: .9rem; }
+.toolbar { display: flex; gap: .5rem; margin-left: auto; }
+button, .button { font: inherit; font-size: .9rem; padding: .35rem .8rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--fg); cursor: pointer; }
+button:hover, .button:hover { border-color: var(--accent); }
+button.danger { color: var(--err); }
+
+.notebook, .home { max-width: 900px; margin: 0 auto; padding: 1rem 1rem 4rem; }
+.nb-head { color: var(--muted); font-size: .9rem; margin-bottom: .5rem; }
+.cell.md { padding: .2rem 0; }
+.cell.md pre { background: var(--code-bg); padding: .75rem; border-radius: 8px; overflow-x: auto; }
+.cell.md table { border-collapse: collapse; } .cell.md td, .cell.md th { border: 1px solid var(--line); padding: .3rem .6rem; }
+
+.code-cell { display: grid; grid-template-columns: 2.5rem 1fr; gap: .4rem; margin: .8rem 0; }
+.gutter { display: flex; flex-direction: column; gap: .3rem; align-items: center; padding-top: .2rem; }
+.gutter button { width: 2.2rem; padding: .25rem 0; }
+.gutter .run { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.badge { font-size: 1.1rem; }
+.code { width: 100%; min-height: 2.6rem; resize: vertical; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--code-bg); color: var(--fg); line-height: 1.45; tab-size: 4; white-space: pre; overflow-x: auto; }
+.kind-exercise .code, .kind-check .code, .kind-quiz .code { border-left: 4px solid var(--accent); }
+.busy .code { opacity: .7; }
+.output { margin: .3rem 0 0; padding: 0 .75rem; background: var(--out-bg); white-space: pre-wrap; word-break: break-word; }
+.output:empty { display: none; }
+.output.running::after { content: "running…"; color: var(--muted); }
+.output .error { color: var(--err); }
+.output .stderr { color: var(--muted); }
+.output .friendly { color: var(--accent); font-weight: 600; }
+
+.hero h1 { margin-bottom: .2rem; }
+.cta { display: inline-block; margin-top: .5rem; padding: .6rem 1.1rem; border-radius: 10px; background: var(--accent); color: var(--accent-fg); text-decoration: none; font-weight: 600; }
+.levels { display: grid; gap: 1rem; margin: 1.5rem 0; }
+.level { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; }
+.level h2 { margin: 0 0 .5rem; }
+.items { margin: .3rem 0 .6rem; padding-left: 1.4rem; }
+.items small { color: var(--muted); }
+details summary { cursor: pointer; font-weight: 600; margin-top: .4rem; }
+.bar { position: relative; height: 1.4rem; background: var(--code-bg); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.bar span { position: absolute; inset: 0 auto 0 0; background: var(--ok); }
+.bar em { position: relative; display: block; text-align: center; font-style: normal; font-size: .8rem; line-height: 1.4rem; }
+.steps li { margin: .4rem 0; } .steps button { margin: .2rem .3rem 0 0; }
+.data { border-top: 1px solid var(--line); padding-top: 1rem; }
+.pager { display: flex; justify-content: space-between; gap: 1rem; max-width: 900px; margin: 0 auto; padding: 1rem; color: var(--muted); font-size: .9rem; }
+input { font: inherit; padding: .3rem .5rem; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+@media (max-width: 600px) { .code-cell { grid-template-columns: 1fr; } .gutter { flex-direction: row; } .toolbar button { padding: .3rem .5rem; } }

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Achievements · SwarmLadderlab</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">🪜 SwarmLadderlab</a>
+    <nav class="toolbar"><a href="index.html">Dashboard</a></nav>
+  </header>
+  <main class="home">
+    <section class="hero">
+      <h1>🏆 Get your name on the course</h1>
+      <p>Finish every workbook of a level, then claim it. Your solutions are verified automatically, a maintainer approves, and your name goes into
+        <a href="https://github.com/SwarmLadder/python-notebook/blob/main/ACHIEVEMENTS.md">ACHIEVEMENTS.md</a>.
+        The rules are in <a href="https://github.com/SwarmLadder/python-notebook/blob/main/RECOGNITION.md">RECOGNITION.md</a>.</p>
+      <label>Your GitHub login: <input id="login" placeholder="your-login" autocomplete="username" pattern="[A-Za-z0-9-]+"></label>
+    </section>
+    <section id="claims" class="levels"></section>
+  </main>
+  <script type="module" src="assets/claim.js"></script>
+</body>
+</html>
