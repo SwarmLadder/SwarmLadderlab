@@ -115,10 +115,10 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         const err = latest.current.error;
         if (err && err.line >= 1 && err.line <= doc.lines) {
           const line = doc.line(err.line);
-          out.push({ from: line.from, to: Math.max(line.to, line.from + 1), severity: "error", message: err.message, source: "Python" });
+          out.push({ from: line.from, to: Math.max(line.to, line.from + 1), severity: "error", message: err.message, source: language === "rust" ? "Rust" : "Python" });
         }
         const r = latest.current.runner?.current;
-        if (r?.isReady) {
+        if (isPython && r?.isReady) {
           for (const p of await r.lint(v.state.doc.toString())) {
             if (p.line > doc.lines) continue;
             const line = doc.line(p.line);
@@ -157,7 +157,7 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         autocompletion({ activateOnTyping: true, icons: true, closeOnBlur: true,
           ...(language === "rust" || language === "git" ? { override: [nativeCompletions(language)] } : {}) }),
         syntaxHighlighting(classHighlighter),
-        isPython ? [check, lintGutter()] : [],
+        isPython || language === "rust" ? [check, lintGutter()] : [],
         placeholder ? placeholderExt(placeholder) : [],
         Prec.highest(
           keymap.of([
@@ -194,7 +194,7 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
 
   // A new runtime error is shown at once rather than after the next keystroke.
   useEffect(() => {
-    if (isPython && view.current) forceLinting(view.current);
+    if ((isPython || language === "rust") && view.current) forceLinting(view.current);
   }, [error]);
 
   return <div ref={host} className={"editor" + (fill ? " fill" : "")} />;
