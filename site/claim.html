@@ -3,24 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Achievements · SwarmLadderlab</title>
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="description" content="Celebrate your SwarmLadder learning milestones and submit your completed workbook achievements.">
+  <title>Achievements · SwarmLadder Lab</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/theme.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="topbar">
-    <a class="brand" href="index.html">🪜 SwarmLadderlab</a>
-    <nav class="toolbar"><a href="index.html">Dashboard</a></nav>
+    <div class="nav-inner">
+      <a class="brand" href="index.html" aria-label="SwarmLadder Lab home"><span class="brand-symbol" aria-hidden="true">S<span>.</span></span><span class="brand-name">SwarmLadder <strong>Lab</strong></span></a>
+      <nav class="primary-nav" aria-label="Main navigation"><a href="index.html">Explore</a><a href="index.html#catalog">Curriculum</a><a href="claim.html" class="nav-active" aria-current="page">Achievements</a></nav>
+      <div class="nav-actions"><a class="nav-github" href="https://github.com/SwarmLadder" target="_blank" rel="noopener noreferrer">GitHub ↗</a><button id="theme-toggle" type="button" class="theme-toggle icon-button" aria-label="Switch color theme">◐</button></div>
+    </div>
   </header>
-  <main class="home">
-    <section class="hero">
-      <h1>🏆 Get your name on the course</h1>
-      <p>Finish every workbook of a level, then claim it. Your solutions are verified automatically, a maintainer approves, and your name goes into
-        <a href="https://github.com/SwarmLadder/python-notebook/blob/main/ACHIEVEMENTS.md">ACHIEVEMENTS.md</a>.
-        The rules are in <a href="https://github.com/SwarmLadder/python-notebook/blob/main/RECOGNITION.md">RECOGNITION.md</a>.</p>
-      <label>Your GitHub login: <input id="login" placeholder="your-login" autocomplete="username" pattern="[A-Za-z0-9-]+"></label>
+  <main id="main" class="home achievement-home">
+    <section class="achievement-hero">
+      <div><div class="eyebrow"><span class="eyebrow-dot"></span> YOUR LEARNING MILESTONES</div><h1>Every milestone<br><span>deserves recognition.</span></h1><p>Complete every workbook in a level to unlock a verified achievement and earn your place in the SwarmLadder community.</p><a class="button button-ghost" href="index.html#catalog">← Back to curriculum</a></div>
+      <div class="achievement-medallion" aria-hidden="true"><div class="medallion-ring"><span>✦</span></div><small>LEARN · BUILD · ACHIEVE</small></div>
     </section>
-    <section id="claims" class="levels"></section>
+    <section class="claim-instructions"><div><div class="section-eyebrow">HOW IT WORKS</div><h2>Show what you've learned.</h2><p>Finish your workbooks, export your solutions, then submit a claim to the <a href="https://github.com/SwarmLadder/python-notebook/blob/main/ACHIEVEMENTS.md" target="_blank" rel="noopener noreferrer">course achievement list</a>. Claims are verified and reviewed by a maintainer. <a href="https://github.com/SwarmLadder/python-notebook/blob/main/RECOGNITION.md" target="_blank" rel="noopener noreferrer">Read the rules ↗</a></p></div><label class="login-field">GITHUB USERNAME<input id="login" placeholder="your-github-username" autocomplete="username" pattern="[A-Za-z0-9-]+" maxlength="39"></label></section>
+    <section class="achievements-list" aria-label="Achievement eligibility"><div class="section-heading"><div><div class="section-eyebrow">YOUR PROGRESS</div><h2>Available achievements</h2></div></div><div id="claims" class="levels" aria-live="polite"></div></section>
   </main>
+  <footer class="site-footer"><div class="footer-inner"><div class="footer-brand"><span class="brand-symbol" aria-hidden="true">S<span>.</span></span><span>SwarmLadder Lab <small>Learn by building.</small></span></div><span>Every great developer started somewhere.</span><a href="index.html">Back to learning →</a></div></footer>
   <script type="module" src="assets/claim.js"></script>
 </body>
 </html>

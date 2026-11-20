@@ -34,7 +34,17 @@ async function main() {
       return { id, ...w, missing };
     });
     const complete = status.every((w) => w.missing.length === 0);
-    const card = el("article", { class: "level" }, el("h2", {}, `${level.medal} ${level.title} ${complete ? "— complete!" : ""}`));
+    const totalChecks = status.reduce((n, w) => n + w.exercises.length, 0);
+    const passedChecks = status.reduce((n, w) => n + w.exercises.length - w.missing.length, 0);
+    const card = el("article", { class: "level" },
+      el("span", { class: "section-eyebrow" }, complete ? "ACHIEVEMENT UNLOCKED" : "KEEP BUILDING"),
+      el("h2", {}, level.medal + " " + level.title),
+      el("p", { class: "claim-progress-label" }, passedChecks + " of " + totalChecks + " workbook checks passed"),
+      el("div", { class: "overview-progressbar", role: "progressbar",
+        "aria-label": level.title + " achievement progress",
+        "aria-valuemin": "0", "aria-valuemax": "100",
+        "aria-valuenow": totalChecks ? String(Math.round(100 * passedChecks / totalChecks)) : "0" },
+        el("span", { style: "width:" + (totalChecks ? 100 * passedChecks / totalChecks : 0) + "%" })));
     const list = el("ul", { class: "items" });
     for (const w of status) {
       const title = level.sections.flatMap((s) => s.items).find((i) => i.id === w.id)?.title || w.module;
@@ -63,4 +73,7 @@ async function main() {
     container.append(card);
   }
 }
-main();
+main().catch((error) => {
+  console.error(error);
+  document.getElementById("claims").replaceChildren(el("p", {}, "Achievements are unavailable. Refresh and try again."));
+});

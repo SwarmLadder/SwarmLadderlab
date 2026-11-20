@@ -111,7 +111,33 @@ async function cellIndexBy(page, predicate) {
   const basicsBar = await page.locator(".level").first().locator(".bar em").innerText();
   expect("Basics progress counted", /^[1-9]\d* \//.test(basicsBar), basicsBar);
 
-  // 6. Claim page lists workbooks and keeps the claim locked until all pass.
+  // 6. Redesigned dashboard: search, filters, theme and mobile layout.
+  expect("brand and catalog are visible", await page.locator(".brand-name").isVisible()
+    && await page.locator("#catalog").isVisible());
+  await page.locator("#search").fill("00_python_introduction");
+  expect("search narrows to one level", await page.locator(".level").count() === 1);
+  await page.locator("#search").fill("a-value-that-will-never-match");
+  expect("empty search shows guidance", await page.locator(".empty-state").isVisible());
+  await page.locator("#search").fill("");
+  await page.locator('button[data-filter="projects"]').click();
+  expect("project filter produces results", await page.locator(".level").count() > 0
+    && await page.locator('button[data-filter="projects"]').getAttribute("aria-pressed") === "true");
+  await page.locator('button[data-filter="all"]').click();
+  const beforeTheme = await page.locator("html").getAttribute("data-theme");
+  await page.locator("#theme-toggle").click();
+  const afterTheme = await page.locator("html").getAttribute("data-theme");
+  expect("theme toggle works", beforeTheme !== afterTheme);
+  await page.reload();
+  expect("theme persists across reload", await page.locator("html").getAttribute("data-theme") === afterTheme);
+  await page.setViewportSize({ width: 390, height: 820 });
+  await page.waitForTimeout(200);
+  const viewport = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: innerWidth }));
+  expect("mobile home has no horizontal overflow", viewport.body <= viewport.viewport + 1,
+    JSON.stringify(viewport));
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  // 7. Claim page lists workbooks and keeps the claim locked until all pass.
+
   await page.goto(base + "claim.html");
   await page.waitForSelector(".level");
   const claimText = await page.locator(".level").first().innerText();

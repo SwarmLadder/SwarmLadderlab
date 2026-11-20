@@ -19,7 +19,16 @@ function codeCell(cell, cwd) {
   const runButton = el("button", { class: "run", title: "Run (Shift+Enter)" }, "▶");
   const resetButton = el("button", { class: "reset", title: "Put back the original code" }, "↺");
   const badge = el("span", { class: "badge" });
-  const box = el("section", { class: "cell code-cell kind-" + cell.kind }, el("div", { class: "gutter" }, runButton, resetButton, badge), el("div", { class: "body" }, editor, output));
+  const typeLabel = ({exercise:"EXERCISE", check:"RUN CHECK", quiz:"KNOWLEDGE CHECK", setup:"SETUP", code:"PYTHON"})[cell.kind] || "PYTHON";
+  runButton.textContent = "▶ Run";
+  resetButton.textContent = "↺ Reset";
+  const box = el("section", { class: "cell code-cell kind-" + cell.kind },
+    el("div", { class: "body" },
+      el("div", { class: "cell-toolbar" },
+        el("span", { class: "cell-type" }, el("span", { class: "cell-dot", "aria-hidden": "true" }), typeLabel),
+        el("div", { class: "cell-buttons" }, badge, resetButton, runButton)),
+      editor, el("div", { class: "output-wrap" },
+        el("div", { class: "output-header" }, "OUTPUT"), output)));
 
   async function run() {
     output.textContent = "";
@@ -72,8 +81,11 @@ function refreshBadges() {
   }
   const total = (window.__graded || []).length;
   const count = (window.__graded || []).filter((k) => done.has(k)).length;
-  if (total) statusEl.dataset.progress = `${count}/${total} done on this page`;
-  document.getElementById("page-progress").textContent = total ? `${count} / ${total} checks done` : "";
+  if (total) statusEl.dataset.progress = count + "/" + total + " done on this page";
+  const progressLabel = total ? count + " / " + total + " checks done" : "Practice notebook";
+  document.getElementById("page-progress").textContent = progressLabel;
+  document.getElementById("sidebar-progress").textContent = total ? Math.round((count / total) * 100) + "%" : "—";
+  document.getElementById("sidebar-progress-fill").style.width = total ? (100 * count / total) + "%" : "0%";
 }
 
 function keysForCell(cell) {
@@ -91,11 +103,25 @@ async function main() {
   document.title = nb.title + " · SwarmLadderlab";
   window.__graded = nb.graded;
   const container = document.getElementById("notebook");
+  container.replaceChildren();
+  const level = catalog.levels.find((entry) => nbId.startsWith(entry.id + "/"));
+  const section = level && level.sections.find((entry) => entry.items.some((item) => item.id === nbId));
+  document.getElementById("sidebar-course-name").textContent = level ? level.title + " Python" : "Python";
+  document.getElementById("sidebar-level").textContent = section ? section.title : "Interactive notebook";
   const cwd = "/course/" + nb.folder;
   container.append(el("div", { class: "nb-head" },
-    el("a", { href: `${COURSE_REPO}/blob/main/${nb.id}.ipynb`, target: "_blank", rel: "noopener" }, "View on GitHub"), " · ",
-    el("a", { href: `https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/${nb.id}.ipynb`, target: "_blank", rel: "noopener" }, "Open in Colab"), " · ",
-    el("span", { id: "page-progress" })));
+    el("div", { class: "breadcrumb" },
+      el("a", { href: "index.html#catalog" }, "Python"),
+      el("span", { class: "crumb-arrow", "aria-hidden": "true" }, " / "),
+      level ? level.title : "Course",
+      el("span", { class: "crumb-arrow", "aria-hidden": "true" }, " / "),
+      section ? section.title : "Notebook"),
+    el("div", { class: "nb-links" },
+      el("span", { id: "page-progress", class: "nb-progress" }),
+      el("a", { href: COURSE_REPO + "/blob/main/" + nb.id + ".ipynb",
+        target: "_blank", rel: "noopener noreferrer" }, "GitHub ↗"),
+      el("a", { href: "https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb",
+        target: "_blank", rel: "noopener noreferrer" }, "Colab ↗"))));
   for (const cell of nb.cells) {
     if (cell.type === "md") {
       const div = el("section", { class: "cell md" });
@@ -106,16 +132,34 @@ async function main() {
       cells[cells.length - 1].keys = keysForCell(cell);
     }
   }
+  const outline = document.getElementById("lesson-outline");
+  const headings = [...container.querySelectorAll(".cell.md h2, .cell.md h3")].slice(0, 25);
+  headings.forEach((heading, i) => {
+    const id = heading.id || "lesson-section-" + i;
+    if (!heading.id) heading.id = id;
+    outline.append(el("a", { href: "#" + id,
+      class: heading.tagName === "H3" ? "toc-sub" : "" }, heading.textContent.trim()));
+  });
+  if (!headings.length) outline.append(el("span", { class: "sidebar-level" }, "Follow the lesson below."));
+  if (headings.length && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((events) => {
+      for (const item of events) {
+        if (item.isIntersecting) {
+          for (const a of outline.querySelectorAll("a")) a.classList.toggle("toc-active", a.hash === "#" + item.target.id);
+        }
+      }
+    }, { rootMargin: "-100px 0px -68% 0px" });
+    headings.forEach((heading) => observer.observe(heading));
+  }
   container.setAttribute("aria-busy", "false");
   refreshBadges();
 
   // previous / next within the same level
-  const level = catalog.levels.find((l) => nbId.startsWith(l.id + "/"));
-  const flat = level.sections.flatMap((s) => s.items);
+  const flat = level ? level.sections.flatMap((s) => s.items) : [];
   const at = flat.findIndex((i) => i.id === nbId);
   const pager = document.getElementById("pager");
   if (at > 0) pager.append(el("a", { href: "lesson.html?nb=" + flat[at - 1].id }, "← " + flat[at - 1].title));
-  pager.append(el("a", { href: "index.html" }, "Dashboard"));
+  pager.append(el("a", { class: "pager-center", href: "index.html#catalog" }, "All lessons"));
   if (at >= 0 && at < flat.length - 1) pager.append(el("a", { href: "lesson.html?nb=" + flat[at + 1].id }, flat[at + 1].title + " →"));
 }
 
@@ -132,5 +176,8 @@ document.getElementById("restart").addEventListener("click", () => {
 });
 
 main().catch((error) => {
-  document.getElementById("notebook").append(el("p", { class: "error" }, String(error)));
+  const target = document.getElementById("notebook");
+  target.setAttribute("aria-busy", "false");
+  target.replaceChildren(el("p", { class: "error" }, "Unable to load this lesson. Return to the curriculum and try again."));
+  console.error(error);
 });
