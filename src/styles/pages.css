@@ -12,7 +12,7 @@ body:has(.ide) .colophon { display: none; }
   --code-bg: #0d1a2f; --code-gutter: #0a1528; --code-ink: #e8eef6; --code-keyword: #8fb8ff; --code-string: #7fe3b4; --code-number: #ffb38a;
   --code-function: #d0adff; --code-comment: #7f90a8; --code-operator: #b9c5d6; --code-selection: rgba(79, 225, 182, 0.22);
   --rule: #1d2c45; --rule-2: #2a3c5a; --ink: #e8eef6; --ink-2: #c1ccda; --muted: #8d9db2; --signal: #4fe1b6; --signal-soft: #10333a; --moss: #6fdc9c; --danger: #ff8d7c; --blue: #55e4bd; --focus: #4fe1b6; --sheet: #111f37; --paper-2: #0f1b30;
-  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 4.25rem); background: #0b1526; color: var(--ink);
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 4.25rem); background: #0b1526; color: var(--ink);
 }
 .ide > * { min-width: 0;
 }
@@ -20,6 +20,30 @@ body:has(.ide) .colophon { display: none; }
 .ide-tabs { display: flex; align-self: stretch; }
 .ide-tab { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0 1.1rem; margin-top: 0.4rem; border-radius: 8px 8px 0 0; background: var(--code-bg); border: 1px solid var(--rule); border-bottom: 0; position: relative; top: 1px; font: 500 0.84rem/1 var(--mono); }
 .ide-tab svg { color: var(--signal); }
+.ide-language {
+  align-self: center;
+  margin: 0.3rem 0.55rem 0.25rem 0.7rem;
+  max-width: 9rem;
+  border: 1px solid var(--rule-2);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #152640;
+  padding: 0.35rem 1.8rem 0.35rem 0.55rem;
+  font: 600 0.82rem/1.4 var(--sans);
+  cursor: pointer;
+}
+.ide-language:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.ide-mode-notice {
+  padding: 0.52rem 1.2rem;
+  background: #0e1e33;
+  color: #b8c9dd;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  border-bottom: 1px solid var(--rule);
+}
+.ide-mode-notice a { color: #78e8ce; text-decoration: underline; text-underline-offset: 2px; }
+.ide-mode-notice code { color: var(--code-string); }
+
 .ide-actions { display: flex; align-items: center; gap: 0.3rem; }
 .ide-btn { display: inline-flex; align-items: center; gap: 0.35rem; height: 2rem; padding: 0 0.7rem; border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--ink-2); font: 500 0.84rem/1 var(--sans); cursor: pointer; }
 .ide-btn.icon { width: 2rem; padding: 0; justify-content: center; color: var(--muted); }
@@ -59,7 +83,27 @@ body:has(.ide) .colophon { display: none; }
   .ide-divider { display: none; }
   .console-pane { min-height: 12rem; border-top: 1px solid var(--rule); }
   .ide-status-right > :not(:first-child) { display: none; }
-  .ide-tab { padding: 0 0.8rem; }
+  .ide-tab { padding: 0 0.65rem; font-size: 0.74rem; }
+  .ide-bar { gap: .35rem; padding-inline: .35rem; }
+  .ide-language { max-width: 7.3rem; margin-inline: .35rem; font-size: .73rem; }
+  .ide-menu .ide-btn { padding-inline: .35rem; font-size: .76rem; }
+  .ide-mode-notice { padding: .55rem .75rem; }
+  .ide-status-right { gap: .55rem; }
+}
+
+@media (max-width: 600px) {
+  .ide-bar {
+    height: auto;
+    min-height: 2.9rem;
+    flex-wrap: wrap;
+    gap: .25rem;
+    padding: .3rem .45rem;
+  }
+  .ide-tabs { width: 100%; min-height: 2.3rem; align-items: center; justify-content: space-between; }
+  .ide-tab { border: 1px solid var(--rule); border-radius: 7px; top: 0; margin-top: 0; height: 2.15rem; }
+  .ide-language { max-width: 11rem; min-height: 2.15rem; margin: 0; }
+  .ide-actions { width: 100%; justify-content: flex-end; padding-block: .15rem; }
+  .run-button { margin-left: auto; }
 }
 
 /* ---------- achievements ---------- */

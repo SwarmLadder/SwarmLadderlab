@@ -44,10 +44,10 @@ test("Rust code editing and external Cargo verification persist without fake run
   await expect(page.getByRole("heading", { name: /B01.*Parse Port/ })).toBeVisible();
   await expect(page.getByText("cargo test --test mastery b01_")).toBeVisible();
   const draft = page.getByRole("textbox", { name: "Rust code draft" });
-  await expect(draft).toHaveValue(/pub fn parse_port/);
+  await expect(draft).toContainText("pub fn parse_port");
   await draft.fill("pub fn parse_port(input: &str) -> Result<u16, PortError> {\n    todo!()\n}");
   await page.reload();
-  await expect(draft).toHaveValue(/pub fn parse_port/);
+  await expect(draft).toContainText("pub fn parse_port");
   await expect(page.getByText(/The Lab does not execute Git commands or compile Rust/)).toBeVisible();
   await expect(page.getByRole("button", { name: /Mark verified locally/ })).toBeDisabled();
 

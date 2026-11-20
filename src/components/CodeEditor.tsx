@@ -20,6 +20,7 @@ import { bracketMatching, indentOnInput, syntaxHighlighting, indentUnit } from "
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { classHighlighter } from "@lezer/highlight";
 import type { Runner } from "../workers/runner";
+import { nativeCompletions, rustLanguage, shellLanguage } from "../lib/nativeLanguages";
 
 export type RuntimeError = { line: number; message: string } | null;
 type Props = {
@@ -33,7 +34,7 @@ type Props = {
   fill?: boolean; // grow to fill the parent (playground) instead of fitting the code
   onCursor?: (line: number, col: number) => void;
   onProblems?: (count: number) => void;
-  language?: "python" | "sql";
+  language?: "python" | "sql" | "rust" | "git";
 };
 
 const SNIPPETS = [
@@ -70,7 +71,8 @@ function guessType(doc: string, name: string): string | null {
 
 export function CodeEditor({ value, onChange, onRun, runner, error = null, label, placeholder, fill, onCursor, onProblems, language = "python" }: Props) {
   const isSql = language === "sql";
-  label ??= isSql ? "SQL code" : "Python code";
+  const isPython = language === "python";
+  label ??= { python: "Python code", sql: "SQL code", rust: "Rust code", git: "Git commands" }[language];
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const latest = useRef({ onChange, onRun, onCursor, onProblems, error, runner });
@@ -113,10 +115,10 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         const err = latest.current.error;
         if (err && err.line >= 1 && err.line <= doc.lines) {
           const line = doc.line(err.line);
-          out.push({ from: line.from, to: Math.max(line.to, line.from + 1), severity: "error", message: err.message, source: "Python" });
+          out.push({ from: line.from, to: Math.max(line.to, line.from + 1), severity: "error", message: err.message, source: language === "rust" ? "Rust" : "Python" });
         }
         const r = latest.current.runner?.current;
-        if (r?.isReady) {
+        if (isPython && r?.isReady) {
           for (const p of await r.lint(v.state.doc.toString())) {
             if (p.line > doc.lines) continue;
             const line = doc.line(p.line);
@@ -147,11 +149,15 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         highlightSelectionMatches(),
         indentUnit.of(isSql ? "  " : "    "),
         EditorState.tabSize.of(isSql ? 2 : 4),
-        // SQL lessons get SQLite highlighting and keyword completion; Python adds live session help.
-        isSql ? sql({ dialect: SQLite, upperCaseKeywords: true }) : [python(), pythonLanguage.data.of({ autocomplete: sessionNames }), pythonLanguage.data.of({ autocomplete: snippets })],
-        autocompletion({ activateOnTyping: true, icons: true, closeOnBlur: true }),
+        // Native Rust and Git use the same colored editor and keyboard shortcuts.
+        isSql ? sql({ dialect: SQLite, upperCaseKeywords: true })
+          : language === "rust" ? rustLanguage
+          : language === "git" ? shellLanguage
+          : [python(), pythonLanguage.data.of({ autocomplete: sessionNames }), pythonLanguage.data.of({ autocomplete: snippets })],
+        autocompletion({ activateOnTyping: true, icons: true, closeOnBlur: true,
+          ...(language === "rust" || language === "git" ? { override: [nativeCompletions(language)] } : {}) }),
         syntaxHighlighting(classHighlighter),
-        isSql ? [] : [check, lintGutter()],
+        isPython || language === "rust" ? [check, lintGutter()] : [],
         placeholder ? placeholderExt(placeholder) : [],
         Prec.highest(
           keymap.of([
@@ -188,7 +194,7 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
 
   // A new runtime error is shown at once rather than after the next keystroke.
   useEffect(() => {
-    if (view.current) forceLinting(view.current);
+    if ((isPython || language === "rust") && view.current) forceLinting(view.current);
   }, [error]);
 
   return <div ref={host} className={"editor" + (fill ? " fill" : "")} />;
