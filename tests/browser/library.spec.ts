@@ -17,7 +17,7 @@ test("multi-course directory offers searchable, honest and navigable courses", a
   await expect(page.getByText("No matching courses")).toBeVisible();
   await page.getByRole("button", { name: "Show all courses" }).click();
   await page.locator(".library-card").filter({ has: page.getByRole("heading", { name: "SQL", exact: true }) })
-    .getByRole("link", { name: "Explore course" }).click();
+    .getByRole("link", { name: "SQL, Open now" }).click();
   await expect(page).toHaveURL(/\/learn\/sql$/);
   await expect(page.getByRole("heading", { name: "SQL", exact: true })).toBeVisible();
 });
@@ -31,10 +31,10 @@ test("SQL progress resumes SQL only, and mobile directory fits", async ({ page }
   await page.reload();
   const sql = page.locator(".library-card").filter({ has: page.getByRole("heading", { name: "SQL", exact: true }) });
   await expect(sql.getByText("1 of 105 completed")).toBeVisible();
-  await expect(sql.getByRole("link", { name: "Continue learning" }))
+  await expect(sql.getByRole("link", { name: "SQL, Continue learning" }))
     .toHaveAttribute("href", "/lesson/sql/basics/lessons/00_select");
   const python = page.locator(".library-card").filter({ has: page.getByRole("heading", { name: "Python", exact: true }) });
-  await expect(python.getByRole("link", { name: "Explore course" })).toBeVisible();
+  await expect(python.getByRole("link", { name: "Python, Open now" })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 820 });
   await expect(page.getByRole("searchbox", { name: "Search courses" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();

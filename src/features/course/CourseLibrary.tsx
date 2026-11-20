@@ -75,7 +75,7 @@ export function CourseLibrary({ summaries }: { summaries: CourseOverview[] }) {
               </span>
             </div>
             <p className="library-course-language">{course.language}</p>
-            <h2>{open ? <Link href={coursePath(course.id)} aria-label={course.title + ", Open now"}>{course.title}</Link> : course.title}</h2>
+            <h2>{course.title}</h2>
             <p className="library-card-blurb">{course.blurb}</p>
             {open ? <>
               <p className="library-card-facts"><span><BookOpen size={14}/> {items.length} activities</span><span>{levels} levels</span><span>{checks} checks</span></p>
@@ -84,7 +84,7 @@ export function CourseLibrary({ summaries }: { summaries: CourseOverview[] }) {
                 aria-valuenow={completion.percent} aria-valuemin={0} aria-valuemax={100}>
                 <span style={{ width: completion.percent + "%" }} />
               </div>
-              <Link className="library-card-link" href={href}>{completion.resumeId ? "Continue learning" : "Explore course"} <ArrowRight size={17}/></Link>
+              <Link className="library-card-link" href={href} aria-label={course.title + (completion.resumeId ? ", Continue learning" : ", Open now")}>{completion.resumeId ? "Continue learning" : "Explore course"} <ArrowRight size={17}/></Link>
             </> : <p className="library-card-upcoming">More learning material is on the way.</p>}
           </article>;
         })}
