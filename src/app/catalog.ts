@@ -1,8 +1,17 @@
 import pythonData from "../../public/data/catalog.json";
 import sqlData from "../../public/data/sql/catalog.json";
+import gitData from "../../public/data/git/catalog.json";
+import rustData from "../../public/data/rust/catalog.json";
 import type { Catalog } from "../lib/course";
 
-// Both JSON imports are emitted by build/prepare.py before Vite compiles routes.
-export function catalog(course: "python" | "sql" = "python"): Catalog {
-  return course === "sql" ? sqlData : pythonData;
+// All four JSON catalogs are generated from their source repositories before Vite.
+export type CourseId = "python" | "sql" | "git" | "rust";
+const data: Record<CourseId, Catalog> = {
+  python: pythonData,
+  sql: sqlData,
+  git: gitData,
+  rust: rustData,
+};
+export function catalog(course: CourseId = "python"): Catalog {
+  return data[course];
 }
