@@ -1,10 +1,12 @@
-// Fetch both curricula when generated static assets are missing.
+// Fetch all four curricula when generated static assets are missing.
 // The Lab can build from a single checkout on Cloudflare Workers Builds.
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 if (existsSync("public/data/catalog.json") && existsSync("public/data/sql/catalog.json")
-    && existsSync("public/course/sql/fixtures/base.sql")) process.exit(0);
+    && existsSync("public/course/sql/fixtures/base.sql")
+    && existsSync("public/data/git/catalog.json")
+    && existsSync("public/data/rust/catalog.json")) process.exit(0);
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 const python = ["python3", "python"].find((p) => {
@@ -33,6 +35,10 @@ const course = source("COURSE", "../python-notebook", ".generated/python-noteboo
   "https://github.com/SwarmLadder/python-notebook", "COURSE_REPO");
 const sql = source("SQL_COURSE", "../SQL", ".generated/SQL",
   "https://github.com/SwarmLadder/SQL", "SQL_COURSE_REPO");
+const git = source("GIT_COURSE", "../git-github-course", ".generated/git-github-course",
+  "https://github.com/SwarmLadder/git-github-course", "GIT_COURSE_REPO");
+const rust = source("RUST_COURSE", "../RUST", ".generated/RUST",
+  "https://github.com/SwarmLadder/RUST", "RUST_COURSE_REPO");
 
 try {
   execFileSync(python, ["-c", "import markdown"], { stdio: "ignore" });
@@ -44,5 +50,6 @@ try {
     run(pip[0], [...pip.slice(1), "--break-system-packages"]);
   }
 }
-console.log("Preparing Python and SQL curricula");
-run(python, ["build/prepare.py", "--course", course, "--sql-course", sql]);
+console.log("Preparing Python, SQL, Git and Rust curricula");
+run(python, ["build/prepare.py", "--course", course, "--sql-course", sql,
+  "--git-course", git, "--rust-course", rust]);
