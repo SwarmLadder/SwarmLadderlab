@@ -41,8 +41,8 @@ const rustStream: StreamParser<RustState> = {
       const word = stream.current();
       if (rustKeywords.has(word)) return "keyword";
       if (rustTypes.has(word) || /^[A-Z]/.test(word)) return "typeName";
-      if (stream.peek() === "!" && rustMacros.has(word)) return "definition";
-      if (stream.peek() === "(") return "definition";
+      if (stream.peek() === "!" && rustMacros.has(word)) return "def";
+      if (stream.peek() === "(") return "def";
       return "variableName";
     }
     if (stream.match(/^(?:->|=>|::|&&|\|\||==|!=|<=|>=|[+\-*/%&|^!<>=?]+)/)) return "operator";
@@ -81,7 +81,7 @@ const shellStream: StreamParser<ShellState> = {
     if (stream.match(/^[A-Za-z_][\w.-]*/)) {
       const word = stream.current();
       if (bashKeywords.has(word)) return "keyword";
-      if (shellCommands.has(word)) return "definition";
+      if (shellCommands.has(word)) return "def";
       return "variableName";
     }
     if (stream.match(/^(?:&&|\|\||>>|<<|[=|&;<>])/)) return "operator";
