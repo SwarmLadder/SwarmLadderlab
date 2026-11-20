@@ -233,10 +233,21 @@ export default function Playground() {
     <div className="ide">
       <h1 className="sr-only">{t("play.title")}</h1>
       <div className="ide-bar">
-        <div className="ide-tabs" role="tablist">
-          <span className="ide-tab" role="tab" aria-selected="true">
-            <FileCode2 size={14} /> main.py
-          </span>
+        <div className="ide-tabs">
+          <span className="ide-tab"><FileCode2 size={14} /> {DISPLAY_FILE[language]}</span>
+          <label className="sr-only" htmlFor="play-language">Playground language</label>
+          <select
+            id="play-language"
+            className="ide-language"
+            aria-label="Playground language"
+            value={language}
+            onChange={(event) => switchLanguage(event.target.value as PlayLanguage)}
+          >
+            <option value="python">Python</option>
+            <option value="sql">SQL</option>
+            <option value="rust">Rust</option>
+            <option value="git">Git & GitHub</option>
+          </select>
         </div>
         <div className="ide-actions">
           <div className="ide-menu">
@@ -245,7 +256,7 @@ export default function Playground() {
             </button>
             {menu && (
               <ul className="ide-menu-list" role="menu">
-                {EXAMPLES.map((x) => (
+                {EXAMPLES[language].map((x) => (
                   <li key={x.label}>
                     <button role="menuitem" onClick={() => { edit(x.code); setMenu(false); }}>{x.label}</button>
                   </li>
@@ -260,14 +271,39 @@ export default function Playground() {
             <RotateCcw size={14} />
           </button>
           <button className="button run-button small" disabled={busy || !ready} onClick={run} title="Shift + Enter">
-            <Play size={14} fill="currentColor" /> {busy ? t("lesson.running") : t("lesson.run")}
+            <Play size={14} fill="currentColor" />
+            {busy ? t("lesson.running") : language === "rust" ? "Run Rust" : language === "git" ? "Run Git" : language === "sql" ? "Run SQL" : t("lesson.run")}
           </button>
         </div>
       </div>
 
+      <div className="ide-mode-notice" role="note">
+        {language === "rust" ? (
+          <>
+            Rust compiles on the official external Rust Playground. Clicking Run Rust sends
+            your code to play.rust-lang.org — do not include secrets.{" "}
+            <a href={rustPlaygroundLink(source)} target="_blank" rel="noopener noreferrer">
+              Open code in Rust Playground
+            </a>
+          </>
+        ) : language === "git" ? (
+          <>
+            Safe, in-browser Git practice simulator: supports status, stage, commit, log,
+            branches and restore. It is not native Git and cannot grade course labs.
+            Type <code>help</code> to see the supported commands.
+          </>
+        ) : language === "sql" ? (
+          <>SQL runs on a fresh fictional SQLite database in your browser; changes reset each run.</>
+        ) : (
+          <>Python runs in an isolated browser worker with the existing interactive runtime.</>
+        )}
+      </div>
       <div className="ide-body" ref={body} style={{ ["--split" as string]: split + "%" }}>
-        <section className="ide-editor" aria-label="main.py">
-          <CodeEditor value={source} onChange={edit} onRun={run} runner={runner} error={error} fill onCursor={(line, col) => setCursor({ line, col })} onProblems={setProblems} />
+        <section className="ide-editor" aria-label={DISPLAY_FILE[language]}>
+          <CodeEditor key={language} language={language} value={source} onChange={edit}
+            onRun={run} runner={language === "python" ? runner : undefined}
+            error={error} fill onCursor={(line, col) => setCursor({ line, col })}
+            onProblems={setProblems} />
         </section>
         <div className="ide-divider" role="separator" aria-orientation="vertical" aria-valuenow={Math.round(split)} onPointerDown={startDrag} />
         <section className="console-pane">
@@ -285,7 +321,7 @@ export default function Playground() {
           <pre className="output" aria-live="polite">
             {output.length
               ? output.map((o, i) => <span key={i} className={o.name === "stderr" ? "stderr" : undefined}>{o.text}</span>)
-              : <span className="output-hint">{busy ? t("lesson.running") : t("play.empty")}</span>}
+              : <span className="output-hint">{busy ? t("lesson.running") : language === "git" ? "Enter Git commands and click Run Git." : language === "rust" ? "Write a Rust main function and click Run Rust." : t("play.empty")}</span>}
           </pre>
           {error && (
             <p className="console-jump">
@@ -302,7 +338,7 @@ export default function Playground() {
         <span className={problems ? "problems has" : "problems"}>{problems ? t(problems === 1 ? "play.problems" : "play.problemsMany", { n: problems }) : t("play.noProblems")}</span>
         <span className="ide-status-right">
           <span>{t("play.cursor", { line: cursor.line, col: cursor.col })}</span>
-          <span>Python 3.13</span>
+          <span>{language === "python" ? "Python 3.13" : language === "sql" ? "SQLite" : language === "rust" ? "Rust 2021" : "Git practice simulator"}</span>
           <span>{t("play.spaces")}</span>
           <span className="ide-keys"><kbd>⇧</kbd><kbd>↵</kbd> {t("play.toRun")}</span>
         </span>
