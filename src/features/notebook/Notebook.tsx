@@ -17,6 +17,7 @@ import {
   save,
   setLast,
 } from "../progress/store";
+import { highlightPython } from "../../lib/pythonSyntax";
 import { Runner } from "../../workers/runner";
 import { CodeEditor } from "../../components/CodeEditor";
 import { ProgressMeter } from "../../components/ProgressMeter";
@@ -81,6 +82,11 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     };
   }, [nb]);
   useEffect(() => {
+    for (const block of article.current!.querySelectorAll(
+      ".md pre code.language-python, .md pre code.language-py",
+    )) {
+      block.innerHTML = highlightPython(block.textContent ?? "");
+    }
     const headings = [
       ...article.current!.querySelectorAll(".md h2,.md h3"),
     ].slice(0, 25);

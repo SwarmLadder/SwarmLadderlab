@@ -9,8 +9,9 @@ export default defineConfig({
     ? undefined
     : {
         command:
-          "vite preview --mode staging --host 127.0.0.1 --port 4190 --strictPort",
+          "next build --webpack && next start --hostname 127.0.0.1 --port 4190",
         url: baseURL,
+          timeout: 180000,
         reuseExistingServer: false,
       },
   use: {

@@ -364,16 +364,121 @@ article ol {
 .cell-tools {
   text-transform: capitalize;
 }
-.code-cell textarea {
-  display: block;
-  width: 100%;
-  max-height: 65vh;
-  background: #142338;
-  color: white;
+
+:root {
+  --code-bg: #edf3f7;
+  --code-ink: #20344c;
+  --code-keyword: #004e93;
+  --code-string: #006346;
+  --code-number: #97344f;
+  --code-function: #155776;
+  --code-comment: #526578;
+  --code-operator: #394e67;
+  --code-selection: #39aede45;
+}
+:root[data-theme="dark"] {
+  --code-bg: #0c192a;
+  --code-ink: #e5eff8;
+  --code-keyword: #78bcff;
+  --code-string: #76dfb8;
+  --code-number: #ff9eb0;
+  --code-function: #68d6f4;
+  --code-comment: #a1b5cb;
+  --code-operator: #c6d7eb;
+  --code-selection: #55aee755;
+}
+.editor,
+.md pre {
+  background: var(--code-bg);
+  color: var(--code-ink);
+}
+.editor {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--line);
   border-radius: 0.45rem;
-  padding: 0.8rem;
-  resize: vertical;
+  overflow: hidden;
   margin: 0.65rem 0;
+}
+.editor:focus-within {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+.editor .syntax-layer,
+.editor textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0.8rem;
+  font:
+    normal 0.9rem/1.5 ui-monospace,
+    monospace;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  white-space: pre;
+  text-align: start;
+  word-break: normal;
+  overflow-wrap: normal;
+  tab-size: 4;
+  scrollbar-gutter: stable;
+}
+.editor .syntax-layer {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.editor textarea {
+  position: relative;
+  max-height: 65vh;
+  resize: vertical;
+  overflow: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--code-ink);
+  outline: 0;
+  -webkit-text-fill-color: transparent;
+}
+.editor textarea::selection {
+  background: var(--code-selection);
+}
+.token.keyword,
+.token.boolean {
+  color: var(--code-keyword);
+}
+.token.string,
+.token.triple-quoted-string {
+  color: var(--code-string);
+}
+.token.number,
+.token.constant {
+  color: var(--code-number);
+}
+.token.builtin,
+.token.function,
+.token.class-name,
+.token.decorator {
+  color: var(--code-function);
+}
+.token.comment {
+  color: var(--code-comment);
+}
+.token.operator,
+.token.punctuation {
+  color: var(--code-operator);
+}
+@media (forced-colors: active) {
+  .editor .syntax-layer {
+    display: none;
+  }
+  .editor textarea {
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+    caret-color: CanvasText;
+  }
 }
 .output {
   white-space: pre-wrap;

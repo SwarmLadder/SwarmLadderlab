@@ -41,13 +41,11 @@ test("dashboard, filters, mobile theme, data migration and achievement gating", 
     code: { [intro]: { "saved-cell": "print(123)" } },
     last: intro,
   };
-  await page
-    .getByLabel("Import progress")
-    .setInputFiles({
-      name: "old.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(data)),
-    });
+  await page.getByLabel("Import progress").setInputFiles({
+    name: "old.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(data)),
+  });
   await expect(page.getByRole("status")).toHaveText("Progress imported.");
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export progress" }).click();
@@ -115,4 +113,31 @@ test("workbook validates with pytest in the browser", async ({ page }) => {
     "✅ classify_temperature",
     { timeout: 90000 },
   );
+});
+
+test("Python syntax colors follow edits and theme while preserving literal code", async ({
+  page,
+}) => {
+  await page.goto("/lesson/" + intro);
+  const editor = page.getByRole("textbox", { name: "Python code" }).first();
+  const code = 'def greet():\n    # example\n    return "<tag>" * 2';
+  await editor.fill(code);
+  const layer = page.locator(".syntax-layer").first();
+  await expect(layer.locator(".token.function")).toHaveText("greet");
+  await expect(layer.locator(".token.string")).toHaveText('"<tag>"');
+  await expect(layer.locator(".token.comment")).toHaveText("# example");
+  await expect(layer.locator(".token.number")).toHaveText("2");
+  const colors = () =>
+    layer
+      .locator(".token.keyword, .token.string, .token.number, .token.comment")
+      .evaluateAll((nodes) => [
+        ...new Set(nodes.map((n) => getComputedStyle(n).color)),
+      ]);
+  const before = await colors();
+  expect(before).toHaveLength(4);
+  await page.getByRole("button", { name: /Switch to/ }).click();
+  await expect.poll(colors).not.toEqual(before);
+  expect(await colors()).toHaveLength(4);
+  await expect(editor).toHaveValue(code);
+  await expect(layer.locator("tag")).toHaveCount(0);
 });
