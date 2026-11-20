@@ -4,7 +4,7 @@ import { catalog } from "./catalog";
 export default function Page() {
   return (
     <Personal>
-      <Home catalog={catalog()} />
+      <Home catalog={catalog("python")} sqlCatalog={catalog("sql")} />
     </Personal>
   );
 }
