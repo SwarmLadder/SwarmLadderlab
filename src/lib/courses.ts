@@ -10,7 +10,7 @@ export type Course = {
   hue: string; // spine colour, picked to sit on paper in both themes
 };
 export const courses: Course[] = [
-  { id: "python", title: "Python", language: "Python 3.13", blurb: "From your first variable to async services, tested end to end.", status: "open", hue: "#1d3a8a" },
+  { id: "python", title: "Python", language: "Python 3.13", blurb: "From your first variable to async services, tested end to end.", status: "open", hue: "#0f5c63" },
   { id: "sql", title: "SQL", language: "SQLite", blurb: "Ask precise questions of real data, then design the tables yourself.", status: "soon", hue: "#7a4b1f" },
   { id: "c", title: "C", language: "C17", blurb: "Memory, pointers and the machine underneath every language.", status: "soon", hue: "#3f6b4f" },
   { id: "javascript", title: "JavaScript", language: "ES2024", blurb: "The language of the web, from the console to the browser.", status: "soon", hue: "#8a6a12" },

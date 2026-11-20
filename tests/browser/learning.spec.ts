@@ -143,7 +143,7 @@ test("playground runs independent scratch code and restores edits", async ({ pag
   await page.goto("/learn/python");
   await page.getByRole("button", { name: "Peek inside" }).first().click();
   await expect(page.getByRole("heading", { name: "Intermediate", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Playground", exact: true }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Playground", exact: true }).click();
   const editor = page.getByRole("textbox", { name: "Python code" });
   await editor.fill("print(21 * 2)");
   await editor.press("Shift+Enter");

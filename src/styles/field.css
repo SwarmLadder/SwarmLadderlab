@@ -1,23 +1,32 @@
 /* SwarmLadder Lab — "Field guide" design system.
    Paper, ink and one signal colour. Expressive serif headings, calm sans reading text, true mono for code. */
+/* Brand: SwarmLadder navy, teal "Ladder", and the mint-to-cyan ladder rails. */
 :root {
-  --paper: #f4efe4;
-  --paper-2: #ece5d6;
-  --sheet: #fbf8f1;
-  --ink: #1b1d24;
-  --ink-2: #3c3e46;
-  --muted: #6b665c;
-  --rule: #d8cfbd;
-  --rule-2: #c7bca6;
-  --blue: #1d3a8a;
-  --blue-ink: #f4efe4;
-  --signal: #d9481c;
-  --signal-soft: #f6d9cb;
-  --moss: #2f6b45;
-  --moss-soft: #dce8dc;
-  --rust: #a23e1d;
-  --focus: #d9481c;
-  --shadow: 0 1px 0 rgba(27, 29, 36, 0.04), 0 10px 30px -18px rgba(27, 29, 36, 0.35);
+  --navy: #0c1729;
+  --paper: #f6f4ee;
+  --paper-2: #eceae2;
+  --sheet: #fdfcf9;
+  --ink: #0d1a2c;
+  --ink-2: #33415a;
+  --muted: #5d6878;
+  --rule: #dcd8cd;
+  --rule-2: #c7c2b4;
+  --blue: #0b7268;
+  --blue-ink: #ffffff;
+  --signal: #0b7a6c;
+  --signal-soft: #d5ede6;
+  --mint: #3fe0b0;
+  --cyan: #31bfd9;
+  --grad: linear-gradient(135deg, #45e3ae, #31bfd9);
+  --moss: #1f7a4a;
+  --moss-soft: #dcefe2;
+  --danger: #c0412b;
+  --danger-soft: #f8e0d9;
+  --rust: #b4441f;
+  --focus: #0b7a6c;
+  --primary-bg: #0c1729;
+  --primary-ink: #ffffff;
+  --shadow: 0 1px 0 rgba(13, 26, 44, 0.04), 0 10px 30px -18px rgba(13, 26, 44, 0.35);
   --serif: "Fraunces Variable", "Iowan Old Style", Georgia, serif;
   --sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
@@ -27,23 +36,27 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --paper: #121318;
-  --paper-2: #191b21;
-  --sheet: #1c1e25;
-  --ink: #ece5d6;
-  --ink-2: #cfc8b8;
-  --muted: #a39d90;
-  --rule: #2d3039;
-  --rule-2: #3b3e48;
-  --blue: #9db2ff;
-  --blue-ink: #121318;
-  --signal: #ff8257;
-  --signal-soft: #3a2219;
-  --moss: #86c49a;
-  --moss-soft: #1d2b22;
-  --rust: #ffa07a;
-  --focus: #ff8257;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 14px 34px -20px rgba(0, 0, 0, 0.8);
+  --paper: #0b1526;
+  --paper-2: #0f1b30;
+  --sheet: #111f37;
+  --ink: #e8eef6;
+  --ink-2: #c1ccda;
+  --muted: #8d9db2;
+  --rule: #1d2c45;
+  --rule-2: #2a3c5a;
+  --blue: #55e4bd;
+  --blue-ink: #0b1526;
+  --signal: #4fe1b6;
+  --signal-soft: #10333a;
+  --moss: #6fdc9c;
+  --moss-soft: #0f2f2a;
+  --danger: #ff8d7c;
+  --danger-soft: #3a1d22;
+  --rust: #ffb38a;
+  --focus: #4fe1b6;
+  --primary-bg: linear-gradient(135deg, #45e3ae, #31bfd9);
+  --primary-ink: #08121f;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -22px rgba(0, 0, 0, 0.85);
   color-scheme: dark;
 }
 
@@ -92,8 +105,9 @@ main { min-height: 70vh; outline: none; }
 /* ---------- buttons ---------- */
 .button { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.72rem 1.15rem; border-radius: var(--radius); border: 1px solid transparent; font: 600 0.98rem/1.2 var(--sans); text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s; white-space: nowrap; }
 .button:active { transform: translateY(1px); }
-.button.primary { background: var(--blue); color: var(--blue-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18); }
-.button.primary:hover { background: color-mix(in srgb, var(--blue) 88%, var(--ink)); }
+.button.primary { background: var(--primary-bg); color: var(--primary-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2), 0 8px 20px -12px rgba(12, 23, 41, 0.6); }
+.button.primary:hover { filter: brightness(1.12); }
+:root[data-theme="dark"] .button.primary { box-shadow: 0 10px 28px -12px rgba(63, 224, 176, 0.55); }
 .button.ink { background: var(--ink); color: var(--paper); }
 .button.ink:hover { background: var(--ink-2); }
 .button.quiet { background: transparent; border-color: var(--rule-2); color: var(--ink); }
@@ -108,12 +122,12 @@ main { min-height: 70vh; outline: none; }
 .masthead-row { display: flex; align-items: center; gap: 2rem; height: 4.25rem; }
 .brand { text-decoration: none; color: var(--ink); }
 .wordmark { display: inline-flex; align-items: center; gap: 0.65rem; }
-.wordmark-text { font: 600 1.28rem/1 var(--serif); letter-spacing: -0.02em; font-variation-settings: "SOFT" 70, "WONK" 1; }
-.wordmark-lab { font: 600 0.68rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; margin-left: 0.45rem; padding: 0.22rem 0.38rem; border: 1px solid var(--rule-2); border-radius: 4px; vertical-align: 0.2em; color: var(--muted); }
-.mark-tile { fill: var(--ink); }
-.mark-rail { stroke: var(--paper); stroke-width: 2.2; stroke-linecap: round; fill: none; }
-.mark-rung { stroke: var(--paper); stroke-width: 1.8; stroke-linecap: round; opacity: 0.5; }
-.mark-lit { stroke: var(--signal); stroke-width: 2.6; stroke-linecap: round; }
+.wordmark-text { display: inline-flex; align-items: baseline; font: 700 1.24rem/1 var(--sans); letter-spacing: -0.025em; }
+.wm-swarm { color: var(--ink); }
+.wm-ladder { color: #138a7e; }
+:root[data-theme="dark"] .wm-ladder { color: #45e3ae; }
+.wordmark .mark { border-radius: 22%; box-shadow: 0 4px 12px -6px rgba(12, 23, 41, 0.6); }
+.wordmark-lab { font: 600 0.66rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; margin-left: 0.55rem; padding: 0.24rem 0.42rem; border: 1px solid var(--rule-2); border-radius: 999px; color: var(--muted); align-self: center; }
 .primary-nav { display: flex; gap: 0.25rem; margin-left: auto; }
 .primary-nav a { position: relative; padding: 0.5rem 0.8rem; color: var(--ink-2); text-decoration: none; font-weight: 500; font-size: 0.97rem; border-radius: var(--radius); }
 .primary-nav a:hover { color: var(--ink); background: var(--paper-2); }
@@ -415,20 +429,27 @@ body { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org
 .claim-steps .button { margin: 0.3rem 0.3rem 0 0; }
 .muted { color: var(--muted); }
 
-/* ---------- colophon ---------- */
-.colophon { border-top: 1px solid var(--rule); margin-top: 2rem; }
-.colophon-row { display: grid; grid-template-columns: auto 1fr auto; gap: 2rem; align-items: center; padding-block: 2.25rem; color: var(--muted); font-size: 0.88rem; }
-.colophon p { margin: 0; font-family: var(--serif); font-style: italic; }
-.colophon nav { display: flex; gap: 1.25rem; }
-.colophon a { color: var(--ink-2); }
-@media (max-width: 760px) { .colophon-row { grid-template-columns: 1fr; gap: 1rem; } }
+/* ---------- colophon: the brand's dark lockup ---------- */
+.colophon { margin-top: 0; background: #0b1526; color: #c1ccda; --ink: #e8eef6; --muted: #8d9db2; --rule-2: #2a3c5a; }
+:root[data-theme="dark"] .colophon { background: #08111f; border-top: 1px solid var(--rule); }
+.colophon .wm-swarm { color: #fff; }
+.colophon .wm-ladder { color: #45e3ae; }
+.colophon-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 2.5rem; padding-block: 3.5rem 2.5rem; }
+.colophon-tag { margin: 1rem 0 0; font: 600 0.74rem/1.4 var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: #8d9db2; }
+.colophon nav { display: flex; flex-direction: column; gap: 0.55rem; }
+.colophon nav p { margin: 0 0 0.35rem; font: 600 0.72rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: #6f8098; }
+.colophon nav a { color: #dbe4ef; text-decoration: none; font-size: 0.95rem; }
+.colophon nav a:hover { color: #45e3ae; }
+.colophon-base { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block: 1.25rem 2rem; border-top: 1px solid #1d2c45; font-size: 0.82rem; color: #7d8ea5; }
+@media (max-width: 760px) { .colophon-grid { grid-template-columns: 1fr 1fr; } .colophon-brand { grid-column: 1 / -1; } }
 .stat strong small { font-size: 0.45em; color: var(--muted); font-family: var(--sans); font-weight: 500; }
 .narrow-sheet { max-width: 46rem; }
-.button.danger:hover { border-color: var(--signal); color: var(--signal); }
-.notice.error { color: var(--signal); }
+.button.danger:hover { border-color: var(--danger); color: var(--danger); }
+.notice.error { color: var(--danger); }
 .page-head .field { margin-top: 1.75rem; }
 .badge-locked { color: var(--muted); font-size: 0.92rem; font-style: italic; font-family: var(--serif); margin: 0; }
 .bookcase { width: fit-content; max-width: 100%; }
 :root[data-theme="dark"] .plank { background: linear-gradient(to bottom, #4a4438, #2b2822); box-shadow: 0 18px 24px -14px rgba(0, 0, 0, 0.9); }
 @media (max-width: 560px) { .bookcase { width: auto; } }
 @media (max-width: 640px) { .plate-back-1, .plate-back-2 { display: none; } }
+:root[data-theme="dark"] .wordmark .mark { box-shadow: 0 0 0 1px #22334f; }
