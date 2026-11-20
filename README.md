@@ -21,6 +21,10 @@ Every build (through `scripts/ensure-curriculum.mjs`) prepares all four curricul
 
 Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/python --sql-course /path/to/SQL --git-course /path/to/git --rust-course /path/to/rust` for other curriculum checkouts. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
 
+## Course library
+
+Browse all available courses at `/learn`. The course directory is generated from the live catalogs, with search, availability filters, activity counts, and independent saved progress. SQL has a direct first-lesson entry point and an isolated, in-browser SQLite runner. New courses are labeled as in preparation until their source content and renderer are ready.
+
 ## Structure
 
 - `src/app` defines the routes: home (`/`), the course shelf (`/learn`), a course route (`/learn/python`), lessons (`/lesson/basics/notebooks/00_python_introduction`), playground, achievements and progress. `/curriculum` redirects to `/learn/python`.
