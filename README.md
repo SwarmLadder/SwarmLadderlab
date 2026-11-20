@@ -2,7 +2,7 @@
 
 **Learn Python by doing, in your browser:** https://swarmladder.github.io/SwarmLadderlab/
 
- SwarmLadderlab is the web platform for the free [python-notebook](https://github.com/SwarmLadder/python-notebook) course: short lessons, fill-in-the-blank exercises with instant hidden-answer checks, quizzes, workbooks and projects. There's nothing to install.
+SwarmLadderlab is the web platform for the free [python-notebook](https://github.com/SwarmLadder/python-notebook) course: short lessons, fill-in-the-blank exercises with instant hidden-answer checks, quizzes, workbooks and projects. There's nothing to install.
 
 ![A lesson with an exercise checked in the browser](docs/screenshot-lesson.png)
 
