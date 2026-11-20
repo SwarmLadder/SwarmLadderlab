@@ -89,7 +89,7 @@ function renderOverview() {
   if (id) {
     const continueLink = el("a", { class: "cta", href: linkFor(id),
       title: last ? "Continue: " + titles.get(last) : "Start with Python foundations" },
-      last ? "▶ Continue learning" : "▶ Start learning", el("span", { "aria-hidden": "true" }, "↗"));
+      last ? "Continue learning" : "Start learning", el("span", { "aria-hidden": "true" }, "→"));
     document.getElementById("continue").replaceChildren(continueLink);
   }
   const total = catalog.levels.reduce((sum, level) => sum + level.total, 0);
@@ -102,14 +102,11 @@ function renderOverview() {
       el("small", {}, "/ " + total.toLocaleString() + " checks completed")),
     el("div", { class: "overview-progressbar", role: "progressbar", "aria-label": "Overall learning progress",
       "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(percent) },
-      el("span", { style: "width:" + percent + "%" })),
-    el("div", { class: "progress-subtext" },
-      el("span", {}, last ? "Welcome back. Your next challenge is ready." : "Every journey starts with a single step."),
-      el("span", {}, catalog.levels.length + " learning levels")));
+      el("span", { style: "width:" + percent + "%" })));
   document.getElementById("dashboard-lessons").replaceChildren(
     el("span", { class: "stat-label" }, "AVAILABLE NOTEBOOKS"),
     el("span", { class: "stat-number" }, items.length.toLocaleString()),
-    el("span", { class: "stat-note" }, "Guided, hands-on content"));
+    el("span", { class: "stat-note" }, "Lessons, workbooks & projects"));
   document.getElementById("dashboard-tracks").replaceChildren(
     el("span", { class: "stat-label" }, "LEARNING LEVELS"),
     el("span", { class: "stat-number" }, String(catalog.levels.length).padStart(2, "0")),
