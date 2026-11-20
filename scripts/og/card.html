@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+@font-face { font-family: Fraunces; src: url(../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2); font-weight: 100 900; }
+@font-face { font-family: Fraunces; font-style: italic; src: url(../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-italic.woff2); font-weight: 100 900; }
+@font-face { font-family: Instrument; src: url(../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-standard-normal.woff2); font-weight: 400 700; }
+@font-face { font-family: JBM; src: url(../../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2); font-weight: 100 800; }
+* { box-sizing: border-box; margin: 0; }
+body { width: 1200px; height: 630px; overflow: hidden; background: #0b1526; color: #e8eef6; font-family: Instrument; position: relative; }
+.glow { position: absolute; inset: 0; background: radial-gradient(700px 420px at 92% 8%, rgba(69,227,174,.20), transparent 70%), radial-gradient(520px 360px at 0% 100%, rgba(49,191,217,.14), transparent 70%); }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(90deg, transparent, #000 60%); }
+.wrap { position: relative; height: 100%; padding: 64px 72px; display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
+.brand { display: flex; align-items: center; gap: 18px; font: 700 34px/1 Instrument; letter-spacing: -0.02em; }
+.brand svg { width: 64px; height: 64px; border-radius: 15px; box-shadow: 0 0 0 1px #22334f, 0 12px 30px -10px rgba(63,224,176,.5); }
+.brand .l { color: #45e3ae; }
+.brand .lab { font: 600 13px/1 Instrument; letter-spacing: .16em; padding: 7px 11px; border: 1px solid #2a3c5a; border-radius: 99px; color: #8d9db2; margin-left: 4px; }
+h1 { margin-top: 70px; font: 520 82px/0.96 Fraunces; letter-spacing: -0.045em; font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 144; }
+h1 em { display: block; font-style: italic; font-weight: 420; color: #45e3ae; }
+.motto { position: absolute; left: 72px; bottom: 60px; font: 600 16px/1 Instrument; letter-spacing: .2em; color: #8d9db2; }
+.card { align-self: center; margin-top: 30px; background: #111f37; border: 1px solid #22334f; border-radius: 18px; padding: 24px 24px 22px; box-shadow: 0 40px 80px -30px rgba(0,0,0,.9); transform: rotate(2deg); }
+.bar { display: flex; justify-content: space-between; font: 600 12px/1 Instrument; letter-spacing: .12em; color: #8d9db2; }
+.track { height: 3px; background: #1d2c45; border-radius: 3px; margin: 14px 0 18px; } .track i { display: block; width: 64%; height: 100%; background: linear-gradient(90deg,#45e3ae,#31bfd9); border-radius: 3px; }
+pre { font: 400 17px/1.75 JBM; background: #0b1526; border: 1px solid #1d2c45; border-left: 3px solid #45e3ae; border-radius: 10px; padding: 14px 16px; color: #e8eef6; }
+.k { color: #8fb8ff } .n { color: #ffb38a } .f { color: #d0adff } .ok { color: #7fe3b4; font-weight: 700 }
+.out { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: rgba(111,220,156,.1); color: #6fdc9c; font: 600 16px/1 JBM; }
+.stamp { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #6fdc9c; color: #0b1526; font: 700 16px/1 Instrument; }
+</style></head><body>
+<div class="glow"></div><div class="grid"></div>
+<div class="wrap">
+  <div>
+    <div class="brand">__MARK__<span>Swarm<span class="l">Ladder</span></span><span class="lab">LAB</span></div>
+    <h1>Learn to code,<em>one rung at a time.</em></h1>
+  </div>
+  <div class="card">
+    <div class="bar"><span>BASICS · 06 LOOPS</span><span>STEP 7 OF 11</span></div>
+    <div class="track"><i></i></div>
+    <pre><span class="k">total</span> = <span class="n">0</span>
+<span class="k">for</span> n <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="ok">101</span>):
+    total += n
+<span class="f">check</span>(<span class="n">1</span>, total)</pre>
+    <div class="out"><span class="stamp">✓</span> Exercise 1: correct</div>
+  </div>
+</div>
+<p class="motto">LEARN TOGETHER. RISE TOGETHER.</p>
+</body></html>

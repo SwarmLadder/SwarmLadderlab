@@ -453,3 +453,8 @@ body { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org
 @media (max-width: 560px) { .bookcase { width: auto; } }
 @media (max-width: 640px) { .plate-back-1, .plate-back-2 { display: none; } }
 :root[data-theme="dark"] .wordmark .mark { box-shadow: 0 0 0 1px #22334f; }
+
+/* Run buttons in code cells carry the brand gradient. */
+.button.cell-run { background: var(--navy); color: #fff; }
+.button.cell-run:hover:not(:disabled) { filter: brightness(1.2); }
+:root[data-theme="dark"] .button.cell-run { background: linear-gradient(135deg, #45e3ae, #31bfd9); color: #08121f; }
