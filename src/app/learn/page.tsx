@@ -1,12 +1,11 @@
-import { Shelf } from "../../features/home/Shelf";
-import { t } from "../../i18n";
+import { CourseLibrary } from "../../features/course/CourseLibrary";
+import { catalog, type CourseId } from "../catalog";
+import { courses } from "../../lib/courses";
+import { summarizeCourse } from "../../lib/courseDirectory";
+
 export default function Page() {
-  return (
-    <div className="shell page-pad">
-      <header className="page-head">
-        <h1 className="display small">{t("home.shelf.title")}</h1>
-      </header>
-      <Shelf heading={false} />
-    </div>
-  );
+  const summaries = courses.map((course) => summarizeCourse(
+    course, course.status === "open" ? catalog(course.id as CourseId) : undefined,
+  ));
+  return <CourseLibrary summaries={summaries} />;
 }

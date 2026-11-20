@@ -138,6 +138,12 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
         mark(lesson.id, ["challenge"]);
         setComplete(true);
       }
+    } catch (err) {
+      // A rejected worker request must be visible in the editor and not leave it busy.
+      if (runner.current === session) {
+        setOutput((old) => old + (old ? "\n" : "") +
+          (err instanceof Error ? err.message : "SQL execution failed. Restart the session and try again."));
+      }
     } finally {
       if (runner.current === session) {
         running.current = false;
