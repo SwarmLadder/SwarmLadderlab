@@ -24,13 +24,14 @@ def generated(tmp_path_factory):
 def test_complete_course_structure(generated):
     catalog, out, _ = generated
     assert len(catalog["levels"]) == 3
-    assert sum(len(s["items"]) for l in catalog["levels"] for s in l["sections"]) == 101
-    assert [l["total"] for l in catalog["levels"]] == [16, 16, 16]
+    assert sum(len(s["items"]) for l in catalog["levels"] for s in l["sections"]) == 105
+    assert [l["total"] for l in catalog["levels"]] == [16, 16, 20]
     for level in catalog["levels"]:
         assert len(next(s for s in level["sections"] if s["id"] == "notebooks")["items"]) == 10
         assert len(next(s for s in level["sections"] if s["id"] == "exercises")["items"]) == 16
         assert len(next(s for s in level["sections"] if s["id"] == "projects")["items"]) == 2
     advanced = catalog["levels"][2]
+    assert len([i for s in advanced["sections"] for i in s["items"] if "/schema/" in i["id"]]) == 4
     assert len(next(s for s in advanced["sections"] if s["id"] == "worked_examples")["items"]) == 17
     assert (out / "data/sql/catalog.json").exists()
 
@@ -67,3 +68,13 @@ def test_postgresql_labs_are_not_runnable_in_sqlite(generated):
     assert pg["runnable"] is False
     assert "PostgreSQL" in pg["guideHtml"]
     assert pg["grade"] is None
+
+
+def test_schema_challenge_uses_behavioral_checker(generated):
+    _, out, _ = generated
+    page = json.loads((out / "data/sql/nb/sql__advanced__schema__C01.json").read_text())
+    assert page["schemaTask"] == "C01"
+    assert page["grade"] is None
+    assert page["graded"] == ["challenge"]
+    assert (out / "course/sql/tools/schema_practice.py").exists()
+    assert (out / "course/sql/data/schema.sql").exists()
