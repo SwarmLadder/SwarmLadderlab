@@ -4,12 +4,12 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, ListOrdered, Play, RotateCcw, Rows3, Square } from "lucide-react";
 import { courseRepo, lessonPath, notebookData, type Catalog, type CodeCell, type Notebook } from "../../lib/course";
 import { coursePath } from "../../lib/courses";
-import { lessonNumber, route } from "../../lib/journey";
+import { topic, lessonNumber, route } from "../../lib/journey";
 import { doneIn, finish, graduatedKeys, mark, onProgress, reach, reachedIn, read, save, setLast } from "../progress/store";
 import { highlightPython } from "../../lib/pythonSyntax";
 import { Runner } from "../../workers/runner";
 import { LadderMark } from "../../components/Brand";
-import { CodeEditor } from "../../components/CodeEditor";
+import { CodeEditor, type RuntimeError } from "../../components/CodeEditor";
 import { buildSteps, keysFor, quizFingerprint, type QuizData, type Step } from "./steps";
 import { t } from "../../i18n";
 
@@ -51,6 +51,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const [status, setStatus] = useState(t("runtime.loading"));
   const [edits, setEdits] = useState<Record<string, string>>(() => read().code?.[nb.id] ?? {});
   const [outputs, setOutputs] = useState<Record<string, Output[]>>({});
+  const [errors, setErrors] = useState<Record<string, RuntimeError>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [batch, setBatch] = useState(false);
   const [reached, setReached] = useState(() => Math.min(reachedIn(nb.id), steps.length - 1));
@@ -58,6 +59,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const runner = useRef<Runner | null>(null);
   const running = useRef(false);
   const setupRan = useRef(false);
+  const [setupDone, setSetupDone] = useState(false);
   const article = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLElement | null)[]>([]);
   const [focusStep, setFocusStep] = useState<number | null>(null);
@@ -105,6 +107,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
 
   function change(c: CodeCell, v?: string) {
     save(nb.id, c.id, v);
+    if (errors[c.id]) setErrors((e) => ({ ...e, [c.id]: null }));
     setEdits((old) => {
       const next = { ...old };
       if (v === undefined) delete next[c.id];
@@ -136,7 +139,10 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       for (const c of queue) {
         const quiet = c.kind === "setup" && !cells.includes(c);
         setBusy(c.id);
-        if (!quiet) setOutputs((o) => ({ ...o, [c.id]: [] }));
+        if (!quiet) {
+          setOutputs((o) => ({ ...o, [c.id]: [] }));
+          setErrors((e) => ({ ...e, [c.id]: null }));
+        }
         let text = "";
         const code = read().code?.[nb.id]?.[c.id] ?? c.source;
         const result = await session.run(code, "/course/" + nb.folder, (name, chunk) => {
@@ -144,9 +150,15 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           if (!quiet) append(c.id, name, chunk);
         });
         if (session !== runner.current) return;
-        if (c.kind === "setup" && !result.error) setupRan.current = true;
-        if (result.error && !quiet)
+        if (c.kind === "setup" && !result.error) {
+          setupRan.current = true;
+          setSetupDone(true);
+        }
+        if (result.error && !quiet) {
           append(c.id, "stderr", [result.friendly, (!result.friendly || !code.includes("___")) && result.error].filter(Boolean).join("\n"));
+          const last = result.error.trim().split("\n").pop() ?? "";
+          if (result.line && c.kind !== "check") setErrors((e) => ({ ...e, [c.id]: { line: result.line!, message: last } }));
+        }
         const keys = graduatedKeys(text);
         if (keys.length) mark(nb.id, keys);
         if (result.stopped) break;
@@ -164,6 +176,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     runner.current?.dispose();
     runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
     setupRan.current = false;
+    setSetupDone(false);
     setStatus(t("runtime.loading"));
     chain.current = Promise.resolve();
     const stoppedCell = requested.current ?? busy;
@@ -181,7 +194,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const stop = r.all[here];
   const prevStop = here > 0 ? r.all[here - 1] : null;
   const nextStop = here >= 0 ? r.all[here + 1] ?? null : null;
-  const { number, name } = lessonNumber(nb.title);
+  const { number, name: fullName } = lessonNumber(nb.title);
+  const name = topic(fullName);
   const solvedHere = nb.graded.filter((k) => done.includes(k)).length;
   const stepDone = (s: Step, i: number) => (s.keys.length ? s.keys.every((k) => done.includes(k)) : i < reached);
 
@@ -285,10 +299,10 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                 if (c.kind === "quiz" && s.quiz) return null;
                 if (c.kind === "setup")
                   return (
-                    <details key={c.id} className="setup-cell">
-                      <summary>{t("lesson.setup")}</summary>
-                      <pre>{c.source}</pre>
-                    </details>
+                    <p key={c.id} className={"setup-cell" + (setupDone ? " ready" : "")}>
+                      <span className="setup-dot" aria-hidden="true" />
+                      {setupDone ? t("lesson.setupReady") : t("lesson.setupLoading")}
+                    </p>
                   );
                 const before = s.cells.slice(0, ci).filter((x): x is CodeCell => x.type === "code" && x.kind === "code");
                 return (
@@ -299,6 +313,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                     busy={busy}
                     output={outputs[c.id]}
                     solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}
+                    runner={runner}
+                    error={errors[c.id] ?? null}
                     onChange={(v) => change(c, v)}
                     onRun={() => execute(c.kind === "check" ? [...before, c] : [c])}
                   />
@@ -374,13 +390,15 @@ function lineClass(line: string) {
   return "";
 }
 
-function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun }: {
+function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun, runner, error }: {
   cell: CodeCell; value: string; busy: string | null; output?: Output[]; solved: boolean;
-  onChange: (v?: string) => void; onRun: () => void;
+  onChange: (v?: string) => void; onRun: () => void; runner: { current: Runner | null }; error: RuntimeError;
 }) {
   const isCheck = cell.kind === "check";
   const text = output?.map((o) => o.text).join("") ?? "";
   const errText = output?.filter((o) => o.name === "stderr").map((o) => o.text).join("") ?? "";
+  const lines = text.replace(errText, "").split(/(?<=\n)/);
+  const outcome = busy === cell.id ? "" : errText || lines.some((l) => lineClass(l) === "no") ? "is-error" : lines.some((l) => lineClass(l) === "ok") ? "is-ok" : "";
   return (
     <div className={"code-cell kind-" + cell.kind + (busy === cell.id ? " busy" : "") + (solved ? " solved" : "")}>
       <div className="cell-tools">
@@ -405,19 +423,18 @@ function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun }: {
         </span>
       </div>
       {isCheck ? (
-        <div className="check-line"><code>{cell.source.trim()}</code></div>
+        <p className="check-line">{t("lesson.checkHint")}</p>
       ) : (
-        <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} />
+        <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} runner={runner} error={error} />
       )}
       {(output !== undefined || busy === cell.id) && (
-        <div className="output-wrap">
-          <span className="output-label">{t("lesson.output")}</span>
+        <div className={"output-wrap " + outcome}>
+          <span className="output-label">
+            {outcome === "is-ok" ? <><Check size={12} strokeWidth={2.6} /> {t("lesson.passed")}</> : outcome === "is-error" ? <>✕ {t("lesson.failed")}</> : t("lesson.output")}
+          </span>
           <pre className="output" aria-live="polite">
             {!text && <span className="output-hint">{busy === cell.id ? t("lesson.running") : t("lesson.noOutput")}</span>}
-            {text
-              .replace(errText, "")
-              .split(/(?<=\n)/)
-              .map((line, i) => (
+            {lines.map((line, i) => (
                 <span key={i} className={lineClass(line)}>{line}</span>
               ))}
             {errText && <span className="stderr">{errText}</span>}

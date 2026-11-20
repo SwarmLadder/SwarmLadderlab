@@ -22,7 +22,7 @@ test("SQL shelf, interactive SQLite lesson, two-dataset grading and progress", a
     "✅ SQL challenge B01: passed both datasets", { timeout: 120000 },
   );
   await page.reload();
-  await expect(editor).toHaveValue("SELECT sku, product_name FROM products WHERE active = 1 ORDER BY sku;");
+  await expect(editor).toHaveText("SELECT sku, product_name FROM products WHERE active = 1 ORDER BY sku;");
   await expect(page.getByText("✓ Completed")).toBeVisible();
 });
 

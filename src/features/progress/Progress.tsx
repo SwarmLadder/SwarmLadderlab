@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Download, Upload, Trash2, ArrowRight } from "lucide-react";
 import { exportData, importData, onProgress, read, STORE } from "./store";
 import { download, lessonPath, type Catalog } from "../../lib/course";
-import { lessonNumber, route } from "../../lib/journey";
+import { lessonNumber, route, topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
 const DAY = 86_400_000;
@@ -33,7 +33,7 @@ function activity(done: Record<string, number>, titles: Map<string, string>) {
     .slice(0, 6)
     .map(([key, ms]) => {
       const [id, check] = key.split("#");
-      return { id, check, ms, title: lessonNumber(titles.get(id) ?? id).name };
+      return { id, check, ms, title: topic(lessonNumber(titles.get(id) ?? id).name) };
     });
   return { days, streak, activeDays: perDay.size, recent };
 }
@@ -76,16 +76,6 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
   return (
     <div className="shell page-pad prog">
       <header className="prog-head">
-        <div>
-          <p className="eyebrow">{t("nav.progress")}</p>
-          <h1 className="display small">{t("progress.title")}</h1>
-          <p className="lede">{t("progress.lede")}</p>
-          {r.current && (
-            <Link className="button primary" href={lessonPath(r.current.item.id)}>
-              {t("course.resume")} <ArrowRight size={17} strokeWidth={1.8} />
-            </Link>
-          )}
-        </div>
         <figure className="prog-ring" aria-label={t("progress.overall", { pct })}>
           <svg viewBox="0 0 128 128" aria-hidden="true">
             <defs>
@@ -97,19 +87,23 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
             <circle cx="64" cy="64" r="54" className="ring-track" />
             <circle cx="64" cy="64" r="54" className="ring-arc" strokeDasharray={`${(ring * pct) / 100} ${ring}`} opacity={pct > 0 ? 1 : 0} transform="rotate(-90 64 64)" />
           </svg>
-          <figcaption>
-            <strong>{pct}%</strong>
-            <span>{t("progress.ofCourse")}</span>
-          </figcaption>
+          <figcaption><strong>{pct}%</strong></figcaption>
         </figure>
+        <div className="prog-title">
+          <h1 className="display small">{t("progress.title")}</h1>
+          {r.current && (
+            <Link className="button primary" href={lessonPath(r.current.item.id)}>
+              {t("progress.continue", { name: lessonNumber(r.current.item.title).name })} <ArrowRight size={17} strokeWidth={1.8} />
+            </Link>
+          )}
+        </div>
+        <dl className="prog-stats">
+          <div className="s1"><dt>{t("progress.lessons")}</dt><dd>{finished}<small>/{r.all.length}</small></dd></div>
+          <div className="s2"><dt>{t("progress.checks")}</dt><dd>{checks}</dd></div>
+          <div className="s3"><dt>{t("progress.activeDays")}</dt><dd>{a.activeDays}</dd></div>
+          <div className="s4"><dt>{t("progress.streak")}</dt><dd>{a.streak}</dd></div>
+        </dl>
       </header>
-
-      <div className="stat-row">
-        <div className="stat"><strong>{finished}<small> / {r.all.length}</small></strong><span>{t("progress.lessons")}</span></div>
-        <div className="stat"><strong>{checks}</strong><span>{t("progress.checks")}</span></div>
-        <div className="stat"><strong>{a.activeDays}</strong><span>{t("progress.activeDays")}</span></div>
-        <div className="stat"><strong>{a.streak}</strong><span>{t("progress.streak")}</span></div>
-      </div>
 
       <div className="prog-grid">
         <section className="sheet">
@@ -168,17 +162,15 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
         </section>
       </div>
 
-      <section className="backup">
-        <div>
-          <h2>{t("progress.move")}</h2>
-          <p>{t("progress.moveBody")}</p>
-        </div>
+      <details className="backup">
+        <summary>{t("progress.move")}</summary>
+        <p>{t("progress.moveBody")}</p>
         <div className="button-row">
-          <button className="button ink" onClick={() => download("swarmladderlab-progress.json", exportData(), "application/json")}>
-            <Download size={16} /> {t("progress.export")}
+          <button className="button ink small" onClick={() => download("swarmladderlab-progress.json", exportData(), "application/json")}>
+            <Download size={15} /> {t("progress.export")}
           </button>
-          <label className="button quiet file-button">
-            <Upload size={16} /> {t("progress.import")}
+          <label className="button quiet small file-button">
+            <Upload size={15} /> {t("progress.import")}
             <input
               type="file"
               accept=".json,application/json"
@@ -196,7 +188,7 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
             />
           </label>
           <button
-            className="button quiet danger"
+            className="button quiet small danger"
             onClick={() => {
               if (confirm(t("progress.resetConfirm"))) {
                 localStorage.removeItem(STORE);
@@ -205,11 +197,11 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
               }
             }}
           >
-            <Trash2 size={16} /> {t("progress.reset")}
+            <Trash2 size={15} /> {t("progress.reset")}
           </button>
         </div>
-        <p className="notice" role="status">{message}</p>
-      </section>
+      </details>
+      <p className="notice" role="status">{message}</p>
     </div>
   );
 }

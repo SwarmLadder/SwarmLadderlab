@@ -162,7 +162,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
             <span aria-hidden="true">/</span>
             <span>{here?.level.title ?? "Course"}</span>
           </nav>
-          <span className="runtime" role="status">
+          <span className={"runtime" + (/ready/i.test(status) ? " ready" : "")} role="status">
             <span className="runtime-dot" aria-hidden="true" />
             {status}
           </span>

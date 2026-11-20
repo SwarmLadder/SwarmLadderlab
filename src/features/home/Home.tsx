@@ -31,8 +31,8 @@ export function Home({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Ca
       ) : (
         <>
           <Welcome route={r} />
-          <Climb route={r} />
           <Shelf />
+          <Climb route={r} />
           <Close route={r} />
         </>
       )}
@@ -42,12 +42,10 @@ export function Home({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Ca
 
 function Welcome({ route: r }: { route: Route }) {
   const first = r.all[0];
-  const checks = r.levels.reduce((n, l) => n + l.total, 0);
   return (
     <section className="hero">
       <div className="shell hero-grid">
         <div className="hero-copy">
-          <p className="eyebrow">{t("home.eyebrow", { tagline: t("brand.tagline") })}</p>
           <h1 className="display hero-title">
             {t("home.title.a")} <em>{t("home.title.b")}</em>
           </h1>
@@ -58,18 +56,11 @@ function Welcome({ route: r }: { route: Route }) {
                 {t("home.begin")} <ArrowRight size={18} strokeWidth={1.8} />
               </Link>
             )}
-            <a className="button quiet large" href="#climb">{t("home.how")}</a>
+            <a className="button quiet large" href="#shelf">{t("home.browse")}</a>
           </div>
-          <p className="hero-proof">{t("home.proof")}</p>
         </div>
         <Plate />
       </div>
-      <dl className="ledger shell">
-        <div><dt>{t("home.ledger.lessons")}</dt><dd>{r.all.length}</dd></div>
-        <div><dt>{t("home.ledger.checks")}</dt><dd>{checks}</dd></div>
-        <div><dt>{t("home.ledger.levels")}</dt><dd>{r.levels.length}</dd></div>
-        <div><dt>{t("home.ledger.accounts")}</dt><dd>0</dd></div>
-      </dl>
     </section>
   );
 }
@@ -137,7 +128,7 @@ function Climb({ route: r }: { route: Route }) {
     <section className="climb" id="climb" aria-labelledby="climb-title">
       <div className="shell climb-grid">
         <header className="climb-copy">
-          <p className="section-mark">§ 1</p>
+          <p className="section-mark">§ 2</p>
           <h2 id="climb-title">{t("home.climb.title")}</h2>
           <p className="lede">{t("home.climb.lede")}</p>
           <ol className="climb-method">
@@ -196,7 +187,6 @@ function Close({ route: r }: { route: Route }) {
             {t("home.begin")} <ArrowRight size={18} strokeWidth={1.8} />
           </Link>
         )}
-        <p className="close-privacy">{t("home.privacy")}</p>
       </div>
     </section>
   );
