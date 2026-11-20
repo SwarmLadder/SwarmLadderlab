@@ -217,3 +217,34 @@
 .pager-next span { align-items: flex-end; }
 
 .meta-chip.complete { border-color: var(--moss); color: var(--moss); background: var(--moss-soft); }
+
+
+/* SQL lessons share the notebook design system and editor. */
+.sql-lesson .sql-aside-note {
+  margin: 1.5rem 0;
+  opacity: .75;
+  font-size: .875rem;
+  line-height: 1.6;
+}
+.sql-lesson .sql-hint {
+  margin: 1.25rem 0;
+  padding: .875rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: .75rem;
+}
+.sql-lesson .sql-hint summary { cursor: pointer; font-weight: 650; }
+.sql-lesson .sql-hint p { margin: .75rem 0 0; }
+.sql-lesson .sql-execution-note {
+  margin: .5rem 1rem .9rem;
+  font-size: .78rem;
+  line-height: 1.5;
+  opacity: .78;
+}
+.sql-lesson .sql-reference {
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 1.1rem 1.25rem;
+  font: .875rem/1.65 "JetBrains Mono Variable", ui-monospace, monospace;
+}
+.sql-lesson .sql-lesson-navigation { margin-block: 1.25rem; }
