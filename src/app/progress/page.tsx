@@ -4,7 +4,7 @@ import { catalog } from "../catalog";
 export default function Page() {
   return (
     <Personal>
-      <Progress catalog={catalog()} />
+      <Progress catalog={catalog("python")} sqlCatalog={catalog("sql")} />
     </Personal>
   );
 }
