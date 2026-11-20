@@ -65,7 +65,7 @@ test("Rust guides are readable and completion is tracked separately from checked
 
   await page.goto("/progress");
   await expect(page.getByText("Git & GitHub · Basics")).toBeVisible();
-  await expect(page.getByText("RUST · Basics")).toBeVisible();
+  await expect(page.getByText("Rust · Basics")).toBeVisible();
   await expect(page.getByText("SQL · Basics")).toBeVisible();
-  await expect(page.getByText("PYTHON · Basics")).toBeVisible();
+  await expect(page.getByText("Python · Basics")).toBeVisible();
 });
