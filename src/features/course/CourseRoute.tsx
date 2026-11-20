@@ -24,7 +24,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
   const done = r.levels.reduce((n, l) => n + l.done, 0);
   const lessons = r.all.length;
   const activeLevel = r.current?.level.id ?? r.levels.find((l) => !l.complete)?.level.id ?? r.levels[0]?.level.id;
-  const started = Boolean(read().last) || done > 0;
+  const started = r.all.some((stop) => stop.item.id === read().last) || done > 0;
   return (
     <div className="course shell">
       <header className="course-head">
@@ -49,6 +49,15 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
           </div>
         </div>
       </header>
+
+      {(course.id === "git" || course.id === "rust") && (
+        <p className="native-catalog-note" role="note">
+          {course.id === "git"
+            ? "These Git activities include native CLI labs. Run the offline course checker on your computer, then record the pass here."
+            : "Rust exercises include source drafts and local Cargo test commands. Rust is not compiled inside the Lab browser."}
+          {" "}Progress on these activities is self-reported and saved on this device.
+        </p>
+      )}
 
       <label className="finder">
         <Search size={17} strokeWidth={1.7} aria-hidden="true" />

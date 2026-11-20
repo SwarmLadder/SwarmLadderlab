@@ -1,10 +1,16 @@
 import { Progress } from "../../features/progress/Progress";
 import { Personal } from "../Personal";
 import { catalog } from "../catalog";
+
 export default function Page() {
   return (
     <Personal>
-      <Progress catalog={catalog("python")} sqlCatalog={catalog("sql")} />
+      <Progress catalogs={[
+        { id: "python", catalog: catalog("python") },
+        { id: "sql", catalog: catalog("sql") },
+        { id: "git", catalog: catalog("git") },
+        { id: "rust", catalog: catalog("rust") },
+      ]} />
     </Personal>
   );
 }

@@ -7,6 +7,7 @@ import { download, lessonPath, type Catalog } from "../../lib/course";
 import { lessonNumber, route, topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
+const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust" };
 const DAY = 86_400_000;
 const WEEKS = 20;
 const dayKey = (ms: number) => new Date(ms).toDateString();
@@ -49,23 +50,28 @@ function checkLabel(check: string) {
   if (check.startsWith("wb:")) return check.slice(3).replace(/_/g, " ");
   if (/^q\d+$/.test(check)) return t("progress.quizQ", { n: check.slice(1) });
   if (/^ex\d+$/.test(check)) return t("progress.exercise", { n: check.slice(2) });
+  if (check === "self-reported") return "Verified locally (self-reported)";
   return check;
 }
 
-export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Catalog }) {
+export function Progress({ catalogs }: {
+  catalogs: { id: string; catalog: Catalog }[];
+}) {
   const [message, setMessage] = useState(""),
     [tick, refresh] = useState(0);
   useEffect(() => onProgress(() => refresh((n) => n + 1)), []);
   const state = read();
   const r = useMemo(() => {
-    const python = route(catalog);
-    const sql = route(sqlCatalog);
+    const routes = catalogs.map(({ id, catalog }) => ({ id, value: route(catalog) }));
+    const last = read().last;
+    const chosen = routes.find(({ value }) => value.all.some((s) => s.item.id === last));
     return {
-      all: [...python.all, ...sql.all],
-      levels: [...python.levels, ...sql.levels],
-      current: read().last?.startsWith("sql/") ? sql.current : python.current,
+      all: routes.flatMap(({ value }) => value.all),
+      levels: routes.flatMap(({ value }) => value.levels),
+      current: chosen?.value.current ?? routes[0]?.value.current ?? null,
+      labels: routes.flatMap(({ id, value }) => value.levels.map(() => id)),
     };
-  }, [catalog, sqlCatalog, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [catalogs, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const titles = useMemo(() => new Map(r.all.map((s) => [s.item.id, s.item.title])), [r]);
   const a = useMemo(() => activity(state.done ?? {}, titles), [state.done, titles]); // eslint-disable-line react-hooks/exhaustive-deps
   const checks = Object.keys(state.done ?? {}).length;
@@ -145,8 +151,8 @@ export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog
             {r.levels.map((lr, i) => (
               <li key={i + "-" + lr.level.id}>
                 <div className="strip-head">
-                  <span className="strip-n">{["I", "II", "III", "IV", "V", "VI"][i]}</span>
-                  <span className="strip-title">{i < 3 ? "Python" : "SQL"} · {lr.level.title}</span>
+                  <span className="strip-n">{["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][i] ?? i + 1}</span>
+                  <span className="strip-title">{NAMES[r.labels[i]] ?? "Course"} · {lr.level.title}</span>
                   <span className="strip-count">{lr.stops.filter((s) => s.state === "done").length} / {lr.stops.length}</span>
                 </div>
                 <ol className="strip" aria-label={lr.level.title}>

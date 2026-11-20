@@ -16,16 +16,23 @@ function useRoute(catalog: Catalog): Route {
   return r;
 }
 
-export function Home({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Catalog }) {
+export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog }: {
+  catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog;
+}) {
   const python = useRoute(catalog);
   const sql = useRoute(sqlCatalog);
-  const r = read().last?.startsWith("sql/") ? sql : python;
-  const returning = Boolean(read().last) || python.all.some((s) => s.done > 0) || sql.all.some((s) => s.done > 0);
+  const git = useRoute(gitCatalog);
+  const rust = useRoute(rustCatalog);
+  const id = read().last?.split("/")[0] ?? "python";
+  const selected = id === "sql" ? sql : id === "git" ? git : id === "rust" ? rust : python;
+  const r = selected;
+  const returning = Boolean(read().last) || [python, sql, git, rust].some((course) =>
+    course.all.some((stop) => stop.done > 0 || stop.state === "done"));
   return (
     <div className="home">
       {returning && r.current ? (
         <>
-          <Desk route={r} />
+          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" ? id : "python"} />
           <Shelf />
         </>
       ) : (
@@ -197,7 +204,7 @@ function stopLabel(s: Stop) {
   return { number, name };
 }
 
-function Desk({ route: r }: { route: Route }) {
+function Desk({ route: r, courseId }: { route: Route; courseId: string }) {
   const current = r.current!;
   const levelRoute = r.levels.find((l) => l.level.id === current.level.id)!;
   const upNext = r.all.slice(r.all.indexOf(current) + 1).filter((s) => s.state !== "done").slice(0, 2);
@@ -244,7 +251,7 @@ function Desk({ route: r }: { route: Route }) {
               </ul>
             </>
           )}
-          <Link className="text-link" href={coursePath("python")}>{t("lesson.complete.route")} →</Link>
+          <Link className="text-link" href={coursePath(courseId)}>{t("lesson.complete.route")} →</Link>
         </div>
       </div>
     </section>

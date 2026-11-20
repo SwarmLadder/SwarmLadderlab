@@ -1,0 +1,128 @@
+/* Native Git and Rust course activities: local practice, never fabricated execution. */
+.native-lesson .native-caution {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .7rem 0;
+}
+.native-verify {
+  margin: 2rem 0 1.5rem;
+  padding: clamp(1rem, 3vw, 1.6rem);
+  border: 1px solid var(--rule);
+  background: var(--sheet);
+  border-radius: 1rem;
+}
+.native-verify h3 {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  letter-spacing: -.02em;
+  margin: 0 0 .5rem;
+}
+.native-verify > p {
+  margin: 0 0 1rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.native-command-label {
+  margin: 1rem 0 .35rem;
+  font-weight: 650;
+  font-size: .82rem;
+  color: var(--ink-2);
+}
+.native-command {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .7rem;
+  justify-content: space-between;
+  padding: .55rem .65rem .55rem .85rem;
+  border: 1px solid var(--rule);
+  border-radius: .6rem;
+  background: var(--code-bg);
+}
+.native-command code {
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: .8rem;
+  line-height: 1.65;
+  color: var(--code-ink);
+}
+.native-command .button {
+  flex: none;
+}
+.native-lesson .native-workspace { margin: 1.5rem 0; }
+.native-editor {
+  display: block;
+  width: 100%;
+  min-height: 16rem;
+  max-height: 50rem;
+  resize: vertical;
+  border: none;
+  border-top: 1px solid var(--rule);
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 1.15rem 1.35rem;
+  font: 500 .87rem/1.7 var(--mono);
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+}
+.native-editor:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -3px;
+}
+.native-workspace .native-caution { padding: .25rem 1rem .5rem; }
+.native-complete {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .85rem;
+  margin-top: 1.75rem;
+}
+.native-attest {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  flex: 1 1 100%;
+  font-size: .92rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.native-attest input {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  margin-top: .2rem;
+  accent-color: var(--signal);
+}
+.native-lesson .sql-hint {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: .6rem;
+  background: var(--sheet);
+}
+.native-lesson .sql-hint summary { cursor: pointer; font-weight: 650; }
+.native-lesson .sql-hint p { margin: .6rem 0 0; }
+.native-lesson .prose pre { overflow-x: auto; max-width: 100%; }
+.native-lesson .prose details { margin: 1rem 0; padding: .8rem; border: 1px solid var(--rule); border-radius: .6rem; }
+.native-lesson .prose details summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 720px) {
+  .native-verify { padding: 1rem; }
+  .native-command { align-items: stretch; }
+  .native-command .button { margin-left: auto; }
+  .native-lesson .native-workspace .cell-tools { gap: .5rem; flex-wrap: wrap; }
+  .native-editor { min-height: 13rem; font-size: .78rem; padding: .8rem; }
+}
+
+.native-catalog-note {
+  margin: -.2rem 0 1.75rem;
+  padding: 1rem 1.2rem;
+  background: var(--sheet);
+  border-left: 3px solid var(--signal);
+  color: var(--ink-2);
+  font-size: .93rem;
+  line-height: 1.6;
+}
