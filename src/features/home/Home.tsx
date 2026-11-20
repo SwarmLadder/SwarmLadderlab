@@ -16,9 +16,11 @@ function useRoute(catalog: Catalog): Route {
   return r;
 }
 
-export function Home({ catalog }: { catalog: Catalog }) {
-  const r = useRoute(catalog);
-  const returning = Boolean(read().last) || r.all.some((s) => s.done > 0);
+export function Home({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Catalog }) {
+  const python = useRoute(catalog);
+  const sql = useRoute(sqlCatalog);
+  const r = read().last?.startsWith("sql/") ? sql : python;
+  const returning = Boolean(read().last) || python.all.some((s) => s.done > 0) || sql.all.some((s) => s.done > 0);
   return (
     <div className="home">
       {returning && r.current ? (

@@ -23,6 +23,10 @@ jobs:
         with:
           repository: SwarmLadder/python-notebook
           path: course
+      - uses: actions/checkout@v4
+        with:
+          repository: SwarmLadder/SQL
+          path: sql-course
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -32,8 +36,8 @@ jobs:
           cache: npm
       - run: python -m pip install markdown pytest
       - run: npm ci
-      - run: python build/prepare.py --course course
-      - run: COURSE=course python -m pytest tests -q
+      - run: python build/prepare.py --course course --sql-course sql-course
+      - run: COURSE=course SQL_COURSE=sql-course python -m pytest tests -q
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium

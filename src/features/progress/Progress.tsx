@@ -52,12 +52,20 @@ function checkLabel(check: string) {
   return check;
 }
 
-export function Progress({ catalog }: { catalog: Catalog }) {
+export function Progress({ catalog, sqlCatalog }: { catalog: Catalog; sqlCatalog: Catalog }) {
   const [message, setMessage] = useState(""),
     [tick, refresh] = useState(0);
   useEffect(() => onProgress(() => refresh((n) => n + 1)), []);
   const state = read();
-  const r = useMemo(() => route(catalog), [catalog, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const r = useMemo(() => {
+    const python = route(catalog);
+    const sql = route(sqlCatalog);
+    return {
+      all: [...python.all, ...sql.all],
+      levels: [...python.levels, ...sql.levels],
+      current: read().last?.startsWith("sql/") ? sql.current : python.current,
+    };
+  }, [catalog, sqlCatalog, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const titles = useMemo(() => new Map(r.all.map((s) => [s.item.id, s.item.title])), [r]);
   const a = useMemo(() => activity(state.done ?? {}, titles), [state.done, titles]); // eslint-disable-line react-hooks/exhaustive-deps
   const checks = Object.keys(state.done ?? {}).length;
@@ -135,10 +143,10 @@ export function Progress({ catalog }: { catalog: Catalog }) {
           <h2>{t("progress.chapters")}</h2>
           <ul className="chapter-strips">
             {r.levels.map((lr, i) => (
-              <li key={lr.level.id}>
+              <li key={i + "-" + lr.level.id}>
                 <div className="strip-head">
-                  <span className="strip-n">{["I", "II", "III", "IV", "V"][i]}</span>
-                  <span className="strip-title">{lr.level.title}</span>
+                  <span className="strip-n">{["I", "II", "III", "IV", "V", "VI"][i]}</span>
+                  <span className="strip-title">{i < 3 ? "Python" : "SQL"} · {lr.level.title}</span>
                   <span className="strip-count">{lr.stops.filter((s) => s.state === "done").length} / {lr.stops.length}</span>
                 </div>
                 <ol className="strip" aria-label={lr.level.title}>

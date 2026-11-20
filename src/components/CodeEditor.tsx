@@ -10,6 +10,7 @@ import {
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { python, pythonLanguage } from "@codemirror/lang-python";
+import { sql, SQLite } from "@codemirror/lang-sql";
 import {
   autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, snippetCompletion,
   type CompletionContext, type CompletionResult,
@@ -32,6 +33,7 @@ type Props = {
   fill?: boolean; // grow to fill the parent (playground) instead of fitting the code
   onCursor?: (line: number, col: number) => void;
   onProblems?: (count: number) => void;
+  language?: "python" | "sql";
 };
 
 const SNIPPETS = [
@@ -66,7 +68,9 @@ function guessType(doc: string, name: string): string | null {
   return null;
 }
 
-export function CodeEditor({ value, onChange, onRun, runner, error = null, label = "Python code", placeholder, fill, onCursor, onProblems }: Props) {
+export function CodeEditor({ value, onChange, onRun, runner, error = null, label, placeholder, fill, onCursor, onProblems, language = "python" }: Props) {
+  const isSql = language === "sql";
+  label ??= isSql ? "SQL code" : "Python code";
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const latest = useRef({ onChange, onRun, onCursor, onProblems, error, runner });
@@ -141,15 +145,13 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         crosshairCursor(),
         highlightActiveLine(),
         highlightSelectionMatches(),
-        indentUnit.of("    "),
-        EditorState.tabSize.of(4),
-        python(),
-        pythonLanguage.data.of({ autocomplete: sessionNames }),
-        pythonLanguage.data.of({ autocomplete: snippets }),
+        indentUnit.of(isSql ? "  " : "    "),
+        EditorState.tabSize.of(isSql ? 2 : 4),
+        // SQL lessons get SQLite highlighting and keyword completion; Python adds live session help.
+        isSql ? sql({ dialect: SQLite, upperCaseKeywords: true }) : [python(), pythonLanguage.data.of({ autocomplete: sessionNames }), pythonLanguage.data.of({ autocomplete: snippets })],
         autocompletion({ activateOnTyping: true, icons: true, closeOnBlur: true }),
         syntaxHighlighting(classHighlighter),
-        check,
-        lintGutter(),
+        isSql ? [] : [check, lintGutter()],
         placeholder ? placeholderExt(placeholder) : [],
         Prec.highest(
           keymap.of([
