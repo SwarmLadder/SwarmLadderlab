@@ -1,20 +1,21 @@
-# 🪜 SwarmLadderlab
+# SwarmLadder Lab
 
-**Learn Python by doing, in your browser:** https://swarmladder.github.io/SwarmLadderlab/
+**Learn by building.** A free, interactive learning platform from [SwarmLadder](https://github.com/SwarmLadder).
 
-SwarmLadderlab is the web platform for the free [python-notebook](https://github.com/SwarmLadder/python-notebook) course: short lessons, fill-in-the-blank exercises with instant hidden-answer checks, quizzes, workbooks and projects. There's nothing to install.
+**Website:** https://swarmladder.github.io/SwarmLadderlab/
 
-![A lesson with an exercise checked in the browser](docs/screenshot-lesson.png)
+Python is available now. Lessons, workbooks, quizzes, and projects run in the browser; future course tracks will be integrated into the platform over time.
 
-## What learners get
+## Learning experience
 
-- **Every lesson as a runnable page.** Edit any cell, press ▶ or Shift+Enter, and Python runs in the browser via [Pyodide](https://pyodide.org). Stop kills runaway code instantly.
-- **Exercises with instant checks.** Fill in the `___` blanks; `check(...)` says ✅ or shows your result, never the answer. Workbook checks run the course's own pytest tests in the browser, with hints after repeated failures.
-- **A progress dashboard** per level, plus "continue where you left off". Progress and your edits stay **in your browser**: no accounts and no tracking. Export and import a progress file to back it up.
-- **Achievements.** When every workbook of a level passes, the claim page prepares your solutions and claim file for [ACHIEVEMENTS.md](https://github.com/SwarmLadder/python-notebook/blob/main/ACHIEVEMENTS.md).
+- Explore the Python curriculum with **search, category filters, and structured levels**.
+- Learn in a focused notebook workspace with a lesson outline, responsive code editors, and in-browser execution through Pyodide.
+- Use **Shift+Enter** or the Run button. Stop and restart the Python environment without losing saved edits.
+- Follow progress for each level and resume the last lesson. Edits and progress stay in this browser and can be exported/imported.
+- Earn verified achievements after finishing workbook checks and submitting a claim to the Python course.
+- Enjoy a mobile-friendly interface with **light and dark themes**, keyboard navigation, and accessible controls.
 
-![Dashboard](docs/screenshot-dashboard.png)
-
+New courses (SQL, Git, Linux, DSA and Rust) are not yet playable through the Lab; previews are clearly marked as coming soon.
 ## How it works
 
 ```
