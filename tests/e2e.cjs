@@ -27,6 +27,7 @@ async function setCode(page, cellIndex, code) {
   await editor.fill(code);
 }
 async function runCell(page, cellIndex) {
+  if (cellIndex < 0) return "(cell not found in this version of the course)";
   const cell = page.locator("section.code-cell").nth(cellIndex);
   await cell.locator("button.run").click();
   await page.waitForFunction((i) => !document.querySelectorAll("section.code-cell")[i].classList.contains("busy"), cellIndex, { timeout: 180000 });
@@ -65,8 +66,9 @@ async function cellIndexBy(page, predicate) {
   await page.goto(base + "lesson.html?nb=advanced/notebooks/06_taskgroups_cancellation_timeouts");
   await page.waitForSelector("section.code-cell");
   const exampleIndex = await cellIndexBy(page, "text.includes('from lesson import run')");
+  expect("asyncio example uses lesson.run (needs python-notebook#6 on the course's main)", exampleIndex >= 0, "not found");
   const exampleOut = await runCell(page, exampleIndex);
-  expect("asyncio lesson example runs", !/Error/.test(exampleOut), exampleOut);
+  expect("asyncio lesson example runs", exampleIndex >= 0 && !/Error/.test(exampleOut), exampleOut);
 
   // 3. Workbook check with pytest in the browser.
   await page.goto(base + "lesson.html?nb=basics/exercises/02_control_flow_exercises");
@@ -109,7 +111,7 @@ async function cellIndexBy(page, predicate) {
   await page.goto(base + "claim.html");
   await page.waitForSelector(".level");
   const claimText = await page.locator(".level").first().innerText();
-  expect("claim page shows workbook status", claimText.includes("classify_temperature") === false && claimText.includes("Finish every workbook"), claimText);
+  expect("claim page lists each workbook and stays locked", /Control Flow/.test(claimText) && /\d+\/\d+/.test(claimText) && claimText.includes("Finish every workbook"), claimText);
 
   await browser.close();
   server.close();
