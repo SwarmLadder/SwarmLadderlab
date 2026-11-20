@@ -3,8 +3,8 @@
 export type SqlGrade = { base: string; edge: string };
 export type SqlMode = "run" | "grade";
 
-export function sqlProgram(sql: string, mode: SqlMode, grade?: SqlGrade, challenge = ""): string {
-  const payload = JSON.stringify({ sql, mode, grade: grade ?? null, challenge });
+export function sqlProgram(sql: string, mode: SqlMode, grade?: SqlGrade, challenge = "", schemaTask = ""): string {
+  const payload = JSON.stringify({ sql, mode, grade: grade ?? null, challenge, schemaTask });
   // A JSON string literal is also a Python string literal. Decode it inside
   // Python rather than interpolating user-submitted SQL as executable Python.
   const literal = JSON.stringify(payload);
@@ -77,7 +77,16 @@ export function sqlProgram(sql: string, mode: SqlMode, grade?: SqlGrade, challen
     "    finally:",
     "        db.close()",
     "",
-    "if cfg['mode'] == 'grade': check_query()",
+    "def check_schema():",
+    "    import sys",
+    "    sys.path.insert(0, '/course/sql/tools')",
+    "    from schema_practice import check",
+    "    ok, message = check(cfg['schemaTask'], sql_text)",
+    "    if ok: print('✅ SQL challenge ' + cfg['challenge'] + ': passed schema tests')",
+    "    else: print('❌ ' + message)",
+    "",
+    "if cfg['mode'] == 'grade':",
+    "    check_schema() if cfg.get('schemaTask') else check_query()",
     "else: run_script()",
   ].join("\n");
 }
