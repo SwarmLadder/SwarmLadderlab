@@ -7,6 +7,7 @@ import { download, lessonPath, type Catalog } from "../../lib/course";
 import { lessonNumber, route, topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
+const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust" };
 const DAY = 86_400_000;
 const WEEKS = 20;
 const dayKey = (ms: number) => new Date(ms).toDateString();
@@ -49,6 +50,7 @@ function checkLabel(check: string) {
   if (check.startsWith("wb:")) return check.slice(3).replace(/_/g, " ");
   if (/^q\d+$/.test(check)) return t("progress.quizQ", { n: check.slice(1) });
   if (/^ex\d+$/.test(check)) return t("progress.exercise", { n: check.slice(2) });
+  if (check === "self-reported") return "Verified locally (self-reported)";
   return check;
 }
 
@@ -150,7 +152,7 @@ export function Progress({ catalogs }: {
               <li key={i + "-" + lr.level.id}>
                 <div className="strip-head">
                   <span className="strip-n">{["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][i] ?? i + 1}</span>
-                  <span className="strip-title">{r.labels[i] === "git" ? "Git & GitHub" : (r.labels[i]?.toUpperCase() ?? "Course")} · {lr.level.title}</span>
+                  <span className="strip-title">{NAMES[r.labels[i]] ?? "Course"} · {lr.level.title}</span>
                   <span className="strip-count">{lr.stops.filter((s) => s.state === "done").length} / {lr.stops.length}</span>
                 </div>
                 <ol className="strip" aria-label={lr.level.title}>
