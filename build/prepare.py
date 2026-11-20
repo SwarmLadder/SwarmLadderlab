@@ -24,7 +24,9 @@ def main():
         # SQL fixtures are intentionally namespaced so Python file paths remain stable.
         manifest = out / "data" / "course-files.json"
         files = json.loads(manifest.read_text(encoding="utf-8"))
-        files.extend(["sql/fixtures/base.sql", "sql/fixtures/edge.sql"])
+        files.extend(["sql/fixtures/base.sql", "sql/fixtures/edge.sql",
+                      "sql/tools/run_sql.py", "sql/tools/schema_practice.py",
+                      "sql/data/schema.sql", "sql/data/seed.sql"])
         manifest.write_text(json.dumps(sorted(set(files)), indent=1), encoding="utf-8")
 
         for name in ("data", "course"):
