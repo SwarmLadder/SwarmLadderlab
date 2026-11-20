@@ -5,7 +5,7 @@ test("SQL shelf, interactive SQLite lesson, two-dataset grading and progress", a
   await expect(page.getByRole("link", { name: /SQL, Open now/ })).toBeVisible();
   await page.goto("/learn/sql");
   await expect(page.getByRole("heading", { name: "SQL", exact: true })).toBeVisible();
-  await expect(page.getByText(/48 checks/).first()).toBeVisible();
+  await expect(page.getByText(/52 checks/).first()).toBeVisible();
 
   await page.goto("/lesson/sql/basics/lessons/00_select");
   await expect(page.getByRole("heading", { name: /SELECT and columns/ })).toBeVisible();
