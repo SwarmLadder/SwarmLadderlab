@@ -25,7 +25,7 @@ test("Git lesson commands are highlighted, and Git practice commands actually ch
   await scratch.fill('write README.md "Practical Git"\ngit add README.md\ngit commit -m "Learn staging"\ngit log --oneline');
   await page.getByRole("button", { name: "Run Git" }).click();
   await expect(page.locator(".console-pane .output")).toContainText("Learn staging");
-  await expect(page.locator(".run-meta")).toContainText("Success");
+  await expect(page.locator(".run-meta")).toContainText("Finished");
   await scratch.fill("git status");
   await scratch.press("Shift+Enter");
   await expect(page.locator(".console-pane .output")).toContainText("working tree clean");
@@ -89,7 +89,7 @@ test("Rust Run sends code only on click and displays real compiler response", as
   expect(requests).toBe(0);
   await page.getByRole("button", { name: "Run Rust" }).click();
   await expect(page.locator(".console-pane .output")).toContainText("Real Rust", { timeout: 20000 });
-  await expect(page.locator(".run-meta")).toContainText("Success");
+  await expect(page.locator(".run-meta")).toContainText("Finished");
   expect(requests).toBe(1);
   await expect(editor.locator(".tok-keyword").first()).toBeVisible();
   await expect(editor.locator(".tok-string").first()).toBeVisible();
