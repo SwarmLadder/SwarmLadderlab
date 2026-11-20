@@ -6,7 +6,7 @@ test("Git & GitHub is on the shelf and its local lab progress is explicit", asyn
 
   await page.goto("/learn/git");
   await expect(page.getByRole("heading", { name: "Git & GitHub", exact: true })).toBeVisible();
-  await expect(page.getByText(/8 checks/).first()).toBeVisible();
+  await expect(page.getByText(/24 checks/).first()).toBeVisible();
 
   await page.goto("/lesson/git/basics/labs/B01");
   await expect(page.getByRole("heading", { name: /B01.*Create your first commit/i })).toBeVisible();
@@ -30,7 +30,7 @@ test("Git course serves the 45 interview answers as explorable content", async (
   const explanation = page.locator("details").filter({ hasText: "Reveal explained answer" });
   await expect(explanation).toBeVisible();
   await explanation.locator("summary").click();
-  await expect(explanation.locator("p")).not.toHaveCount(0);
+  await expect(explanation).toContainText(/commit|tree|snapshot/i);
 });
 
 test("Rust code editing and external Cargo verification persist without fake runtime", async ({ page }) => {
@@ -44,7 +44,7 @@ test("Rust code editing and external Cargo verification persist without fake run
   await expect(page.getByRole("heading", { name: /B01.*Parse Port/ })).toBeVisible();
   await expect(page.getByText("cargo test --test mastery b01_")).toBeVisible();
   const draft = page.getByRole("textbox", { name: "Rust code draft" });
-  await expect(draft).toContainText("pub fn parse_port");
+  await expect(draft).toHaveValue(/pub fn parse_port/);
   await draft.fill("pub fn parse_port(input: &str) -> Result<u16, PortError> {\n    todo!()\n}");
   await page.reload();
   await expect(draft).toHaveValue(/pub fn parse_port/);
