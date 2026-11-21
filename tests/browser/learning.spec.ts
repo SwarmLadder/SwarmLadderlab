@@ -17,6 +17,12 @@ async function cell(page: Page, needle: string) {
   return page.locator(".code-cell").nth(i);
 }
 const runtime = (page: Page) => page.locator(".runtime");
+// Teach-then-test Basics keeps challenges in the lessons ("pack:" entries); the
+// older course keeps them in workbook notebooks. Tests follow whichever is built.
+async function lessonChallenges(page: Page) {
+  const catalog = await (await page.request.get("/data/catalog.json")).json();
+  return Object.keys(catalog.workbooks).some((k) => k.startsWith("pack:"));
+}
 
 test("home, course route, mobile theme, data migration and achievement gating", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 });
@@ -83,13 +89,14 @@ test("real Python exercise, saved edits, stop and restart", async ({ page }) => 
   await wholeLesson(page);
   await page.goto("/lesson/" + intro);
   await expect(runtime(page)).toContainText("Python ready", { timeout: 120000 });
+  const answer = (await lessonChallenges(page)) ? "product = 12 * 7\ncheck(2, product)" : "check(2, 10080)";
   const ex = await cell(page, "check(2,");
   const editor = ex.getByRole("textbox");
-  await editor.fill("product = 12 * 7\ncheck(2, product)");
+  await editor.fill(answer);
   await editor.press("Shift+Enter");
   await expect(ex.locator(".output")).toContainText("✅ Exercise 2: correct");
   await page.reload();
-  await expect((await cell(page, "product = 12 * 7")).getByRole("textbox")).toContainText("product = 12 * 7");
+  await expect((await cell(page, answer.split("\n")[0])).getByRole("textbox")).toContainText(answer.split("\n")[0]);
   await editor.fill("while True:\n    pass");
   await editor.press("Shift+Enter");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
@@ -101,7 +108,9 @@ test("real Python exercise, saved edits, stop and restart", async ({ page }) => 
 });
 
 test("a lesson challenge is graded by the practice tests in the browser", async ({ page }) => {
-  await page.goto("/lesson/basics/notebooks/05_conditional_statements");
+  await page.goto("/");
+  const inLessons = await lessonChallenges(page);
+  await page.goto(inLessons ? "/lesson/basics/notebooks/05_conditional_statements" : "/lesson/basics/exercises/02_control_flow_exercises");
   await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
   const fn = await cell(page, "def classify_temperature");
   await fn
