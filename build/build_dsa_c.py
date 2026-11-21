@@ -173,7 +173,20 @@ def c_workshop_drills(course: Path, level: str) -> list[dict]:
     ))
     drills = []
     consumed: set[str] = set()
-    workshops = sorted((course / level).glob("*.md"))
+    # Order by a beginner-friendly skill path, not alphabetically by filename.
+    workshop_order = {
+        "basics": ("clocks-and-units", "branches-and-boundaries",
+                   "loop-invariants", "sequences-and-windows",
+                   "characters-and-text", "records-and-reports"),
+        "intermediate": ("output-parameters", "mutable-buffers",
+                         "parsing-fields", "sorted-tables", "callbacks",
+                         "streams"),
+        "advanced": ("allocation-and-ownership", "linked-structures",
+                     "binary-records", "circular-queues", "bit-sets",
+                     "transactional-updates"),
+    }
+    workshops = [course / level / (name + ".md")
+                 for name in workshop_order[level]]
     projects = sorted((course / level / "projects").glob("*.md"))
     for doc in [*workshops, *projects]:
         if doc.name == "README.md":

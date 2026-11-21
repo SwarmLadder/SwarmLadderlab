@@ -67,6 +67,7 @@ def test_c_complete_course_and_truthful_native_lab_checks(generated):
     assert len({entry["id"] for entry in tasks}) == 182
     assert [level["total"] for level in c["levels"]] == [31, 31, 31]
     assert [len(s["items"]) for s in c["levels"][0]["sections"]] == [27, 6, 6, 4, 4, 12]
+    assert c["levels"][0]["sections"][0]["items"][0]["id"] == "c/basics/drills/whole_minutes"
     assert len(c["levels"][2]["sections"][-1]["items"]) == 5
     assert sum(item["graded"] for item in tasks) == 93
     for item in tasks:
