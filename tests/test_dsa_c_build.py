@@ -50,6 +50,9 @@ def test_complete_dsa_problem_bank_and_non_fake_grading(generated):
             assert "Deep solution study" in activity["guideHtml"]
             assert "sourcePath" not in activity["cases"][0]
             assert len(activity["hints"]) >= 2
+            assert activity["shortExplanation"].startswith("Approach: ")
+            assert " Complexity: " in activity["shortExplanation"]
+            assert len(activity["shortExplanation"]) < 800
         else:
             assert activity["mode"] == "reading-dsa"
             assert activity["graded"] == []
