@@ -7,7 +7,10 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from build_git_rust import LEVELS, html_guide, first_code, heading
+try:
+    from .build_git_rust import LEVELS, html_guide, first_code, heading
+except ImportError:  # python build/prepare.py executes with build/ on sys.path
+    from build_git_rust import LEVELS, html_guide, first_code, heading
 
 REPO = "https://github.com/SwarmLadder/linux-course"
 

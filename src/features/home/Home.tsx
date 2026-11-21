@@ -33,7 +33,7 @@ export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalo
     <div className="home">
       {returning && r.current ? (
         <>
-          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" || id === "linux" ? id : "python} />
+          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" || id === "linux" ? id : "python"} />
           <Shelf />
         </>
       ) : (
