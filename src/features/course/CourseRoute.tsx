@@ -50,14 +50,18 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         </div>
       </header>
 
-      {(course.id === "git" || course.id === "rust" || course.id === "linux") && (
+      {(course.id === "git" || course.id === "rust" || course.id === "linux" || course.id === "c" || course.id === "dsa") && (
         <p className="native-catalog-note" role="note">
           {course.id === "git"
             ? "These Git activities include native CLI labs. Run the offline course checker on your computer, then record the pass here."
             : course.id === "rust"
               ? "Rust exercises include source drafts and local Cargo tests. Rust is not compiled inside the Lab browser."
-              : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
-          {" "}Progress on these activities is self-reported and saved on this device.
+              : course.id === "c"
+                ? "C17 mastery labs require native GCC or Clang and Make. The browser saves drafts, not a compiled result."
+                : course.id === "dsa"
+                  ? "Solve the Python DSA challenges using six published browser test cases per problem. The browser does not run hidden tests or enforce time complexity."
+                  : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
+          {" "}Progress is saved on this device. Native C, Git, Rust and Linux lab completion is self-reported; DSA problem checks run in the browser.
         </p>
       )}
 

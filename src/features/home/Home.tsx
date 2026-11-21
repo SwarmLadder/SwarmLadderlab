@@ -16,24 +16,26 @@ function useRoute(catalog: Catalog): Route {
   return r;
 }
 
-export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalog }: {
-  catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog; linuxCatalog: Catalog;
+export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalog, dsaCatalog, cCatalog }: {
+  catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog; linuxCatalog: Catalog; dsaCatalog: Catalog; cCatalog: Catalog;
 }) {
   const python = useRoute(catalog);
   const sql = useRoute(sqlCatalog);
   const git = useRoute(gitCatalog);
   const rust = useRoute(rustCatalog);
   const linux = useRoute(linuxCatalog);
+  const dsa = useRoute(dsaCatalog);
+  const c = useRoute(cCatalog);
   const id = read().last?.split("/")[0] ?? "python";
-  const selected = id === "sql" ? sql : id === "git" ? git : id === "rust" ? rust : id === "linux" ? linux : python;
+  const selected = id === "sql" ? sql : id === "git" ? git : id === "rust" ? rust : id === "linux" ? linux : id === "dsa" ? dsa : id === "c" ? c : python;
   const r = selected;
-  const returning = Boolean(read().last) || [python, sql, git, rust, linux].some((course) =>
+  const returning = Boolean(read().last) || [python, sql, git, rust, linux, dsa, c].some((course) =>
     course.all.some((stop) => stop.done > 0 || stop.state === "done"));
   return (
     <div className="home">
       {returning && r.current ? (
         <>
-          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" || id === "linux" ? id : "python"} />
+          <Desk route={r} courseId={["sql", "git", "rust", "linux", "dsa", "c"].includes(id) ? id : "python"} />
           <Shelf />
         </>
       ) : (

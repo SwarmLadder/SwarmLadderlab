@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, Code2, Database, GitBranch, Search, Terminal, SquareTerminal, Wrench } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Code2, Database, GitBranch, Search, Terminal, SquareTerminal, Workflow, Cpu, Wrench } from "lucide-react";
 import { coursePath } from "../../lib/courses";
 import { lessonPath } from "../../lib/course";
 import { courseCompletion, type CourseOverview, type ProgressSnapshot } from "../../lib/courseDirectory";
 import { onProgress, read } from "../progress/store";
 
 type Filter = "all" | "open" | "soon";
-const symbols = { python: Code2, sql: Database, git: GitBranch, rust: Terminal, linux: SquareTerminal } as const;
+const symbols = { python: Code2, sql: Database, git: GitBranch, rust: Terminal, linux: SquareTerminal, dsa: Workflow, c: Cpu } as const;
 
 export function CourseLibrary({ summaries }: { summaries: CourseOverview[] }) {
   const [query, setQuery] = useState("");

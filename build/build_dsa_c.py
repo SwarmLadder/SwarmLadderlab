@@ -187,15 +187,14 @@ def build_c(course: Path, out: Path) -> dict:
             raise ValueError(f"Expected six C deep dives for {level}")
 
         labs = []
-        indexes = {"basics": range(1, 5), "intermediate": range(5, 9),
-                   "advanced": range(9, 13)}[level]
+        indexes = {"basics": (1, 2, 7, 8), "intermediate": (3, 4, 9, 10),
+                   "advanced": (5, 6, 11, 12)}[level]
         for number in indexes:
             path = next(iter(sorted((course / "mastery/tasks").glob(f"{number:02}_*.md"))), None)
             if path is None:
                 raise ValueError(f"Missing C mastery lab {number:02}")
             md = read(path)
-            code_path = f"mastery/starter/{path.stem.split('_', 1)[1]}.c"
-            # Task names differ from C starter filenames for two earlier labs.
+            # Match upstream lab numbering to the actual graded target names.
             mapped = {1: "checked_add", 2: "parse_decimal", 3: "text_buffer",
                       4: "byte_histogram", 5: "frame_header", 6: "topological",
                       7: "reverse_span", 8: "parse_hex", 9: "lower_bound",
