@@ -4,8 +4,8 @@ These are **two separate learning paths** inside the existing SwarmLadder Lab. T
 
 ## Course inventory
 
-- /learn/dsa: 36 rigorous lessons, 48 original Python problems, three projects, three mock interviews and four additional mastery resources (94 activities). Example: /lesson/dsa/basics/problems/B01.
-- /learn/c: 18 workshops, 18 deep dives, 12 native mastery labs, 12 project briefs, 36 interviews and five engineering resources (101 activities). Example: /lesson/c/basics/labs/01-checked_add.
+- /learn/dsa: **practice-first** with 48 runnable Python problems, followed by 36 deep lessons, three projects, three mock interviews and four mastery resources (94 activities). First challenge: /lesson/dsa/basics/problems/B01. Two quick examples help learners iterate; completing all six public cases records graded progress.
+- /learn/c: **practice-first** with 81 real native-tested C function drills and 12 mastery labs, followed by 18 workshops, 18 deep dives, 12 project briefs, 36 interviews and five resources (**182 activities / 93 self-reported local checks**). First task: /lesson/c/basics/drills/whole_minutes.
 - All activity IDs use dsa/ or c/ prefixes. Existing Python/SQL/Git/Rust/Linux IDs and progress remain unchanged.
 
 ## Reproduce the build
@@ -22,6 +22,12 @@ Use Node 24 and Python 3.12. Check out all seven source repositories next to Swa
     npm run test:e2e
 
 The CI checks out all upstream sources, tests the generated catalog and JSON pages, runs source-agnostic JavaScript harness tests, and executes browser route/regression tests.
+
+## How this mirrors the existing Python notebooks
+
+The Python course has executable per-cell challenges, a code editor, visible checks, error feedback, and progress awarded after passing tests. DSA now opens directly on its first Python problem: **read the short task, edit, try two examples, run six public checks, review failures, and only open the detailed explanation when needed**. Its long lessons still exist but do not obstruct the coding path.
+
+C uses the same *task-first* learning structure but a different truthful verification model. Every one of the 81 upstream C function tests is now an independent activity. A function contract and editor are followed by the exact local Make command and the real published C test, then optional theory. C drafts persist per starter filename, not per activity, so completing one function doesn't discard edits when moving to the next function in the same source file. A local compiler remains necessary; claiming browser autograding for C would be inaccurate.
 
 ## DSA Python execution
 

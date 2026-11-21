@@ -96,7 +96,7 @@ def test_c_complete_course_and_truthful_native_lab_checks(generated):
         ("intermediate", {"text_buffer", "byte_histogram", "lower_bound", "unique_sorted"}),
         ("advanced", {"frame_header", "topological", "ring_queue", "dag_distances"}),
     ):
-        labs = c["levels"][{"basics": 0, "intermediate": 1, "advanced": 2}[level]]["sections"][2]["items"]
+        labs = c["levels"][{"basics": 0, "intermediate": 1, "advanced": 2}[level]]["sections"][3]["items"]
         actual = {page(out, task["id"])["checkCommand"].split("TASK=")[-1] for task in labs}
         assert actual == commands
     interview = page(out, "c/basics/interview/01")
