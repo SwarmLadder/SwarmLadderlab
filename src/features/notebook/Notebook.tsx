@@ -47,8 +47,6 @@ function useDone(id: string) {
 type View = "notebook" | "practice";
 type Outcome = "ok" | "no" | "ran";
 const TOC_KEY = "swarmladderlab.toc";
-// Short labels keep the practice strip on one line: "Ex 2", "7", "Quiz".
-const pillLabel = (s: Step) => (s.quiz ? t("lesson.quiz") : s.title.match(/^Exercise (\d+)/)?.[1] ? "Ex " + s.title.match(/^Exercise (\d+)/)![1] : s.title.match(/^(\d+)\./)?.[1] ?? s.title);
 const plain = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
 
 function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
@@ -204,6 +202,15 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const practice = steps.map((s, i) => ({ s, i })).filter(({ s }) => isPractice(s));
   const learn = steps.map((s, i) => ({ s, i })).filter(({ s }) => !isPractice(s));
   const nextUp = practice.find(({ s }) => stepStatus(s) !== "ok");
+  // The outline follows the lesson: each taught section with its questions as dots.
+  type Group = { i: number; title: string; practiceOnly: boolean; items: { s: Step; i: number }[] };
+  const groups: Group[] = [];
+  steps.forEach((st, i) => {
+    if (i === 0 && st.title === "Overview" && !st.cells.some((c) => c.type === "md")) return;
+    if (!isPractice(st)) groups.push({ i, title: st.title, practiceOnly: false, items: [] });
+    else if (groups.length && !groups[groups.length - 1].practiceOnly) groups[groups.length - 1].items.push({ s: st, i });
+    else groups.push({ i, title: st.quiz ? t("lesson.quiz") : st.title, practiceOnly: true, items: [{ s: st, i }] });
+  });
 
   // Ungraded pages count as finished once the reader reaches the end.
   useEffect(() => {
@@ -237,10 +244,14 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     // An exercise's prompt moves into the cell header; the rest of its text stays as text.
     const promptCell = practiceStep && !s.quiz ? s.cells.find((c) => c.type === "md") : undefined;
     const prompt = promptCell && promptCell.type === "md" ? plain(promptCell.html).replace(/^Exercise \d+\.\s*/, "") : "";
+    // A challenge is a function cell plus a check cell: the task sits on the function.
+    const checkCell = s.cells.find((c): c is CodeCell => c.type === "code" && c.kind === "check");
+    const challenge = checkCell?.source.match(/check\('([^']+)'\)/)?.[1];
+    const fnCell = challenge ? s.cells.find((c): c is CodeCell => c.type === "code" && c.kind === "code" && c.source.includes("def " + challenge)) : undefined;
     return (
       <section key={i} id={`step-${i}`} className={"nb-step" + (practiceStep ? " is-practice" : "")} aria-labelledby={`step-h-${i}`}>
         {s.part && <p className="nb-part">{s.part}</p>}
-        <h2 id={`step-h-${i}`} className={practiceStep && !s.quiz ? "sr-only" : "nb-heading"}>{s.title}</h2>
+        <h2 id={`step-h-${i}`} className={(practiceStep && !s.quiz) || (i === 0 && s.title === "Overview") ? "sr-only" : "nb-heading"}>{s.title}</h2>
         {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} />}
         {s.cells.map((c, ci) => {
           if (c === promptCell) return null;
@@ -258,7 +269,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
             <CodeSpecimen
               key={c.id}
               cell={c}
-              prompt={c.kind === "exercise" || c.kind === "check" ? prompt : ""}
+              prompt={c === fnCell || (c.kind === "exercise") || (c.kind === "check" && !fnCell) ? prompt : ""}
+              tag={c === fnCell ? t("lesson.challenge", { name: challenge ?? "" }) : undefined}
               value={edits[c.id] ?? c.source}
               busy={busy}
               output={outputs[c.id]}
@@ -304,6 +316,11 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           <span className="runtime-dot" aria-hidden="true" />
           {status}
         </span>
+        {nextUp && (
+          <button className="nb-btn nb-next" onClick={() => jump(nextUp.i)}>
+            {t("lesson.nextUp", { title: nextUp.s.quiz ? t("lesson.quiz") : nextUp.s.title })} <ArrowRight size={14} />
+          </button>
+        )}
         {graded > 0 && (
           <span className="nb-score" aria-label={t("lesson.score", { n: solvedHere, total: graded })}>
             <span className="nb-meter"><span style={{ width: `${(100 * solvedHere) / graded}%` }} /></span>
@@ -315,24 +332,25 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       <div className="nb-body">
         <aside className="nb-toc" aria-label={t("lesson.contents")} hidden={!tocOpen}>
           <p className="nb-toc-title">{t("lesson.contents")}</p>
-          {learn.length > 0 && <p className="nb-toc-group">{t("lesson.learn")}</p>}
-          {learn.map(({ s, i }) => (
-            <button key={i} onClick={() => jump(i)}>
-              <span className="toc-mark doc" aria-hidden="true" />
-              {s.title}
-            </button>
-          ))}
-          {practice.length > 0 && <p className="nb-toc-group">{t("lesson.practice")}</p>}
-          {practice.map(({ s, i }) => {
-            const st = stepStatus(s);
-            return (
-              <button key={i} onClick={() => jump(i)} className={nextUp?.i === i ? "next" : ""}>
-                <span className={"toc-mark " + st} aria-hidden="true">{st === "ok" ? <Check size={10} strokeWidth={3} /> : null}</span>
-                {s.title}
-                <span className="sr-only">{st === "ok" ? t("course.complete") : ""}</span>
+          {groups.map((g) => (
+            <div key={g.i} className="toc-group">
+              <button onClick={() => jump(g.i)} className={g.items.some((x) => x.i === nextUp?.i) ? "here" : ""}>
+                {g.practiceOnly ? (
+                  <span className={"toc-mark " + stepStatus(steps[g.i])} aria-hidden="true">{stepStatus(steps[g.i]) === "ok" ? <Check size={10} strokeWidth={3} /> : null}</span>
+                ) : (
+                  <span className="toc-mark doc" aria-hidden="true" />
+                )}
+                {g.title}
               </button>
-            );
-          })}
+              {g.items.length > (g.practiceOnly ? 1 : 0) && (
+                <div className="toc-dots">
+                  {g.items.map(({ s: it, i }) => (
+                    <button key={i} className={"dot " + stepStatus(it) + (nextUp?.i === i ? " next" : "")} onClick={() => jump(i)} title={it.title} aria-label={it.title} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </aside>
 
         <main className="nb-main" ref={article}>
@@ -347,30 +365,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                 <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
               </p>
             </header>
-
-            {practice.length > 0 && (
-              <div className="practice-strip">
-                <span className="practice-label">{t("lesson.practice")}</span>
-                <div className="practice-pills">
-                  {practice.map(({ s, i }) => {
-                    const st = stepStatus(s);
-                    return (
-                      <button key={i} className={"pill " + st + (nextUp?.i === i ? " next" : "")} onClick={() => jump(i)} title={s.title} aria-label={s.title}>
-                        {st === "ok" ? "✓ " : st === "no" ? "✕ " : ""}
-                        {pillLabel(s)}
-                      </button>
-                    );
-                  })}
-                </div>
-                {nextUp ? (
-                  <button className="button primary small practice-next" onClick={() => jump(nextUp.i)}>
-                    {t("lesson.continueWith", { title: nextUp.s.quiz ? t("lesson.quiz") : nextUp.s.title })} <ArrowRight size={15} />
-                  </button>
-                ) : (
-                  <span className="practice-done"><Check size={14} strokeWidth={2.6} /> {t("lesson.allDone")}</span>
-                )}
-              </div>
-            )}
 
             {view === "practice" && learn.length > 0 && (
               <button className="review-bar" aria-expanded={reviewOpen} onClick={() => setReviewOpen(!reviewOpen)}>
@@ -438,8 +432,8 @@ function lineClass(line: string) {
   return "";
 }
 
-function CodeSpecimen({ cell, prompt, value, busy, output, count, solved, onChange, onRun, runner, error }: {
-  cell: CodeCell; prompt: string; value: string; busy: string | null; output?: Output[]; count?: number; solved: boolean;
+function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, onChange, onRun, runner, error }: {
+  cell: CodeCell; prompt: string; tag?: string; value: string; busy: string | null; output?: Output[]; count?: number; solved: boolean;
   onChange: (v?: string) => void; onRun: () => void; runner: { current: Runner | null }; error: RuntimeError;
 }) {
   const isCheck = cell.kind === "check";
@@ -462,7 +456,7 @@ function CodeSpecimen({ cell, prompt, value, busy, output, count, solved, onChan
         {isTask && (
           <div className="cell-head">
             <span className="cell-tag">
-              {solved && <Check size={12} strokeWidth={2.8} />} {label(cell)}
+              {solved && <Check size={12} strokeWidth={2.8} />} {tag ?? label(cell)}
             </span>
             {prompt && <span className="cell-prompt">{prompt}</span>}
             <span className="cell-actions">

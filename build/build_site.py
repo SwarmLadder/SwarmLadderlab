@@ -70,8 +70,12 @@ def classify_code(cell: dict, text: str) -> str:
         return "colab"
     if cell_id == "quiz-check":
         return "quiz"
-    if cell_id.startswith("try-"):
-        return "setup" if "Exercises(" in text else "exercise"
+    # Lesson exercises are recognised by content, so both layouts work: the older
+    # "Try it" section and teach-then-test lessons with exercises after each part.
+    if "Exercises(" in text:
+        return "setup"
+    if re.search(r"\bcheck\(\d+, ", text):
+        return "exercise"
     if text.lstrip().startswith("check(") or text.lstrip().startswith("check.summary"):
         return "check"
     if "from check import Checker" in text:
@@ -107,7 +111,7 @@ def lesson_totals(nb: dict) -> dict:
         if cell["type"] != "code":
             continue
         if cell["kind"] == "setup" and "Exercises(" in cell["source"]:
-            match = re.search(r"Exercises\('[^']+', (\{.*\})\)", cell["source"])
+            match = re.search(r"Exercises\('[^']+', (\{[^}]*\})", cell["source"])
             keys += [f"ex{n}" for n in sorted(ast.literal_eval(match.group(1)))]
         elif cell["kind"] == "quiz":
             match = re.search(r"Quiz\('[^']+', (\{.*?\})\)", cell["source"])

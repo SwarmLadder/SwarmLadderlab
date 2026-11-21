@@ -129,6 +129,8 @@ export const en = {
   "lesson.learn": "Learn",
   "lesson.score": "{n} of {total} checks passed",
   "lesson.continueWith": "Continue {title}",
+  "lesson.challenge": "Challenge · {name}",
+  "lesson.nextUp": "Next: {title}",
   "lesson.allDone": "All checks passed",
   "lesson.review": "Review the idea:",
   "lesson.show": "Show",

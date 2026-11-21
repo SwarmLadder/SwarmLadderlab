@@ -76,8 +76,9 @@ test("lessons are notebooks with a practice view and a practice strip", async ({
   await expect(page.getByRole("button", { name: "Notebook", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".nb-toc")).toBeVisible();
   await expect(page.locator(".nb-text").first()).toBeVisible();
-  const strip = page.locator(".practice-strip");
-  await expect(strip.locator(".pill").first()).toBeVisible();
+  // The outline lists each section with its questions; the toolbar jumps to the next one.
+  await expect(page.locator(".nb-toc .toc-group").first()).toBeVisible();
+  await expect(page.locator(".nb-next")).toContainText("Next:");
   // Practice view hides the explanations behind one "Review the idea" bar.
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await expect(page.locator(".review-bar")).toBeVisible();
