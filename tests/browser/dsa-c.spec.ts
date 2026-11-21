@@ -6,6 +6,7 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await page.goto("/learn/dsa");
   await expect(page.getByRole("heading", { name: "Data Structures & Algorithms", exact: true })).toBeVisible();
   await expect(page.getByText(/48 checks/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /B01/i }).first()).toBeVisible();
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
   await expect(page.getByRole("heading", { name: /Hash maps/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark activity complete" })).toBeVisible();
@@ -23,6 +24,10 @@ test("DSA problem B01 preserves source, editable Python and public-case contract
   const editor = page.getByRole("textbox", { name: "DSA Python solution" });
   await expect(editor).toContainText("NotImplementedError");
   await expect(page.getByRole("button", { name: "Run 6 public tests" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try 2 examples" })).toBeVisible();
+  const explanation = page.getByText("Need help? Open the detailed walkthrough and solution");
+  await expect(explanation).toBeVisible();
+  await expect(explanation.locator("xpath=..")).not.toHaveAttribute("open");
   await editor.fill("def solve(nums, target):\n    return [0, 1]\n");
   await page.reload();
   await expect(page.getByRole("textbox", { name: "DSA Python solution" }))
@@ -58,7 +63,8 @@ test("C17 local lab requires explicit learner confirmation, never browser execut
   await expect(page.getByRole("link", { name: /C, Open now/ })).toBeVisible();
   await page.goto("/learn/c");
   await expect(page.getByRole("heading", { name: "C", exact: true })).toBeVisible();
-  await expect(page.getByText(/12 checks/).first()).toBeVisible();
+  await expect(page.getByText(/93 checks/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Code whole_minutes/i })).toBeVisible();
   await page.goto("/lesson/c/basics/labs/01-checked_add");
   await expect(page.getByRole("heading", { name: /Checked signed addition/i })).toBeVisible();
   await expect(page.getByText("make mastery-check TASK=checked_add").first()).toBeVisible();
@@ -84,4 +90,44 @@ test("C deep dives and detailed interviews are readable independently", async ({
   await expect(answer).toBeVisible();
   await answer.locator("summary").click();
   await expect(answer).toContainText(/translation|definition/i);
+});
+
+
+test("C workshop drill opens an editable real starter and public test before explanations", async ({ page }) => {
+  await page.goto("/lesson/c/basics/drills/whole_minutes");
+  await expect(page.getByRole("heading", { name: /Code whole_minutes/i })).toBeVisible();
+  await expect(page.getByText(/Return complete minutes/).first()).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "C17 code draft" })).toContainText("Implement whole_minutes");
+  await expect(page.getByText("make check TASK=whole_minutes").first()).toBeVisible();
+  const publicTests = page.getByText("View the actual published C test for this function");
+  await publicTests.click();
+  await expect(page.getByText(/whole_minutes\(59\)/)).toBeVisible();
+  const text = page.getByText("Need help? Open the theory, worked examples and explanations");
+  await expect(text).toBeVisible();
+  await expect(text.locator("xpath=..")).not.toHaveAttribute("open");
+
+  const editor = page.getByRole("textbox", { name: "C17 code draft" });
+  await editor.fill('#include "course.h"\nunsigned whole_minutes(unsigned s) { return s / 60; }\n');
+  await page.goto("/lesson/c/basics/drills/clock_seconds");
+  await expect(page.getByRole("textbox", { name: "C17 code draft" })).toContainText("return s / 60");
+  await expect(page.getByText("make check TASK=clock_seconds").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark verified locally" })).toBeDisabled();
+});
+
+test("DSA sample practice gives feedback without prematurely awarding completion", async ({ page }) => {
+  test.setTimeout(125_000);
+  await page.goto("/lesson/dsa/basics/problems/B01");
+  const editor = page.getByRole("textbox", { name: "DSA Python solution" });
+  await editor.fill([
+    "def solve(nums, target):",
+    "    seen = {}",
+    "    for j, val in enumerate(nums):",
+    "        if target - val in seen: return [seen[target - val], j]",
+    "        seen[val] = j",
+  ].join("\n"));
+  await page.getByRole("button", { name: "Try 2 examples" }).click();
+  await expect(page.getByText("2 / 2 sample cases passed")).toBeVisible({ timeout: 100_000 });
+  await expect(page.getByText(/Both sample cases passed/)).toBeVisible();
+  await expect(page.getByText("Run every public case to earn completion")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run 6 public tests" })).toBeVisible();
 });

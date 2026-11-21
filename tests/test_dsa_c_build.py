@@ -63,22 +63,32 @@ def test_c_complete_course_and_truthful_native_lab_checks(generated):
     _, c, out = generated
     assert len(c["levels"]) == 3
     tasks = items(c)
-    assert len(tasks) == 101
-    assert len({entry["id"] for entry in tasks}) == 101
-    assert [level["total"] for level in c["levels"]] == [4, 4, 4]
-    assert [len(s["items"]) for s in c["levels"][0]["sections"]] == [6, 6, 4, 4, 12]
+    assert len(tasks) == 182
+    assert len({entry["id"] for entry in tasks}) == 182
+    assert [level["total"] for level in c["levels"]] == [31, 31, 31]
+    assert [len(s["items"]) for s in c["levels"][0]["sections"]] == [27, 6, 6, 4, 4, 12]
     assert len(c["levels"][2]["sections"][-1]["items"]) == 5
+    assert sum(item["graded"] for item in tasks) == 93
     for item in tasks:
         activity = page(out, item["id"])
         assert activity["mode"] == "local-c"
         assert activity["id"] == item["id"]
         assert activity["sourcePath"]
         if item["graded"]:
-            assert "TODO" in activity["source"]
-            assert activity["checkCommand"].startswith("make mastery-check TASK=")
             assert activity["graded"] == ["self-reported"]
             assert "reference/" not in activity["sourcePath"]
-            assert "does not compile or grade C" in activity["guideHtml"]
+            if "/drills/" in item["id"]:
+                assert activity["checkCommand"].startswith("make check TASK=")
+                assert activity["practiceFile"].startswith(item["id"].split("/")[1] + "/starter/")
+                assert "Implement " in activity["source"]
+                assert "CHECK(" in activity["challenge"]["testSnippet"]
+                assert activity["challenge"]["function"] in activity["checkCommand"]
+                assert activity["challenge"]["prompt"]
+                assert "practiceFile" in activity["challenge"]
+            else:
+                assert "TODO" in activity["source"]
+                assert activity["checkCommand"].startswith("make mastery-check TASK=")
+                assert "does not compile or grade C" in activity["guideHtml"]
         else:
             assert activity["graded"] == []
     for level, commands in (
@@ -91,6 +101,24 @@ def test_c_complete_course_and_truthful_native_lab_checks(generated):
         assert actual == commands
     interview = page(out, "c/basics/interview/01")
     assert "Reveal explained answer" in interview["guideHtml"]
+
+
+
+def test_workshop_drills_are_real_native_tests_with_shared_starters(generated):
+    _, c, out = generated
+    for level in c["levels"]:
+        drills = level["sections"][0]["items"]
+        assert len(drills) == 27
+        assert all("/drills/" in item["id"] for item in drills)
+        assert all(item["graded"] == 1 for item in drills)
+        files = [page(out, item["id"])["practiceFile"] for item in drills]
+        assert len(set(files)) == 9  # six workshops + three projects per level
+        assert any(files.count(file) == 4 for file in files)
+        for item in drills:
+            doc = page(out, item["id"])
+            assert doc["checkCommand"] == "make check TASK=" + doc["challenge"]["function"]
+            assert doc["sourcePath"].endswith(".md")
+            assert doc["source"].startswith('#include "course.h"')
 
 def test_cross_course_progress_id_isolation_and_catalog_export(generated):
     dsa, c, out = generated
