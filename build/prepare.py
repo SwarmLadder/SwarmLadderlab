@@ -10,6 +10,7 @@ from build_sql import build_sql
 from build_git_rust import build_git, build_rust
 from build_linux import build_linux
 from build_dsa_c import build_dsa, build_c
+from build_java import build_java
 
 
 def main():
@@ -21,6 +22,7 @@ def main():
     parser.add_argument("--linux-course", type=Path, default=Path("../linux-course"))
     parser.add_argument("--dsa-course", type=Path, default=Path("../Data-Structures-Algorithms"))
     parser.add_argument("--c-course", type=Path, default=Path("../C"))
+    parser.add_argument("--java-course", type=Path, default=Path("../Java"))
     args = parser.parse_args()
     public = HERE.parent / "public"
     with tempfile.TemporaryDirectory() as tmp:
@@ -32,6 +34,7 @@ def main():
         linux_catalog = build_linux(args.linux_course.resolve(), out)
         dsa_catalog = build_dsa(args.dsa_course.resolve(), out)
         c_catalog = build_c(args.c_course.resolve(), out)
+        java_catalog = build_java(args.java_course.resolve(), out)
 
         # The existing Pyodide worker fetches this manifest once per session.
         # SQL fixtures are intentionally namespaced so Python file paths remain stable.
@@ -50,7 +53,7 @@ def main():
     print(f"Prepared {count(python_catalog)} Python notebooks, {count(sql_catalog)} SQL activities, "
           f"{count(git_catalog)} Git activities, {count(rust_catalog)} Rust activities, "
           f"{count(linux_catalog)} Linux activities, {count(dsa_catalog)} DSA activities "
-          f"and {count(c_catalog)} C activities")
+          f"{count(c_catalog)} C activities and {count(java_catalog)} Java activities")
 
 
 if __name__ == "__main__":
