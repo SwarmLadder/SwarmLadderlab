@@ -73,6 +73,8 @@ def build_java(course: Path, out: Path) -> dict:
                 + "</pre></details>"
             ),
             "source": starter, "practiceFile": "src/starter/Tasks.java",
+            "exampleInput": example_input, "exampleOutput": example_output,
+            "shortExplanation": reason, "complexity": complexity,
             "checkCommand": "make check TASK=" + task,
             "practiceCommand": "",
             "hint": "Use the method's TODO comment. " + complexity,
