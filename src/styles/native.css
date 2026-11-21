@@ -114,3 +114,19 @@
   font-size: .93rem;
   line-height: 1.6;
 }
+
+
+/* DSA Python challenges reuse the course reader and share site tokens. */
+.dsa-lesson .dsa-results { margin: 1.4rem 0; padding: 1.15rem; border: 1px solid var(--rule); border-radius: 1rem; background: var(--sheet); }
+.dsa-lesson .dsa-results h3 { margin: 0 0 .8rem; font-size: 1.15rem; }
+.dsa-lesson .dsa-results ol { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+.dsa-lesson .dsa-results li { border-left: 3px solid var(--rule); padding: .5rem .85rem; font-size: .88rem; line-height: 1.6; }
+.dsa-lesson .dsa-results li.pass { border-color: var(--signal); }
+.dsa-lesson .dsa-results li.fail { border-color: #ca755e; }
+.dsa-lesson .dsa-results li p { margin: .25rem 0; overflow-wrap: anywhere; }
+.dsa-lesson .dsa-results code { font: .8rem/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.dsa-lesson .dsa-console { margin: .75rem 0 1.2rem; padding: 1rem; max-height: 15rem; overflow: auto; border-radius: .6rem; color: var(--code-ink); background: var(--code-bg); white-space: pre-wrap; }
+.dsa-lesson .native-verify code { font-family: var(--mono); overflow-wrap: anywhere; }
+.dsa-lesson .native-verify .sql-hint ol { margin: .6rem 0 0; padding-left: 1.4rem; }
+.dsa-lesson .native-verify .sql-hint li { margin-bottom: .3rem; }
+@media (max-width: 720px) { .dsa-lesson .dsa-results { padding: .85rem; } }
