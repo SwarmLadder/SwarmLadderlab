@@ -149,7 +149,35 @@ def workbook_modules(course: Path) -> dict:
             module = sorted((course / "practice" / "exercises").glob(f"{level}_{number}_*.py"))[0].stem
             checkable = [name for name, tests in tests_by_exercise(module).items() if tests]
             result[notebook_id(workbook, course)] = {"module": module, "level": level, "exercises": checkable}
+        # Levels whose challenges live inside the lessons: Exercises(..., practice='module')
+        # plus check('name') cells. Each challenge remembers the lesson that holds it.
+        packs: dict[str, dict] = {}
+        for lesson in sorted((course / level / "notebooks").glob("*.ipynb")):
+            cells = [cell_text(c) for c in json.loads(lesson.read_text(encoding="utf-8"))["cells"] if c["cell_type"] == "code"]
+            setup = next((c for c in cells if "Exercises(" in c), "")
+            found = re.search(r"practice='(\w+)'", setup)
+            if not found:
+                continue
+            module = found.group(1)
+            pack = packs.setdefault(module, {"module": module, "level": level, "title": pack_title(course, module),
+                                             "exercises": [], "lessons": {}})
+            for cell in cells:
+                challenge = re.fullmatch(r"\s*check\('(\w+)'\)\s*", cell)
+                if challenge:
+                    pack["exercises"].append(challenge.group(1))
+                    pack["lessons"][challenge.group(1)] = notebook_id(lesson, course)
+        for module, pack in packs.items():
+            checkable = {name for name, tests in tests_by_exercise(module).items() if tests}
+            pack["exercises"] = [name for name in pack["exercises"] if name in checkable]
+            result["pack:" + module] = pack
     return result
+
+
+def pack_title(course: Path, module: str) -> str:
+    """'Basics practice 1 — Fundamentals (variables, ...)' -> 'Fundamentals'."""
+    text = (course / "practice" / "exercises" / f"{module}.py").read_text(encoding="utf-8")
+    match = re.search(r"practice \d+ — ([^(\n]+)", text)
+    return match.group(1).strip().rstrip(".") if match else module
 
 
 def build(course: Path, out: Path) -> dict:

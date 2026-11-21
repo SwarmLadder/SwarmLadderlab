@@ -8,7 +8,9 @@ export type Level = {
   total: number;
   sections: { id: string; title: string; items: Item[] }[];
 };
-export type Workbook = { level: string; module: string; exercises: string[] };
+// A practice pack. Workbook packs are keyed by their notebook id; lesson packs
+// ("pack:<module>") list which lesson holds each challenge.
+export type Workbook = { level: string; module: string; exercises: string[]; title?: string; lessons?: Record<string, string> };
 export type Catalog = { levels: Level[]; workbooks: Record<string, Workbook> };
 export type CodeCell = {
   type: "code";

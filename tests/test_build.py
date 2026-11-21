@@ -33,8 +33,19 @@ def test_graded_items_are_counted(dist):
     assert all(level["total"] > 100 for level in catalog["levels"])
     lesson = json.loads((dist / "data" / "nb" / "basics__notebooks__01_variables_and_data_types.json").read_text())
     assert {"ex1", "ex2", "ex3", "ex4", "q1", "q2", "q3"} <= set(lesson["graded"])
-    workbook = json.loads((dist / "data" / "nb" / "basics__exercises__02_control_flow_exercises.json").read_text())
-    assert "wb:classify_temperature" in workbook["graded"]
+    # Basics challenges live inside the lessons; Intermediate keeps its workbooks.
+    conditionals = json.loads((dist / "data" / "nb" / "basics__notebooks__05_conditional_statements.json").read_text())
+    assert "wb:classify_temperature" in conditionals["graded"]
+    workbook = json.loads((dist / "data" / "nb" / "intermediate__exercises__01_oop_and_collections_exercises.json").read_text())
+    assert any(k.startswith("wb:") for k in workbook["graded"])
+
+
+def test_lesson_challenges_form_achievement_packs(dist):
+    workbooks = json.loads((dist / "data" / "catalog.json").read_text())["workbooks"]
+    pack = workbooks["pack:basics_02_control_flow"]
+    assert pack["level"] == "basics" and pack["title"] == "Control flow"
+    assert pack["lessons"]["classify_temperature"] == "basics/notebooks/05_conditional_statements"
+    assert "classify_temperature" in pack["exercises"]
 
 
 def test_colab_setup_cell_is_dropped_and_links_rewritten(dist):
@@ -47,7 +58,7 @@ def test_colab_setup_cell_is_dropped_and_links_rewritten(dist):
 
 def test_course_files_for_python_are_present(dist):
     files = json.loads((dist / "data" / "course-files.json").read_text())
-    for needed in ("basics/notebooks/lesson.py", "basics/notebooks/quiz.py", "basics/exercises/check.py",
+    for needed in ("basics/notebooks/lesson.py", "basics/notebooks/quiz.py", "intermediate/exercises/check.py",
                    "practice/grader.py", "practice/notebook_check.py", "practice/conftest.py", "conftest.py", "pytest.ini"):
         assert needed in files and (dist / "course" / needed).exists(), needed
     assert not any("solution" in f.lower() for f in files), "never ship solutions"

@@ -1,14 +1,32 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { courseRepo, download, lessonPath, notebookData, type Catalog } from "../../lib/course";
+import { courseRepo, download, lessonPath, notebookData, type Catalog, type Workbook } from "../../lib/course";
 import { doneIn, read } from "../progress/store";
 import { topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
-async function solutions(id: string, module: string) {
-  const nb = await notebookData(id);
+// The practice file a learner submits: the pack's functions as they wrote them.
+async function solutions(id: string, w: Workbook) {
+  const module = w.module;
   const parts = [`# My solutions for ${module}, written on SwarmLadderlab.`, ""];
+  if (w.lessons) {
+    // Lesson packs: take each challenge's function cell from the lesson that holds it.
+    const header = (await fetch("/course/practice/exercises/" + module + ".py").then((r) => (r.ok ? r.text() : "")))
+      .split("\n").filter((l) => /^(import|from) /.test(l)).join("\n");
+    if (header) parts.push(header, "");
+    for (const lesson of [...new Set(Object.values(w.lessons))]) {
+      const nb = await notebookData(lesson);
+      for (const c of nb.cells) {
+        if (c.type !== "code" || c.kind !== "code") continue;
+        const source = read().code?.[lesson]?.[c.id] ?? c.source;
+        if (w.exercises.some((name) => new RegExp(`^(def|class) ${name}\\b`, "m").test(source))) parts.push(source, "");
+      }
+    }
+    download(module + ".py", parts.join("\n").replace(/\n{3,}/g, "\n\n"), "text/x-python");
+    return;
+  }
+  const nb = await notebookData(id);
   for (const c of nb.cells) {
     if (c.type !== "code" || c.kind === "check") continue;
     let source = read().code?.[id]?.[c.id] ?? c.source;
@@ -66,7 +84,12 @@ export function Achievements({ catalog }: { catalog: Catalog }) {
   const levels = catalog.levels.map((l, i) => {
     const books = Object.entries(catalog.workbooks)
       .filter(([, w]) => w.level === l.id)
-      .map(([id, w]) => ({ ...w, id, title: topic(titles.get(id) ?? w.module), missing: w.exercises.filter((x) => !doneIn(id).includes("wb:" + x)) }));
+      .map(([id, w]) => {
+        // Lesson packs store each challenge's result under the lesson that holds it.
+        const where = (x: string) => w.lessons?.[x] ?? id;
+        const missing = w.exercises.filter((x) => !doneIn(where(x)).includes("wb:" + x));
+        return { ...w, id, title: w.title ?? topic(titles.get(id) ?? w.module), missing, href: lessonPath(where(missing[0] ?? w.exercises[0])) };
+      });
     const total = books.reduce((n, w) => n + w.exercises.length, 0),
       remaining = books.reduce((n, w) => n + w.missing.length, 0);
     return { l, i, books, total, remaining, earned: total > 0 && remaining === 0, pct: total ? Math.round((100 * (total - remaining)) / total) : 0 };
@@ -101,7 +124,7 @@ export function Achievements({ catalog }: { catalog: Catalog }) {
                   const done = w.exercises.length - w.missing.length;
                   return (
                     <li key={w.id} className={w.missing.length ? "" : "complete"}>
-                      <Link href={lessonPath(w.id)}>
+                      <Link href={w.href}>
                         <span className="wb-title">{w.title}</span>
                         <span className="wb-meter"><span style={{ width: `${(100 * done) / (w.exercises.length || 1)}%` }} /></span>
                         <small>{w.missing.length ? `${done}/${w.exercises.length}` : "✓"}</small>
@@ -112,7 +135,7 @@ export function Achievements({ catalog }: { catalog: Catalog }) {
               </ul>
               {!earned ? (
                 next && (
-                  <Link className="seal-next" href={lessonPath(next.id)}>
+                  <Link className="seal-next" href={next.href}>
                     {t("ach.continueWith", { name: next.title })} →
                   </Link>
                 )
@@ -128,7 +151,7 @@ export function Achievements({ catalog }: { catalog: Catalog }) {
                     <li>
                       {t("ach.upload")}{" "}
                       {books.map((w) => (
-                        <button key={w.id} className="button quiet small" onClick={() => solutions(w.id, w.module).catch((e) => setError(String(e)))}>
+                        <button key={w.id} className="button quiet small" onClick={() => solutions(w.id, w).catch((e) => setError(String(e)))}>
                           {w.module}.py
                         </button>
                       ))}

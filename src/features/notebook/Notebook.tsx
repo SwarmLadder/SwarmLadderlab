@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BookOpen, Check, PanelLeft, Play, RotateCcw, Square } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, PanelLeft, Play, RotateCcw, Square } from "lucide-react";
 import { courseRepo, lessonPath, notebookData, type Catalog, type CodeCell, type Notebook } from "../../lib/course";
 import { coursePath } from "../../lib/courses";
 import { topic, lessonNumber, route } from "../../lib/journey";
@@ -44,7 +44,6 @@ function useDone(id: string) {
   return done;
 }
 
-type View = "notebook" | "practice";
 type Outcome = "ok" | "no" | "ran";
 const TOC_KEY = "swarmladderlab.toc";
 const plain = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
@@ -52,11 +51,7 @@ const plain = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "
 function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const steps = useMemo(() => buildSteps(nb), [nb]);
   const done = useDone(nb.id);
-  const viewKey = "swarmladderlab.view." + nb.id;
-  const isWorkbook = nb.id.includes("/exercises/");
-  const [view, setView] = useState<View>(() => (localStorage.getItem(viewKey) as View | null) ?? (isWorkbook ? "practice" : "notebook"));
   const [tocOpen, setTocOpen] = useState(() => localStorage.getItem(TOC_KEY) !== "closed");
-  const [reviewOpen, setReviewOpen] = useState(false);
   const [status, setStatus] = useState(t("runtime.loading"));
   const [edits, setEdits] = useState<Record<string, string>>(() => read().code?.[nb.id] ?? {});
   const [outputs, setOutputs] = useState<Record<string, Output[]>>({});
@@ -200,7 +195,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
         ? "no"
         : "todo";
   const practice = steps.map((s, i) => ({ s, i })).filter(({ s }) => isPractice(s));
-  const learn = steps.map((s, i) => ({ s, i })).filter(({ s }) => !isPractice(s));
   const nextUp = practice.find(({ s }) => stepStatus(s) !== "ok");
   // The outline follows the lesson: each taught section with its questions as dots.
   type Group = { i: number; title: string; practiceOnly: boolean; items: { s: Step; i: number }[] };
@@ -223,13 +217,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     return () => io.disconnect();
   }, [graded, nb.id]);
 
-  function switchView(v: View) {
-    setView(v);
-    localStorage.setItem(viewKey, v);
-  }
   function jump(i: number) {
-    const show = view === "practice" && !isPractice(steps[i]);
-    if (show) setReviewOpen(true);
     requestAnimationFrame(() =>
       document.getElementById(`step-${i}`)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }),
     );
@@ -299,10 +287,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           <span aria-hidden="true">/</span>
           <span>{stop?.level.title}</span>
         </nav>
-        <div className="seg" role="group" aria-label={t("lesson.view")}>
-          <button aria-pressed={view === "notebook"} onClick={() => switchView("notebook")}>{t("lesson.notebook")}</button>
-          <button aria-pressed={view === "practice"} onClick={() => switchView("practice")}>{t("lesson.practice")}</button>
-        </div>
         <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
           <Play size={14} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
         </button>
@@ -366,16 +350,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               </p>
             </header>
 
-            {view === "practice" && learn.length > 0 && (
-              <button className="review-bar" aria-expanded={reviewOpen} onClick={() => setReviewOpen(!reviewOpen)}>
-                <BookOpen size={15} />
-                <b>{t("lesson.review")}</b>
-                <span className="review-topics">{learn.map(({ s }) => s.title).join(" · ")}</span>
-                <span className="review-toggle">{reviewOpen ? t("lesson.hide") : t("lesson.show")}</span>
-              </button>
-            )}
 
-            {steps.map((s, i) => (view === "notebook" || isPractice(s) || reviewOpen ? renderStep(s, i) : null))}
+            {steps.map((s, i) => renderStep(s, i))}
 
             <div ref={bottom} />
             {(complete || (!graded && here >= 0)) && (

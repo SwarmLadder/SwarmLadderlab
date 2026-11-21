@@ -70,23 +70,13 @@ test("home, course route, mobile theme, data migration and achievement gating", 
   await expect(page.getByRole("status")).toHaveText("Progress reset.");
 });
 
-test("lessons are notebooks with a practice view and a practice strip", async ({ page }) => {
+test("lessons are one notebook: teach and test, with an outline and a next button", async ({ page }) => {
   await page.goto("/lesson/" + intro);
-  // Lessons open as a notebook: explanations and exercises together, with an outline.
-  await expect(page.getByRole("button", { name: "Notebook", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".nb-toc")).toBeVisible();
-  await expect(page.locator(".nb-text").first()).toBeVisible();
-  // The outline lists each section with its questions; the toolbar jumps to the next one.
   await expect(page.locator(".nb-toc .toc-group").first()).toBeVisible();
+  await expect(page.locator(".nb-text").first()).toBeVisible();
+  await expect(page.locator(".nb-cell.is-task").first()).toBeVisible();
   await expect(page.locator(".nb-next")).toContainText("Next:");
-  // Practice view hides the explanations behind one "Review the idea" bar.
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
-  await expect(page.locator(".review-bar")).toBeVisible();
-  await expect(page.locator(".nb-step:not(.is-practice)")).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.locator(".review-bar").click();
-  expect(await page.locator(".nb-step:not(.is-practice)").count()).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveCount(0);
 });
 
 test("real Python exercise, saved edits, stop and restart", async ({ page }) => {
@@ -95,11 +85,11 @@ test("real Python exercise, saved edits, stop and restart", async ({ page }) => 
   await expect(runtime(page)).toContainText("Python ready", { timeout: 120000 });
   const ex = await cell(page, "check(2,");
   const editor = ex.getByRole("textbox");
-  await editor.fill("check(2, 10080)");
+  await editor.fill("product = 12 * 7\ncheck(2, product)");
   await editor.press("Shift+Enter");
   await expect(ex.locator(".output")).toContainText("✅ Exercise 2: correct");
   await page.reload();
-  await expect((await cell(page, "check(2, 10080)")).getByRole("textbox")).toHaveText("check(2, 10080)");
+  await expect((await cell(page, "product = 12 * 7")).getByRole("textbox")).toContainText("product = 12 * 7");
   await editor.fill("while True:\n    pass");
   await editor.press("Shift+Enter");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
@@ -110,9 +100,8 @@ test("real Python exercise, saved edits, stop and restart", async ({ page }) => 
   await expect(ex.locator(".output")).toContainText("42", { timeout: 120000 });
 });
 
-test("workbook validates with pytest in the browser", async ({ page }) => {
-  await wholeLesson(page);
-  await page.goto("/lesson/basics/exercises/02_control_flow_exercises");
+test("a lesson challenge is graded by the practice tests in the browser", async ({ page }) => {
+  await page.goto("/lesson/basics/notebooks/05_conditional_statements");
   await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
   const fn = await cell(page, "def classify_temperature");
   await fn
@@ -123,7 +112,7 @@ test("workbook validates with pytest in the browser", async ({ page }) => {
   await fn.getByRole("textbox").press("Shift+Enter");
   const check = page.locator(".code-cell.kind-check", { hasText: "classify_temperature" }).first();
   await check.getByRole("button", { name: "Check", exact: true }).click();
-  await expect(check.locator(".output")).toContainText("✅ classify_temperature", { timeout: 90000 });
+  await expect(check.locator(".output")).toContainText("✅ classify_temperature", { timeout: 120000 });
 });
 
 test("Python syntax colors follow edits and theme while preserving literal code", async ({ page }) => {
