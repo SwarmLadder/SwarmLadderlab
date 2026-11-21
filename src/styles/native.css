@@ -140,3 +140,11 @@
 .practice-reference { margin: 1.75rem 0; border: 1px solid var(--rule); border-radius: .9rem; padding: 1rem; }
 .practice-reference > summary { cursor: pointer; font-weight: 700; font-size: 1rem; }
 .practice-reference[open] > .prose { padding-top: 1rem; border-top: 1px solid var(--rule); margin-top: 1rem; }
+
+/* Native C activity: actual task and source editor before optional reading. */
+.c-practice-intro { margin: 0 0 1rem; border-color: var(--signal); }
+.c-practice-intro .eyebrow { margin-bottom: .55rem; }
+.c-practice-intro code { font-family: var(--mono); overflow-wrap: anywhere; }
+.c-public-tests { margin: .7rem 0 0; max-height: 18rem; overflow: auto; white-space: pre; font-size: .78rem; line-height: 1.6; background: var(--code-bg); color: var(--code-ink); border-radius: .5rem; padding: .8rem; }
+.c-learning-details > .prose { margin-top: 1rem; }
+.c-learning-details .sql-hint { margin-top: 1rem; }

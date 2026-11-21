@@ -23,6 +23,8 @@ type NativePage = {
   graded: string[];
   mode: "local-git" | "local-rust" | "local-linux" | "local-c";
   hint: string;
+  practiceFile?: string;
+  challenge?: { function: string; prompt: string; practiceFile: string; testSnippet: string } | null;
 };
 
 const UPSTREAM: Record<string, { url: string; name: string; install: string }> = {
@@ -91,7 +93,11 @@ function Workspace({ lesson, catalog, courseId }: {
 }) {
   const upstream = UPSTREAM[courseId];
   const isGraded = lesson.graded.includes("self-reported");
-  const [draft, setDraft] = useState(() => read().code?.[lesson.id]?.draft ?? lesson.source);
+  // All four workshop exercises share one physical starter file. Preserve
+  // edits as learners progress from one function to the next.
+  const draftKey = courseId === "c" && lesson.practiceFile ? "c/source/" + lesson.practiceFile : lesson.id;
+  const isCPractice = courseId === "c" && lesson.graded.includes("self-reported");
+  const [draft, setDraft] = useState(() => read().code?.[draftKey]?.draft ?? lesson.source);
   const [complete, setComplete] = useState(() =>
     isGraded ? doneIn(lesson.id).includes("self-reported") : isFinished(lesson.id));
   const [attested, setAttested] = useState(false);
@@ -128,7 +134,7 @@ function Workspace({ lesson, catalog, courseId }: {
 
   function updateDraft(value: string) {
     setDraft(value);
-    save(lesson.id, "draft", value);
+    save(draftKey, "draft", value);
     setMessage("Draft saved in this browser.");
   }
 
@@ -150,6 +156,130 @@ function Workspace({ lesson, catalog, courseId }: {
       ? (lesson.checkCommand ? "Saved as verified locally — your confirmation, not a browser-run check." : "Practice marked complete (self-reported).")
       : "Reading completed. Progress saved on this device.");
   }
+
+  // Reuse the same interactive controls while changing DOM order for C.
+  // Practice-first means assistive-technology reading order too, not only CSS.
+  const guideContent = <>
+            <div ref={guideRef} className="prose" dangerouslySetInnerHTML={{ __html: lesson.guideHtml }} />
+            {lesson.hint && (
+              <details className="sql-hint">
+                <summary>Show a hint</summary>
+                <p>{lesson.hint}</p>
+              </details>
+            )}
+
+  </>;
+  const verifierContent = <>
+            <div className="native-verify">
+              <h3>Practice using the upstream course</h3>
+              <p>
+                Clone the source repository once, then follow this activity in your own checkout.
+                {courseId === "git"
+                  ? " The source Git checker creates isolated practice repositories."
+                  : courseId === "linux"
+                    ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
+                    : courseId === "c"
+                    ? " Compile with a C17-compatible compiler and run the source Makefile tests locally; never mark a check as verified without a passing result."
+                    : " The source Cargo tests compile real Rust and check your implementation."}
+              </p>
+              <div className="native-command">
+                <code>{upstream.install}</code>
+                <button type="button" className="button quiet small"
+                  onClick={() => copy(upstream.install, "Clone command")}>
+                  <Clipboard size={14} /> Copy
+                </button>
+              </div>
+              {lesson.practiceCommand && (
+                <div>
+                  <p className="native-command-label">Start local practice</p>
+                  <div className="native-command">
+                    <code>{lesson.practiceCommand}</code>
+                    <button type="button" className="button quiet small"
+                      onClick={() => copy(lesson.practiceCommand, "Practice command")}>
+                      <Clipboard size={14} /> Copy
+                    </button>
+                  </div>
+                </div>
+              )}
+              {lesson.checkCommand && (
+                <div>
+                  <p className="native-command-label">Local verification command</p>
+                  <div className="native-command">
+                    <code>{lesson.checkCommand}</code>
+                    <button type="button" className="button quiet small"
+                      onClick={() => copy(lesson.checkCommand, "Check command")}>
+                      <Clipboard size={14} /> Copy
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="native-caution">
+                {courseId === "linux"
+                  ? "The Lab provides a limited command simulator, not a real Bash or Linux environment."
+                  : courseId === "c"
+                    ? "The Lab cannot execute C or evaluate native compiler results."
+                    : "The Lab does not execute Git commands or compile Rust."}
+                A completion recorded here is self-reported; it does not
+                prove your local tests passed.
+              </p>
+            </div>
+
+  </>;
+  const editingContent = <>
+            {lesson.source && (
+              <div className="code-cell kind-code native-workspace">
+                <div className="cell-tools">
+                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : courseId === "c" ? "C17 code draft" : "Editable command notes"}</span>
+                  <span className="cell-buttons">
+                    <button type="button" className="button quiet small"
+                      onClick={() => updateDraft(lesson.source)}>
+                      <RotateCcw size={14} /> Reset
+                    </button>
+                    <button type="button" className="button quiet small"
+                      onClick={() => copy(draft, "Draft")}>
+                      <Clipboard size={14} /> Copy draft
+                    </button>
+                    {courseId !== "c" && <button type="button" className="button quiet small" onClick={openInPlayground}>
+                      <Play size={14} /> Try in Playground
+                    </button>}
+                  </span>
+                </div>
+                <CodeEditor
+                  language={courseId}
+                  value={draft}
+                  onChange={updateDraft}
+                  onRun={courseId === "c" ? () => { void copy(draft, "C source"); } : openInPlayground}
+                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : courseId === "c" ? "C17 code draft" : "Git command notes"}
+                />
+                <p className="native-caution">
+                  {courseId === "c"
+                    ? "Draft saved for this starter file. Copy it into the named file in your C repository, run the local Make checker, then confirm a real PASS. Shift+Enter copies your code; nothing compiles in this browser."
+                    : "Highlighted editing, completion and Shift+Enter to open the Playground are available. The Playground supports Git/Linux teaching simulators or Rust compilation; project-specific checks still run in the original local course."}
+                </p>
+              </div>
+            )}
+
+  </>;
+  const finishContent = <>
+            <div className="step-continue native-complete">
+              {isGraded && !complete && (
+                <label className="native-attest">
+                  <input type="checkbox" checked={attested}
+                    onChange={(event) => setAttested(event.target.checked)} />
+                  {lesson.checkCommand ? "I ran the verification command locally and saw a passing result." : "I completed and checked this practice task locally."}
+                </label>
+              )}
+              <button type="button" className="button primary" disabled={complete || (isGraded && !attested)}
+                onClick={completeActivity}>
+                {complete ? <><Check size={17} /> Completed</>
+                  : isGraded ? <><Check size={17} /> {lesson.checkCommand ? "Mark verified locally" : "Mark practice complete"}</>
+                  : <>Mark activity complete <Check size={17} /></>}
+              </button>
+              {next && <Link className="button quiet" href={lessonPath(next.item.id)}>
+                Next activity <ArrowRight size={17} />
+              </Link>}
+            </div>
+  </>;
 
   return (
     <div className="lesson native-lesson">
@@ -211,122 +341,40 @@ function Workspace({ lesson, catalog, courseId }: {
         <div className="steps">
           <section className="step" aria-labelledby="native-guide">
             <header className="step-head">
-              <p className="eyebrow">Read · Practice · Verify</p>
-              <h2 id="native-guide">Activity guide</h2>
+              <p className="eyebrow">{isCPractice ? "Code · Test locally · Debug · Learn" : "Read · Practice · Verify"}</p>
+              <h2 id="native-guide">{isCPractice ? "Coding challenge" : "Activity guide"}</h2>
             </header>
-            <div ref={guideRef} className="prose" dangerouslySetInnerHTML={{ __html: lesson.guideHtml }} />
-            {lesson.hint && (
-              <details className="sql-hint">
-                <summary>Show a hint</summary>
-                <p>{lesson.hint}</p>
-              </details>
+
+            {isCPractice ? (
+              <>
+                <div className="native-verify c-practice-intro">
+                  <p className="eyebrow">Your next task · Start coding now</p>
+                  <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : lesson.title}</h3>
+                  <p className="practice-task-prompt">{lesson.challenge?.prompt ??
+                    "Implement the function in the starter file. Preserve the required error behavior and test boundary cases."}</p>
+                  {lesson.practiceFile && <p><strong>File to edit:</strong>{" "}
+                    <code>{lesson.practiceFile}</code>. Your edits carry over to other functions in the same starter file.</p>}
+                  {lesson.challenge?.testSnippet && <details className="sql-hint">
+                    <summary>View the actual published C test for this function</summary>
+                    <pre className="c-public-tests"><code>{lesson.challenge.testSnippet}</code></pre>
+                  </details>}
+                </div>
+                {editingContent}
+                {verifierContent}
+                {finishContent}
+                <details className="practice-reference c-learning-details">
+                  <summary>Need help? Open the theory, worked examples and explanations</summary>
+                  {guideContent}
+                </details>
+              </>
+            ) : (
+              <>
+                {guideContent}
+                {verifierContent}
+                {editingContent}
+                {finishContent}
+              </>
             )}
-
-            <div className="native-verify">
-              <h3>Practice using the upstream course</h3>
-              <p>
-                Clone the source repository once, then follow this activity in your own checkout.
-                {courseId === "git"
-                  ? " The source Git checker creates isolated practice repositories."
-                  : courseId === "linux"
-                    ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
-                    : courseId === "c"
-                    ? " Compile with a C17-compatible compiler and run the source Makefile tests locally; never mark a check as verified without a passing result."
-                    : " The source Cargo tests compile real Rust and check your implementation."}
-              </p>
-              <div className="native-command">
-                <code>{upstream.install}</code>
-                <button type="button" className="button quiet small"
-                  onClick={() => copy(upstream.install, "Clone command")}>
-                  <Clipboard size={14} /> Copy
-                </button>
-              </div>
-              {lesson.practiceCommand && (
-                <div>
-                  <p className="native-command-label">Start local practice</p>
-                  <div className="native-command">
-                    <code>{lesson.practiceCommand}</code>
-                    <button type="button" className="button quiet small"
-                      onClick={() => copy(lesson.practiceCommand, "Practice command")}>
-                      <Clipboard size={14} /> Copy
-                    </button>
-                  </div>
-                </div>
-              )}
-              {lesson.checkCommand && (
-                <div>
-                  <p className="native-command-label">Local verification command</p>
-                  <div className="native-command">
-                    <code>{lesson.checkCommand}</code>
-                    <button type="button" className="button quiet small"
-                      onClick={() => copy(lesson.checkCommand, "Check command")}>
-                      <Clipboard size={14} /> Copy
-                    </button>
-                  </div>
-                </div>
-              )}
-              <p className="native-caution">
-                {courseId === "linux"
-                  ? "The Lab provides a limited command simulator, not a real Bash or Linux environment."
-                  : courseId === "c"
-                    ? "The Lab cannot execute C or evaluate native compiler results."
-                    : "The Lab does not execute Git commands or compile Rust."}
-                A completion recorded here is self-reported; it does not
-                prove your local tests passed.
-              </p>
-            </div>
-
-            {lesson.source && (
-              <div className="code-cell kind-code native-workspace">
-                <div className="cell-tools">
-                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : courseId === "c" ? "C17 code draft" : "Editable command notes"}</span>
-                  <span className="cell-buttons">
-                    <button type="button" className="button quiet small"
-                      onClick={() => updateDraft(lesson.source)}>
-                      <RotateCcw size={14} /> Reset
-                    </button>
-                    <button type="button" className="button quiet small"
-                      onClick={() => copy(draft, "Draft")}>
-                      <Clipboard size={14} /> Copy draft
-                    </button>
-                    {courseId !== "c" && <button type="button" className="button quiet small" onClick={openInPlayground}>
-                      <Play size={14} /> Try in Playground
-                    </button>}
-                  </span>
-                </div>
-                <CodeEditor
-                  language={courseId}
-                  value={draft}
-                  onChange={updateDraft}
-                  onRun={openInPlayground}
-                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : courseId === "c" ? "C17 code draft" : "Git command notes"}
-                />
-                <p className="native-caution">
-                  {courseId === "c"
-                    ? "C drafts are saved here, but C compilation, sanitizers and grading require a local GCC/Clang toolchain. Download or copy your code into the upstream starter, then run the named Make target."
-                    : "Highlighted editing, completion and Shift+Enter to open the Playground are available. The Playground supports Git/Linux teaching simulators or Rust compilation; project-specific checks still run in the original local course."}
-                </p>
-              </div>
-            )}
-
-            <div className="step-continue native-complete">
-              {isGraded && !complete && (
-                <label className="native-attest">
-                  <input type="checkbox" checked={attested}
-                    onChange={(event) => setAttested(event.target.checked)} />
-                  {lesson.checkCommand ? "I ran the verification command locally and saw a passing result." : "I completed and checked this practice task locally."}
-                </label>
-              )}
-              <button type="button" className="button primary" disabled={complete || (isGraded && !attested)}
-                onClick={completeActivity}>
-                {complete ? <><Check size={17} /> Completed</>
-                  : isGraded ? <><Check size={17} /> {lesson.checkCommand ? "Mark verified locally" : "Mark practice complete"}</>
-                  : <>Mark activity complete <Check size={17} /></>}
-              </button>
-              {next && <Link className="button quiet" href={lessonPath(next.item.id)}>
-                Next activity <ArrowRight size={17} />
-              </Link>}
-            </div>
             <p className="notice" role="status">{message}</p>
           </section>
           <nav className="pager" aria-label={upstream.name + " lessons"}>
