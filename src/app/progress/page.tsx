@@ -10,6 +10,7 @@ export default function Page() {
         { id: "sql", catalog: catalog("sql") },
         { id: "git", catalog: catalog("git") },
         { id: "rust", catalog: catalog("rust") },
+        { id: "linux", catalog: catalog("linux") },
       ]} />
     </Personal>
   );

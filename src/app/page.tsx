@@ -10,6 +10,7 @@ export default function Page() {
         sqlCatalog={catalog("sql")}
         gitCatalog={catalog("git")}
         rustCatalog={catalog("rust")}
+        linuxCatalog={catalog("linux")}
       />
     </Personal>
   );

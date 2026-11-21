@@ -16,23 +16,24 @@ function useRoute(catalog: Catalog): Route {
   return r;
 }
 
-export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog }: {
-  catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog;
+export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalog }: {
+  catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog; linuxCatalog: Catalog;
 }) {
   const python = useRoute(catalog);
   const sql = useRoute(sqlCatalog);
   const git = useRoute(gitCatalog);
   const rust = useRoute(rustCatalog);
+  const linux = useRoute(linuxCatalog);
   const id = read().last?.split("/")[0] ?? "python";
-  const selected = id === "sql" ? sql : id === "git" ? git : id === "rust" ? rust : python;
+  const selected = id === "sql" ? sql : id === "git" ? git : id === "rust" ? rust : id === "linux" ? linux : python;
   const r = selected;
-  const returning = Boolean(read().last) || [python, sql, git, rust].some((course) =>
+  const returning = Boolean(read().last) || [python, sql, git, rust, linux].some((course) =>
     course.all.some((stop) => stop.done > 0 || stop.state === "done"));
   return (
     <div className="home">
       {returning && r.current ? (
         <>
-          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" ? id : "python"} />
+          <Desk route={r} courseId={id === "sql" || id === "git" || id === "rust" || id === "linux" ? id : "python"} />
           <Shelf />
         </>
       ) : (

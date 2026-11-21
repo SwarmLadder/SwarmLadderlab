@@ -92,6 +92,7 @@ const shellStream: StreamParser<ShellState> = {
 export const rustLanguage = StreamLanguage.define(rustStream);
 export const shellLanguage = StreamLanguage.define(shellStream);
 
+const linuxSuggestions = ["pwd", "ls", "ls -l", "cd", "cat", "grep", "grep -n", "wc -l", "head", "tail", "find", "sort -u", "mkdir", "touch", "write", "whoami", "uname", "help"];
 const rustSuggestions = [
   "fn", "let", "mut", "pub", "struct", "enum", "impl", "trait", "match", "if", "else",
   "for", "while", "loop", "return", "Some", "None", "Ok", "Err", "Result", "Option",
@@ -102,11 +103,11 @@ const gitSuggestions = [
   "git switch", "git switch -c", "git diff", "git restore", "git restore --staged",
   "git show", "git help", "cat", "ls", "write", "help",
 ];
-export function nativeCompletions(kind: "rust" | "git") {
+export function nativeCompletions(kind: "rust" | "git" | "linux") {
   return (context: CompletionContext): CompletionResult | null => {
     const match = context.matchBefore(kind === "rust" ? /[\w!]+$/ : /[\w-]+$/);
     if (!match || (!match.text && !context.explicit)) return null;
-    const suggestions = kind === "rust" ? rustSuggestions : gitSuggestions;
+    const suggestions = kind === "rust" ? rustSuggestions : kind === "linux" ? linuxSuggestions : gitSuggestions;
     const options = suggestions
       .filter((s) => s.toLowerCase().includes(match.text.toLowerCase()))
       .map((label) => ({ label, type: kind === "rust" ? "keyword" : "text" }));

@@ -6,15 +6,16 @@ import { Runner } from "../../workers/runner";
 import { read, save } from "../../features/progress/store";
 import { t } from "../../i18n";
 import { runGit, newGitSession } from "../../lib/gitSandbox";
+import { runLinux, newLinuxSession } from "../../lib/linuxSandbox";
 import { sqlProgram } from "../../lib/sqlRuntime";
 import { executeRust, rustPlaygroundLink } from "../../lib/rustRuntime";
 
-type PlayLanguage = "python" | "sql" | "rust" | "git";
+type PlayLanguage = "python" | "sql" | "rust" | "git" | "linux";
 const FILE: Record<PlayLanguage, string> = {
-  python: "scratch.py", sql: "scratch.sql", rust: "scratch.rs", git: "scratch.sh",
+  python: "scratch.py", sql: "scratch.sql", rust: "scratch.rs", git: "scratch.sh", linux: "linux.sh",
 };
 const DISPLAY_FILE: Record<PlayLanguage, string> = {
-  python: "main.py", sql: "query.sql", rust: "main.rs", git: "terminal.sh",
+  python: "main.py", sql: "query.sql", rust: "main.rs", git: "terminal.sh", linux: "terminal.sh",
 };
 const SPLIT_KEY = "swarmladderlab.split";
 const LANGUAGE_KEY = "swarmladderlab.playLanguage";
@@ -36,6 +37,11 @@ const EXAMPLES: Record<PlayLanguage, { label: string; code: string }[]> = { pyth
     { label: "Hello", code: 'fn main() {\n    println!("Hello from Rust!");\n}\n' },
     { label: "Iterator", code: 'fn main() {\n    let total: i32 = (1..=10).sum();\n    println!("total = {total}");\n}\n' },
     { label: "Ownership", code: 'fn main() {\n    let message = String::from("Rust ownership");\n    let borrowed = &message;\n    println!("{borrowed}");\n}\n' },
+  ],
+  linux: [
+    { label: "Explore files", code: "pwd\nls -l\ncat README.md\n" },
+    { label: "Inspect logs", code: "ls logs\ngrep -n ERROR logs/app.log\nwc -l logs/app.log\n" },
+    { label: "Virtual file practice", code: "mkdir exercises\nwrite exercises/note.txt Hello Linux\ncat exercises/note.txt\nfind exercises\n" },
   ],
   git: [
     { label: "Status", code: "git status\ngit log --oneline\n" },
@@ -62,6 +68,7 @@ export default function Playground() {
     runner = useRef<Runner | null>(null),
     rustController = useRef<AbortController | null>(null),
     gitSession = useRef(newGitSession()),
+    linuxSession = useRef(newLinuxSession()),
     runVersion = useRef(0),
     body = useRef<HTMLDivElement>(null);
 
@@ -69,7 +76,7 @@ export default function Playground() {
     const requested = new URLSearchParams(location.search).get("language");
     const previous = localStorage.getItem(LANGUAGE_KEY);
     const picked = [requested, previous].find((item) =>
-      item === "python" || item === "sql" || item === "rust" || item === "git") as PlayLanguage | undefined;
+      item === "python" || item === "sql" || item === "rust" || item === "git" || item === "linux") as PlayLanguage | undefined;
     const initial = picked ?? "python";
     setLanguage(initial);
     setSource(read().code?.playground?.[FILE[initial]] ?? EXAMPLES[initial][0].code);
@@ -90,7 +97,7 @@ export default function Playground() {
       setStatus(language === "sql" ? "Loading SQLite…" : t("runtime.loading"));
       return () => { session.dispose(); if (runner.current === session) runner.current = null; };
     }
-    setStatus(language === "git" ? "Git simulator ready" : "Rust Playground ready (online)");
+    setStatus(language === "git" ? "Git simulator ready" : language === "linux" ? "Linux teaching simulator ready" : "Rust Playground ready (online)");
   }, [language]);
 
   function switchLanguage(next: PlayLanguage) {
@@ -128,7 +135,11 @@ export default function Playground() {
     setError(null);
     const start = performance.now();
     try {
-      if (mode === "git") {
+      if (mode === "linux") {
+        const result = runLinux(linuxSession.current, source);
+        setOutput(result.lines);
+        setMeta({ ok: result.ok, ms: Math.round(performance.now() - start) });
+      } else if (mode === "git") {
         const result = runGit(gitSession.current, source);
         setOutput(result.lines);
         setMeta({ ok: result.ok, ms: Math.round(performance.now() - start) });
@@ -191,7 +202,10 @@ export default function Playground() {
     rustController.current = null;
     runner.current?.dispose();
     runner.current = null;
-    if (language === "git") {
+    if (language === "linux") {
+      linuxSession.current = newLinuxSession();
+      setStatus("Linux teaching simulator ready");
+    } else if (language === "git") {
       gitSession.current = newGitSession();
       setStatus("Git simulator ready");
     } else if (language === "rust") {
@@ -247,6 +261,7 @@ export default function Playground() {
             <option value="sql">SQL</option>
             <option value="rust">Rust</option>
             <option value="git">Git & GitHub</option>
+            <option value="linux">Linux & Bash (simulated)</option>
           </select>
         </div>
         <div className="ide-actions">
@@ -272,7 +287,7 @@ export default function Playground() {
           </button>
           <button className="button run-button small" disabled={busy || !ready} onClick={run} title="Shift + Enter">
             <Play size={14} fill="currentColor" />
-            {busy ? t("lesson.running") : language === "rust" ? "Run Rust" : language === "git" ? "Run Git" : language === "sql" ? "Run SQL" : t("lesson.run")}
+            {busy ? t("lesson.running") : language === "rust" ? "Run Rust" : language === "git" ? "Run Git" : language === "linux" ? "Run commands" : language === "sql" ? "Run SQL" : t("lesson.run")}
           </button>
         </div>
       </div>
@@ -286,6 +301,8 @@ export default function Playground() {
               Open code in Rust Playground
             </a>
           </>
+        ) : language === "linux" ? (
+          <>Linux teaching simulator: a virtual filesystem with a limited safe command set. It cannot execute real Bash, inspect your machine, or grade source-course scripts. Type <code>help</code> for supported commands.</>
         ) : language === "git" ? (
           <>
             Safe, in-browser Git practice simulator: supports status, stage, commit, log,

@@ -50,11 +50,13 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         </div>
       </header>
 
-      {(course.id === "git" || course.id === "rust") && (
+      {(course.id === "git" || course.id === "rust" || course.id === "linux") && (
         <p className="native-catalog-note" role="note">
           {course.id === "git"
             ? "These Git activities include native CLI labs. Run the offline course checker on your computer, then record the pass here."
-            : "Rust exercises include source drafts and local Cargo test commands. Rust is not compiled inside the Lab browser."}
+            : course.id === "rust"
+              ? "Rust exercises include source drafts and local Cargo tests. Rust is not compiled inside the Lab browser."
+              : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
           {" "}Progress on these activities is self-reported and saved on this device.
         </p>
       )}

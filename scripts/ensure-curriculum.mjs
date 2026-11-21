@@ -6,7 +6,8 @@ import { execFileSync } from "node:child_process";
 if (existsSync("public/data/catalog.json") && existsSync("public/data/sql/catalog.json")
     && existsSync("public/course/sql/fixtures/base.sql")
     && existsSync("public/data/git/catalog.json")
-    && existsSync("public/data/rust/catalog.json")) process.exit(0);
+    && existsSync("public/data/rust/catalog.json")
+    && existsSync("public/data/linux/catalog.json")) process.exit(0);
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 const python = ["python3", "python"].find((p) => {
@@ -39,6 +40,8 @@ const git = source("GIT_COURSE", "../git-github-course", ".generated/git-github-
   "https://github.com/SwarmLadder/git-github-course", "GIT_COURSE_REPO");
 const rust = source("RUST_COURSE", "../RUST", ".generated/RUST",
   "https://github.com/SwarmLadder/RUST", "RUST_COURSE_REPO");
+const linux = source("LINUX_COURSE", "../linux-course", ".generated/linux-course",
+  "https://github.com/SwarmLadder/linux-course", "LINUX_COURSE_REPO");
 
 try {
   execFileSync(python, ["-c", "import markdown"], { stdio: "ignore" });
@@ -50,6 +53,6 @@ try {
     run(pip[0], [...pip.slice(1), "--break-system-packages"]);
   }
 }
-console.log("Preparing Python, SQL, Git and Rust curricula");
+console.log("Preparing Python, SQL, Git, Rust and Linux curricula");
 run(python, ["build/prepare.py", "--course", course, "--sql-course", sql,
-  "--git-course", git, "--rust-course", rust]);
+  "--git-course", git, "--rust-course", rust, "--linux-course", linux]);

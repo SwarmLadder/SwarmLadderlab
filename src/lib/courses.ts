@@ -12,6 +12,7 @@ export const courses: Course[] = [
   { id: "sql", title: "SQL", language: "SQLite · PostgreSQL labs", blurb: "30 guided lessons, 48 graded challenges, real projects and database engineering.", status: "open", hue: "#7a4b1f" },
   { id: "git", title: "Git & GitHub", language: "Git CLI · offline labs", blurb: "36 guided lessons, 24 native Git labs, workshops, portfolio projects and 45 interview answers.", status: "open", hue: "#8c2f39" },
   { id: "rust", title: "Rust", language: "Rust 2021 · Cargo", blurb: "36 workshops, 168 coding challenges, nine projects, mastery and safe systems programming.", status: "open", hue: "#69407b" },
+  { id: "linux", title: "Linux & Bash", language: "Linux · Bash · systemd", blurb: "36 lessons, 12 locally graded Bash labs, 75 practice tasks, 60 interview answers and three operations projects.", status: "open", hue: "#386a54" },
   { id: "c", title: "C", language: "C17", blurb: "Memory, pointers and the machine underneath every language.", status: "soon", hue: "#3f6b4f" },
   { id: "javascript", title: "JavaScript", language: "ES2024", blurb: "The language of the web, from the console to the browser.", status: "soon", hue: "#8a6a12" },
 ];
