@@ -376,7 +376,7 @@ function Workspace({ lesson, catalog, courseId }: {
                   {lesson.practiceFile && <p><strong>File to edit:</strong>{" "}
                     <code>{lesson.practiceFile}</code>. Your edits carry over to other functions in the same starter file.</p>}
                   {lesson.challenge?.testSnippet && <details className="sql-hint">
-                    <summary>View the published test for this function</summary>
+                    <summary>View the actual published C test for this function</summary>
                     <pre className="c-public-tests"><code>{lesson.challenge.testSnippet}</code></pre>
                   </details>}
                 </div>
