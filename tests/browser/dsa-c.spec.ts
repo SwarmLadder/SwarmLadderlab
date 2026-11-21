@@ -23,7 +23,7 @@ test("DSA problem B01 preserves source, editable Python and public-case contract
   await expect(page.getByText(/No hidden judging/)).toBeVisible();
   const editor = page.getByRole("textbox", { name: "DSA Python solution" });
   await expect(editor).toContainText("NotImplementedError");
-  await expect(page.getByRole("button", { name: "Run 6 public tests" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run code · check 6 cases" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Try 2 examples" })).toBeVisible();
   const explanation = page.getByText("Need help? Open the detailed walkthrough and solution");
   await expect(explanation).toBeVisible();
@@ -49,9 +49,12 @@ test("DSA Python grader passes correct code and records course progress", async 
     "        seen[value] = j",
     "    raise ValueError('No pair')",
   ].join("\n"));
-  await page.getByRole("button", { name: "Run 6 public tests" }).click();
+  await page.getByRole("button", { name: "Run code · check 6 cases" }).click();
   await expect(page.getByText(/Passed all 6 published cases/)).toBeVisible({ timeout: 100_000 });
   await expect(page.getByText("6 / 6 published cases passed")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Published case results" }).getByText("Output:", { exact: true })).toHaveCount(6);
+  await expect(page.getByLabel("Short algorithm explanation")).toContainText("Approach:");
+  await expect(page.getByLabel("Short algorithm explanation")).toContainText("Complexity:");
   await page.reload();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
@@ -127,7 +130,8 @@ test("DSA sample practice gives feedback without prematurely awarding completion
   ].join("\n"));
   await page.getByRole("button", { name: "Try 2 examples" }).click();
   await expect(page.getByText("2 / 2 sample cases passed")).toBeVisible({ timeout: 100_000 });
+  await expect(page.getByLabel("Published case results").getByText("Output:", { exact: true })).toHaveCount(2);
   await expect(page.getByText(/Both sample cases passed/)).toBeVisible();
   await expect(page.getByText("Run every public case to earn completion")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Run 6 public tests" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run code · check 6 cases" })).toBeVisible();
 });

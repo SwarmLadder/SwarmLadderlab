@@ -16,6 +16,7 @@ type DsaPage = {
   mode: "browser-dsa" | "reading-dsa"; graded: string[];
   problemId?: string; difficulty?: string; pattern?: string; prompt?: string;
   constraints?: string; signature?: string; hints?: string[]; cases?: DsaCase[];
+  shortExplanation?: string;
 };
 const UPSTREAM = "https://github.com/SwarmLadder/Data-Structures-Algorithms";
 
@@ -190,7 +191,7 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
             <div className="native-verify">
               <h3>Solve the task first</h3>
               <p className="practice-task-prompt">{page.prompt}</p>
-              <p>Implement <code>{page.signature}</code> yourself. Run the published examples in the browser.
+              <p>Implement <code>{page.signature}</code> yourself. Run Python here and compare its output with the expected result.
                 Passing them confirms these cases only; explain correctness and complexity too.</p>
               {page.constraints && <p><strong>Constraints:</strong> {page.constraints}</p>}
               <div className="practice-examples" aria-label="Sample inputs and expected outputs">
@@ -219,7 +220,7 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
                     <Play size={14}/> Try 2 examples
                   </button>
                   <button type="button" className="button primary small" onClick={() => runChecks("all")} disabled={running}>
-                    <Play size={14}/> {running ? "Checking…" : "Run " + tests.length + " public tests"}
+                    <Play size={14}/> {running ? "Checking…" : "Run code · check " + tests.length + " cases"}
                   </button>
                 </span>
               </div>
@@ -232,14 +233,18 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
               <h3>{passed} / {checkedCases.length} {checkedCases.length === 2 ? "sample" : "published"} cases passed</h3>
               <ol>{results.map((result, i) => <li key={i} className={result.ok ? "pass" : "fail"}>
                 <strong>{result.ok ? "✓ PASS" : "✗ FAIL"} · Case {i + 1}</strong>
-                {!result.ok && <div>
+                <div>
                   <p><strong>Input:</strong> <code>{format(checkedCases[i]?.args)}</code></p>
                   <p><strong>Expected:</strong> <code>{format(checkedCases[i]?.expected)}</code></p>
-                  <p><strong>Actual:</strong> <code>{result.error ?? format(result.actual)}</code></p>
-                </div>}
+                  <p><strong>Output:</strong> <code>{result.error ?? format(result.actual)}</code></p>
+                </div>
               </li>)}</ol>
             </section>}
             {consoleOut && <pre className="dsa-console" aria-label="Python console output">{consoleOut}</pre>}
+            {results && page.shortExplanation && <div className="native-verify" aria-label="Short algorithm explanation">
+              <h3>Why it works · Quick explanation</h3>
+              <p>{page.shortExplanation}</p>
+            </div>}
             <details className="practice-reference">
               <summary>Need help? Open the detailed walkthrough and solution</summary>
               <div ref={guide} className="prose" dangerouslySetInnerHTML={{ __html: page.guideHtml }}/>

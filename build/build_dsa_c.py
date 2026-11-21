@@ -35,6 +35,26 @@ def output(out: Path, name: str, entries: dict, catalog: dict) -> dict:
     return catalog
 
 
+def dsa_short_explanation(markdown: str) -> str:
+    """Return the upstream problem's short approach and complexity, not its full study."""
+    approach = re.search(
+        r"(?ms)^### A\. From baseline to the right data structure\s*\n(.*?)(?=^### |\Z)",
+        markdown,
+    )
+    complexity = re.search(
+        r"(?ms)^### E\. Complexity derivation\s*\n(.*?)(?=^### |\Z)",
+        markdown,
+    )
+    if not approach or not complexity:
+        raise ValueError("DSA solution is missing an approach or complexity summary")
+
+    def first_paragraph(match: re.Match[str]) -> str:
+        paragraph = match.group(1).strip().split("\n\n", 1)[0]
+        return re.sub(r"\s+", " ", paragraph.replace("`", "")).strip()
+
+    return "Approach: " + first_paragraph(approach) + " Complexity: " + first_paragraph(complexity)
+
+
 def build_dsa(course: Path, out: Path) -> dict:
     course = course.resolve()
     cases = json.loads(read(course / "tests/cases.json"))
@@ -59,7 +79,8 @@ def build_dsa(course: Path, out: Path) -> dict:
             page.update({"problemId": problem["id"], "difficulty": problem["difficulty"],
                          "pattern": problem["pattern"], "prompt": problem["prompt"],
                          "constraints": problem["constraints"], "signature": problem["signature"],
-                         "hints": problem["hints"], "cases": fixture})
+                         "hints": problem["hints"], "cases": fixture,
+                         "shortExplanation": dsa_short_explanation(text)})
         entries[id] = page
         return {"id": id, "title": title, "graded": 1 if problem else 0}
 
