@@ -7,7 +7,7 @@ import { download, lessonPath, type Catalog } from "../../lib/course";
 import { lessonNumber, route, topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
-const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust" };
+const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust", linux: "Linux & Bash" };
 const DAY = 86_400_000;
 const WEEKS = 20;
 const dayKey = (ms: number) => new Date(ms).toDateString();
