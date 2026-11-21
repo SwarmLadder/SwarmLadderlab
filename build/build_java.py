@@ -7,7 +7,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from build_dsa_c import output
+try:
+    from .build_dsa_c import output
+except ImportError:
+    from build_dsa_c import output
 
 JAVA_REPO = "https://github.com/SwarmLadder/Java"
 
