@@ -70,15 +70,22 @@ test("home, course route, mobile theme, data migration and achievement gating", 
   await expect(page.getByRole("status")).toHaveText("Progress reset.");
 });
 
-test("lessons reveal one step at a time", async ({ page }) => {
+test("lessons are notebooks with a practice view and a practice strip", async ({ page }) => {
   await page.goto("/lesson/" + intro);
-  await expect(page.locator(".steps .step")).toHaveCount(1);
-  await page.getByRole("button", { name: /^Continue/ }).click();
-  await expect(page.locator(".steps .step")).toHaveCount(2);
+  // Lessons open as a notebook: explanations and exercises together, with an outline.
+  await expect(page.getByRole("button", { name: "Notebook", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".nb-toc")).toBeVisible();
+  await expect(page.locator(".nb-text").first()).toBeVisible();
+  const strip = page.locator(".practice-strip");
+  await expect(strip.locator(".pill").first()).toBeVisible();
+  // Practice view hides the explanations behind one "Review the idea" bar.
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await expect(page.locator(".review-bar")).toBeVisible();
+  await expect(page.locator(".nb-step:not(.is-practice)")).toHaveCount(0);
   await page.reload();
-  await expect(page.locator(".steps .step")).toHaveCount(2);
-  await page.getByRole("button", { name: "Show whole lesson" }).click();
-  expect(await page.locator(".steps .step").count()).toBeGreaterThan(2);
+  await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.locator(".review-bar").click();
+  expect(await page.locator(".nb-step:not(.is-practice)").count()).toBeGreaterThan(0);
 });
 
 test("real Python exercise, saved edits, stop and restart", async ({ page }) => {
