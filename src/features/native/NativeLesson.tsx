@@ -255,7 +255,9 @@ function Workspace({ lesson, catalog, courseId }: {
                 </div>
               )}
               <p className="native-caution">
-                The Lab does not run a native Git process or unrestricted Bash, and does not compile Rust.
+                {courseId === "linux"
+                  ? "The Lab provides a limited command simulator, not a real Bash or Linux environment."
+                  : "The Lab does not execute Git commands or compile Rust."}
                 A completion recorded here is self-reported; it does not
                 prove your local tests passed.
               </p>
