@@ -66,7 +66,7 @@ test("C17 local lab requires explicit learner confirmation, never browser execut
   await expect(page.getByText(/93 checks/).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /Code whole_minutes/i })).toBeVisible();
   await page.goto("/lesson/c/basics/labs/01-checked_add");
-  await expect(page.getByRole("heading", { name: /Checked signed addition/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Checked signed addition/i })).toBeVisible();
   await expect(page.getByText("make mastery-check TASK=checked_add").first()).toBeVisible();
   await expect(page.getByText(/does not compile or execute C/)).toBeVisible();
   await expect(page.getByRole("button", { name: /Try in Playground/ })).toHaveCount(0);

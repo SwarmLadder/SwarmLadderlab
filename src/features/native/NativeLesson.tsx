@@ -349,7 +349,7 @@ function Workspace({ lesson, catalog, courseId }: {
               <>
                 <div className="native-verify c-practice-intro">
                   <p className="eyebrow">Your next task · Start coding now</p>
-                  <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : lesson.title}</h3>
+                  <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : "Implement and verify the C starter"}</h3>
                   <p className="practice-task-prompt">{lesson.challenge?.prompt ??
                     "Implement the function in the starter file. Preserve the required error behavior and test boundary cases."}</p>
                   {lesson.practiceFile && <p><strong>File to edit:</strong>{" "}
