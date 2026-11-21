@@ -25,11 +25,18 @@ export const linuxHelp = [
 ].join("\n");
 
 function args(line: string): string[] {
-  const found = line.match(/"[^"]*"|'[^']*'|[^\s"']+/g) ?? [];
-  if (found.join("").length !== line.replace(/\s/g, "").length) {
-    throw Error("Unsupported or unclosed quotes");
+  const found = [...line.matchAll(/"[^"]*"|'[^']*'|[^\s"']+/g)];
+  let cursor = 0;
+  const words: string[] = [];
+  for (const match of found) {
+    const at = match.index ?? 0;
+    if (line.slice(cursor, at).trim()) throw Error("Unsupported or unclosed quotes");
+    const word = match[0];
+    words.push(word.startsWith('"') || word.startsWith("'") ? word.slice(1, -1) : word);
+    cursor = at + word.length;
   }
-  return found.map((word) => word.startsWith('"') || word.startsWith("'") ? word.slice(1, -1) : word);
+  if (line.slice(cursor).trim()) throw Error("Unsupported or unclosed quotes");
+  return words;
 }
 
 function resolve(session: LinuxSession, input = "."): string {

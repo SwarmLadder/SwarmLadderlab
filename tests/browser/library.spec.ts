@@ -3,10 +3,10 @@ import { test, expect } from "@playwright/test";
 test("multi-course directory offers searchable, honest and navigable courses", async ({ page }) => {
   await page.goto("/learn");
   await expect(page.getByRole("heading", { name: /Choose what you'll build next/i })).toBeVisible();
-  await expect(page.locator(".library-card")).toHaveCount(6);
-  await expect(page.getByRole("status")).toContainText("6 courses found");
+  await expect(page.locator(".library-card")).toHaveCount(7);
+  await expect(page.getByRole("status")).toContainText("7 courses found");
   await page.getByRole("button", { name: "Available now" }).click();
-  await expect(page.locator(".library-card")).toHaveCount(4);
+  await expect(page.locator(".library-card")).toHaveCount(5);
   await page.getByRole("button", { name: "Coming soon" }).click();
   await expect(page.locator(".library-card")).toHaveCount(2);
   await page.getByRole("button", { name: "All courses" }).click();
