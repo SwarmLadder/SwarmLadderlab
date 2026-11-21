@@ -34,7 +34,7 @@ type Props = {
   fill?: boolean; // grow to fill the parent (playground) instead of fitting the code
   onCursor?: (line: number, col: number) => void;
   onProblems?: (count: number) => void;
-  language?: "python" | "sql" | "rust" | "git" | "linux";
+  language?: "python" | "sql" | "rust" | "git" | "linux" | "c";
 };
 
 const SNIPPETS = [
@@ -72,7 +72,7 @@ function guessType(doc: string, name: string): string | null {
 export function CodeEditor({ value, onChange, onRun, runner, error = null, label, placeholder, fill, onCursor, onProblems, language = "python" }: Props) {
   const isSql = language === "sql";
   const isPython = language === "python";
-  label ??= { python: "Python code", sql: "SQL code", rust: "Rust code", git: "Git commands", linux: "Linux commands" }[language];
+  label ??= { python: "Python code", sql: "SQL code", rust: "Rust code", git: "Git commands", linux: "Linux commands", c: "C17 source" }[language];
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const latest = useRef({ onChange, onRun, onCursor, onProblems, error, runner });
@@ -153,6 +153,7 @@ export function CodeEditor({ value, onChange, onRun, runner, error = null, label
         isSql ? sql({ dialect: SQLite, upperCaseKeywords: true })
           : language === "rust" ? rustLanguage
           : language === "git" || language === "linux" ? shellLanguage
+          : language === "c" ? []
           : [python(), pythonLanguage.data.of({ autocomplete: sessionNames }), pythonLanguage.data.of({ autocomplete: snippets })],
         autocompletion({ activateOnTyping: true, icons: true, closeOnBlur: true,
           ...(language === "rust" || language === "git" || language === "linux" ? { override: [nativeCompletions(language)] } : {}) }),

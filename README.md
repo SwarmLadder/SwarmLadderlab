@@ -1,6 +1,6 @@
 # SwarmLadder Lab
 
-**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router (via vinext), strict TypeScript and Cloudflare Workers. The five open courses import their content from [Python](https://github.com/SwarmLadder/python-notebook), [SQL](https://github.com/SwarmLadder/SQL), [Git & GitHub](https://github.com/SwarmLadder/git-github-course) [Rust](https://github.com/SwarmLadder/RUST) and [Linux & Bash](https://github.com/SwarmLadder/linux-course).
+**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router (via vinext), strict TypeScript and Cloudflare Workers. The seven open courses import their content from [Python](https://github.com/SwarmLadder/python-notebook), [SQL](https://github.com/SwarmLadder/SQL), [Git & GitHub](https://github.com/SwarmLadder/git-github-course), [Rust](https://github.com/SwarmLadder/RUST) [Linux & Bash](https://github.com/SwarmLadder/linux-course), [DSA](https://github.com/SwarmLadder/Data-Structures-Algorithms), and [C](https://github.com/SwarmLadder/C).
 
 ## Development
 
@@ -12,15 +12,17 @@ git clone https://github.com/SwarmLadder/SQL ../SQL
 git clone https://github.com/SwarmLadder/git-github-course ../git-github-course
 git clone https://github.com/SwarmLadder/RUST ../RUST
 git clone https://github.com/SwarmLadder/linux-course ../linux-course
+git clone https://github.com/SwarmLadder/Data-Structures-Algorithms ../Data-Structures-Algorithms
+git clone https://github.com/SwarmLadder/C ../C
 python -m pip install markdown pytest
 npm ci
 npm run curriculum
 npm run dev
 ```
 
-Every build (through `scripts/ensure-curriculum.mjs`) prepares all five curricula when generated assets are missing. It uses `COURSE`, `SQL_COURSE`, `GIT_COURSE` `RUST_COURSE` and `LINUX_COURSE` or their sibling checkout defaults, cloning missing sources into `.generated/`. This lets hosted builders such as Cloudflare Workers Builds build from this repository alone.
+Every build (through `scripts/ensure-curriculum.mjs`) prepares all seven curricula when generated assets are missing. It uses `COURSE`, `SQL_COURSE`, `GIT_COURSE` `RUST_COURSE` and `LINUX_COURSE`, `DSA_COURSE` and `C_COURSE` or their sibling checkout defaults, cloning missing sources into `.generated/`. This lets hosted builders such as Cloudflare Workers Builds build from this repository alone.
 
-Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/python --sql-course /path/to/SQL --git-course /path/to/git --rust-course /path/to/rust --linux-course /path/to/linux` for other curriculum checkouts. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
+Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/python --sql-course /path/to/SQL --git-course /path/to/git --rust-course /path/to/rust --linux-course /path/to/linux --dsa-course /path/to/dsa --c-course /path/to/C` for other curriculum checkouts. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
 
 ## Course library
 
@@ -30,10 +32,11 @@ Browse all available courses at `/learn`. The course directory is generated from
 
 - `src/app` defines the routes: home (`/`), the course shelf (`/learn`), a course route (`/learn/python`), lessons (`/lesson/basics/notebooks/00_python_introduction`), playground, achievements and progress. `/curriculum` redirects to `/learn/python`.
 - `src/features` owns the views. `home` greets new visitors and gives returning learners a desk that picks up where they stopped. `course` draws the route: finished rungs fold away, the current rung and the next few show, and later chapters stay closed until opened. `notebook` turns each notebook into steps (`steps.ts`) revealed one at a time, with runnable code, quiz cards and a completion card.
-- `src/lib/journey.ts` orders a course into a route and finds the learner's current rung. `src/lib/courses.ts` lists the courses on the shelf. `src/features/sql/SqlLesson.tsx` provides SQLite execution and checking; `src/features/native/NativeLesson.tsx` provides Git, Rust and Linux course content, saved code drafts and explicit local checker instructions.
+- `src/lib/journey.ts` orders a course into a route and finds the learner's current rung. `src/lib/courses.ts` lists the courses on the shelf. `src/features/sql/SqlLesson.tsx` provides SQLite execution and checking; `src/features/native/NativeLesson.tsx` provides C, Git, Rust and Linux course content, saved code drafts and explicit local checker instructions.
+- `src/features/dsa/DsaLesson.tsx` runs Python algorithm solutions in a browser worker and checks six published cases per challenge; no hidden grading or complexity verification is promised.
 - `src/i18n` holds every interface string. Add a locale by adding a strings file and an entry in `src/i18n/index.ts`, including its text direction.
 - `src/styles/field.css` is the design system: colour tokens for day and night reading, the type scale (Fraunces, Instrument Sans, JetBrains Mono, all self-hosted) and the page layouts. `src/styles/lesson.css` styles lessons, code, quizzes and the playground.
-- `build/` converts Python, SQL, Git, Rust and Linux source lessons, exercises, interview material and projects into browser-readable course catalogs. It copies original helpers, assessment code and data into the generated public assets.
+- `build/` converts Python, SQL, Git, Rust, Linux, DSA and C source lessons, exercises, interview material and projects into browser-readable course catalogs. It copies original helpers, assessment code and data into the generated public assets.
 - `src/workers/runner.ts` manages one isolated Python session per notebook. `public/assets/py-worker.js` runs the existing Pyodide runtime and course checks. The first run needs network access to the Pyodide CDN. Workbook checks install pytest inside the browser.
 - The GitHub achievement workflow remains in the course repository. Eligible learners download solution modules, create a claim in their fork, and submit a pull request for verification.
 
@@ -50,6 +53,12 @@ Git & GitHub is open at `/learn/git` with **114 activities**: 36 lessons, 24 loc
 
 Linux & Bash is open at `/learn/linux` with **186 activities**: 36 guided lessons, 12 locally graded Bash labs, 75 independent practice tasks, 60 interview Q&As and three portfolio projects. The Lab includes a limited virtual Linux terminal for safe command exploration. **Real Bash execution and the upstream two-fixture grader run on Linux or WSL2**, not in the browser. Saved drafts and self-reported completion remain separate from all other courses. See [Linux integration guide](docs/LINUX_INTEGRATION.md).
 
+### DSA and C17 courses
+
+DSA is open at /learn/dsa with **94 activities**: 36 lessons, 48 Python interview problems, three projects, three mock interviews, and four mastery reference pages. Each problem includes its original prompt, constraints, hints, deep solution walkthrough, editable Python starter, six published test cases executed in Pyodide, and independent saved progress. Public tests do not verify runtime complexity or constitute hidden judging. The offline, full-depth source remains in [DSA](https://github.com/SwarmLadder/Data-Structures-Algorithms).
+
+C17 is open at /learn/c with **101 activities**: 18 guided workshops, 18 deep dives, 12 local mastery labs, 12 project briefs, 36 interview explanations and five extra engineering resources. C drafts save in the browser, but **C compilation and grading require a local GCC/Clang compiler and Make**. Learners explicitly confirm a local passing result. See the [C source](https://github.com/SwarmLadder/C) and [integration guide](docs/DSA_C_INTEGRATION.md).
+
 ### Five-language Playground and highlighted native lessons
 
 The [Playground](/playground) now supports **Python**, **SQL**, **Rust**, **Git**, and **Linux & Bash** with a language selector, colored CodeMirror editors, completions, saved code per language and mode-specific examples. Python and SQLite execute in the existing browser worker. **Rust** compiles on the official external Rust Playground *only when you click Run Rust*; do not submit secrets or private source. **Git** provides a clearly labeled, safe browser practice **simulator**, not the full native Git CLI. **Linux** offers a separate virtual filesystem and limited command simulator; unrestricted Bash, privileged commands and local lab grading never run in the browser. Rust functions and the official Git course labs still require their original local Cargo/Git graders. Rust and Git lesson pages also get highlighted code and a one-click transfer to the appropriate Playground.
@@ -63,7 +72,7 @@ Add an entry to `src/lib/courses.ts` with `status: "soon"` to show it on the she
 ## Verify and deploy
 
 ```sh
-COURSE=../python-notebook SQL_COURSE=../SQL GIT_COURSE=../git-github-course RUST_COURSE=../RUST python -m pytest tests -q
+COURSE=../python-notebook SQL_COURSE=../SQL GIT_COURSE=../git-github-course RUST_COURSE=../RUST LINUX_COURSE=../linux-course DSA_COURSE=../Data-Structures-Algorithms C_COURSE=../C python -m pytest tests -q
 npm test
 npm run build
 npx playwright install chromium
@@ -80,7 +89,7 @@ npm run deploy:staging
 BASE_URL=https://swarmladder-lab-staging.YOUR-SUBDOMAIN.workers.dev npm run test:e2e
 ```
 
-The Learning platform workflow verifies pull requests, main and scheduled imports of **all four** source curricula. To publish staging from GitHub, supply the repository secret `CLOUDFLARE_API_TOKEN` and variables `CLOUDFLARE_ACCOUNT_ID` and `STAGING_URL`, then run the workflow with **Deploy and verify the staging Worker** checked.
+The Learning platform workflow verifies pull requests, main and scheduled imports of **all seven** source curricula. To publish staging from GitHub, supply the repository secret `CLOUDFLARE_API_TOKEN` and variables `CLOUDFLARE_ACCOUNT_ID` and `STAGING_URL`, then run the workflow with **Deploy and verify the staging Worker** checked.
 
 After staging passes and the migration is reviewed, run `npm run deploy:release` at the verified revision with the same course checkout. It builds the separate `swarmladder-lab` Worker. Run the browser suite with the production URL before retiring the previous origin. A future custom domain can be attached to the production Worker in Cloudflare.
 

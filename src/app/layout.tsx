@@ -11,7 +11,7 @@ import { labRepo, courseRepo } from "../lib/course";
 import { Wordmark } from "../components/Brand";
 import { dir, locale, t } from "../i18n";
 const title = "SwarmLadder Lab · Learn to code, one rung at a time";
-const description = "Learn Python, SQL, Git & GitHub, Rust and Linux & Bash with guided lessons, hands-on exercises and progress tracking. Python and SQL run in the browser; Git and Linux offer safe simulations with local grading.";
+const description = "Learn Python, SQL, DSA, C, Git, Rust and Linux with guided lessons, coding challenges, projects and saved progress. Python and SQL run in the browser; C exercises use local compiler verification.";
 // Absolute URLs for link previews. Set SITE_URL at build time when the site moves to its own domain.
 const site = process.env.SITE_URL || "https://swarmladder-lab-staging.bitpyrus.workers.dev";
 // Every page is personal (progress lives in the browser), so never let the edge keep

@@ -1,4 +1,4 @@
-// Fetch all four curricula when generated static assets are missing.
+// Fetch all seven curricula when generated static assets are missing.
 // The Lab can build from a single checkout on Cloudflare Workers Builds.
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -7,7 +7,9 @@ if (existsSync("public/data/catalog.json") && existsSync("public/data/sql/catalo
     && existsSync("public/course/sql/fixtures/base.sql")
     && existsSync("public/data/git/catalog.json")
     && existsSync("public/data/rust/catalog.json")
-    && existsSync("public/data/linux/catalog.json")) process.exit(0);
+    && existsSync("public/data/linux/catalog.json")
+    && existsSync("public/data/dsa/catalog.json")
+    && existsSync("public/data/c/catalog.json")) process.exit(0);
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 const python = ["python3", "python"].find((p) => {
@@ -42,6 +44,10 @@ const rust = source("RUST_COURSE", "../RUST", ".generated/RUST",
   "https://github.com/SwarmLadder/RUST", "RUST_COURSE_REPO");
 const linux = source("LINUX_COURSE", "../linux-course", ".generated/linux-course",
   "https://github.com/SwarmLadder/linux-course", "LINUX_COURSE_REPO");
+const dsa = source("DSA_COURSE", "../Data-Structures-Algorithms", ".generated/Data-Structures-Algorithms",
+  "https://github.com/SwarmLadder/Data-Structures-Algorithms", "DSA_COURSE_REPO");
+const c = source("C_COURSE", "../C", ".generated/C",
+  "https://github.com/SwarmLadder/C", "C_COURSE_REPO");
 
 try {
   execFileSync(python, ["-c", "import markdown"], { stdio: "ignore" });
@@ -53,6 +59,7 @@ try {
     run(pip[0], [...pip.slice(1), "--break-system-packages"]);
   }
 }
-console.log("Preparing Python, SQL, Git, Rust and Linux curricula");
+console.log("Preparing Python, SQL, Git, Rust, Linux, DSA and C curricula");
 run(python, ["build/prepare.py", "--course", course, "--sql-course", sql,
-  "--git-course", git, "--rust-course", rust, "--linux-course", linux]);
+  "--git-course", git, "--rust-course", rust, "--linux-course", linux,
+  "--dsa-course", dsa, "--c-course", c]);

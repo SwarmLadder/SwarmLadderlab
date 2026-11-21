@@ -11,6 +11,8 @@ export default function Page() {
         { id: "git", catalog: catalog("git") },
         { id: "rust", catalog: catalog("rust") },
         { id: "linux", catalog: catalog("linux") },
+        { id: "dsa", catalog: catalog("dsa") },
+        { id: "c", catalog: catalog("c") },
       ]} />
     </Personal>
   );

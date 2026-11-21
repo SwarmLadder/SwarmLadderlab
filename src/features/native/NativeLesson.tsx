@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check, Clipboard, RotateCcw, Play } from "lucide
 import Prism from "prismjs";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-bash";
+import "prismjs/components/prism-c";
 import { CodeEditor } from "../../components/CodeEditor";
 import { lessonPath, type Catalog } from "../../lib/course";
 import { route } from "../../lib/journey";
@@ -20,11 +21,16 @@ type NativePage = {
   checkCommand: string;
   practiceCommand: string;
   graded: string[];
-  mode: "local-git" | "local-rust" | "local-linux";
+  mode: "local-git" | "local-rust" | "local-linux" | "local-c";
   hint: string;
 };
 
 const UPSTREAM: Record<string, { url: string; name: string; install: string }> = {
+  c: {
+    url: "https://github.com/SwarmLadder/C",
+    name: "C17",
+    install: "git clone https://github.com/SwarmLadder/C.git",
+  },
   git: {
     url: "https://github.com/SwarmLadder/git-github-course",
     name: "Git & GitHub",
@@ -45,7 +51,7 @@ const UPSTREAM: Record<string, { url: string; name: string; install: string }> =
 export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [lesson, setLesson] = useState<NativePage | null>(null);
   const [error, setError] = useState("");
-  const courseId = id.startsWith("git/") ? "git" : id.startsWith("linux/") ? "linux" : "rust";
+  const courseId = id.startsWith("c/") ? "c" : id.startsWith("git/") ? "git" : id.startsWith("linux/") ? "linux" : "rust";
   useEffect(() => {
     const controller = new AbortController();
     setLesson(null);
@@ -81,7 +87,7 @@ export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) 
 function Workspace({ lesson, catalog, courseId }: {
   lesson: NativePage;
   catalog: Catalog;
-  courseId: "git" | "rust" | "linux";
+  courseId: "git" | "rust" | "linux" | "c";
 }) {
   const upstream = UPSTREAM[courseId];
   const isGraded = lesson.graded.includes("self-reported");
@@ -115,6 +121,7 @@ function Workspace({ lesson, catalog, courseId }: {
   }, [lesson.id]);
 
   function openInPlayground() {
+    if (courseId === "c") return; // No C compiler runs in the browser.
     save("playground", courseId === "rust" ? "scratch.rs" : courseId === "linux" ? "linux.sh" : "scratch.sh", draft);
     window.location.assign("/playground?language=" + courseId);
   }
@@ -155,7 +162,7 @@ function Workspace({ lesson, catalog, courseId }: {
           </nav>
           <span className="runtime" role="status">
             <span className="runtime-dot" aria-hidden="true" />
-            {courseId === "linux" ? "Bash / local verification" : `Local ${courseId === "git" ? "Git" : "Cargo"} verification`}
+            {courseId === "linux" ? "Bash / local verification" : courseId === "c" ? "C17 · local compiler verification" : `Local ${courseId === "git" ? "Git" : "Cargo"} verification`}
           </span>
         </div>
       </div>
@@ -163,7 +170,7 @@ function Workspace({ lesson, catalog, courseId }: {
       <header className="lesson-head">
         <div className="shell lesson-head-grid">
           <div>
-            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : courseId === "linux" ? "Linux operations" : "Rust engineering"}</p>
+            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : courseId === "linux" ? "Linux operations" : courseId === "c" ? "Systems programming" : "Rust engineering"}</p>
             <h1 className="lesson-title">{lesson.title}</h1>
             <p className="lesson-meta">
               <span className={"meta-chip" + (complete ? " complete" : "")}>
@@ -194,6 +201,8 @@ function Workspace({ lesson, catalog, courseId }: {
               ? "Actual Git commands and grading run in a disposable local repository, not on this website."
               : courseId === "linux"
                 ? "The browser offers a limited command simulator, not Linux itself. Run full Bash scripts and the graded lab checker on your own Linux/WSL2 machine."
+                : courseId === "c"
+                ? "The Lab does not compile or execute C. Use a local GCC or Clang C17 compiler and Make to verify mastery labs."
                 : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."}
             {" "}Progress is stored in this browser.
           </p>
@@ -221,6 +230,8 @@ function Workspace({ lesson, catalog, courseId }: {
                   ? " The source Git checker creates isolated practice repositories."
                   : courseId === "linux"
                     ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
+                    : courseId === "c"
+                    ? " Compile with a C17-compatible compiler and run the source Makefile tests locally; never mark a check as verified without a passing result."
                     : " The source Cargo tests compile real Rust and check your implementation."}
               </p>
               <div className="native-command">
@@ -257,7 +268,9 @@ function Workspace({ lesson, catalog, courseId }: {
               <p className="native-caution">
                 {courseId === "linux"
                   ? "The Lab provides a limited command simulator, not a real Bash or Linux environment."
-                  : "The Lab does not execute Git commands or compile Rust."}
+                  : courseId === "c"
+                    ? "The Lab cannot execute C or evaluate native compiler results."
+                    : "The Lab does not execute Git commands or compile Rust."}
                 A completion recorded here is self-reported; it does not
                 prove your local tests passed.
               </p>
@@ -266,7 +279,7 @@ function Workspace({ lesson, catalog, courseId }: {
             {lesson.source && (
               <div className="code-cell kind-code native-workspace">
                 <div className="cell-tools">
-                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : "Editable command notes"}</span>
+                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : courseId === "c" ? "C17 code draft" : "Editable command notes"}</span>
                   <span className="cell-buttons">
                     <button type="button" className="button quiet small"
                       onClick={() => updateDraft(lesson.source)}>
@@ -276,9 +289,9 @@ function Workspace({ lesson, catalog, courseId }: {
                       onClick={() => copy(draft, "Draft")}>
                       <Clipboard size={14} /> Copy draft
                     </button>
-                    <button type="button" className="button quiet small" onClick={openInPlayground}>
+                    {courseId !== "c" && <button type="button" className="button quiet small" onClick={openInPlayground}>
                       <Play size={14} /> Try in Playground
-                    </button>
+                    </button>}
                   </span>
                 </div>
                 <CodeEditor
@@ -286,12 +299,12 @@ function Workspace({ lesson, catalog, courseId }: {
                   value={draft}
                   onChange={updateDraft}
                   onRun={openInPlayground}
-                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : "Git command notes"}
+                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : courseId === "c" ? "C17 code draft" : "Git command notes"}
                 />
                 <p className="native-caution">
-                  Highlighted editing, completion and Shift+Enter to open the Playground are available.
-                  The Playground supports safe Git/Linux teaching simulators or Rust compilation;
-                  project-specific checks still run in the original local course.
+                  {courseId === "c"
+                    ? "C drafts are saved here, but C compilation, sanitizers and grading require a local GCC/Clang toolchain. Download or copy your code into the upstream starter, then run the named Make target."
+                    : "Highlighted editing, completion and Shift+Enter to open the Playground are available. The Playground supports Git/Linux teaching simulators or Rust compilation; project-specific checks still run in the original local course."}
                 </p>
               </div>
             )}

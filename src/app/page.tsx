@@ -11,6 +11,8 @@ export default function Page() {
         gitCatalog={catalog("git")}
         rustCatalog={catalog("rust")}
         linuxCatalog={catalog("linux")}
+        dsaCatalog={catalog("dsa")}
+        cCatalog={catalog("c")}
       />
     </Personal>
   );
