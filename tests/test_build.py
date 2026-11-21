@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 COURSE = Path(os.environ.get("COURSE", ROOT.parent / "python-notebook")).resolve()
 # Teach-then-test Basics keeps its challenges in the lessons and has no workbooks.
 LESSON_CHALLENGES = COURSE.exists() and not any((COURSE / "basics" / "exercises").glob("*.ipynb"))
+# Intermediate and Advanced followed later; an older course checkout still has their workbooks.
+UPPER_LESSON_CHALLENGES = COURSE.exists() and not any((COURSE / "intermediate" / "exercises").glob("*.ipynb"))
 
 
 @pytest.fixture(scope="session")
@@ -42,8 +44,11 @@ def test_graded_items_are_counted(dist):
     else:
         holder = "basics__exercises__02_control_flow_exercises"
     assert "wb:classify_temperature" in json.loads((dist / "data" / "nb" / f"{holder}.json").read_text())["graded"]
-    workbook = json.loads((dist / "data" / "nb" / "intermediate__exercises__01_oop_and_collections_exercises.json").read_text())
-    assert any(k.startswith("wb:") for k in workbook["graded"])
+    if UPPER_LESSON_CHALLENGES:
+        upper = "intermediate__notebooks__02_classes_and_objects"
+    else:
+        upper = "intermediate__exercises__01_oop_and_collections_exercises"
+    assert any(k.startswith("wb:") for k in json.loads((dist / "data" / "nb" / f"{upper}.json").read_text())["graded"])
 
 
 @pytest.mark.skipif(not LESSON_CHALLENGES, reason="this course checkout still keeps Basics challenges in workbooks")
@@ -53,6 +58,18 @@ def test_lesson_challenges_form_achievement_packs(dist):
     assert pack["level"] == "basics" and pack["title"] == "Control flow"
     assert pack["lessons"]["classify_temperature"] == "basics/notebooks/05_conditional_statements"
     assert "classify_temperature" in pack["exercises"]
+
+
+@pytest.mark.skipif(not UPPER_LESSON_CHALLENGES, reason="this course checkout still keeps Intermediate/Advanced challenges in workbooks")
+def test_every_level_has_lesson_packs(dist):
+    workbooks = json.loads((dist / "data" / "catalog.json").read_text())["workbooks"]
+    for level in ("basics", "intermediate", "advanced"):
+        packs = [w for k, w in workbooks.items() if k.startswith("pack:") and w["level"] == level]
+        assert len(packs) == 4, level
+        assert all(w["exercises"] and set(w["lessons"]) >= set(w["exercises"]) for w in packs), level
+    pack = workbooks["pack:advanced_02_concurrency_resilience"]
+    assert pack["lessons"]["gather_in_order"] == "advanced/notebooks/05_asyncio_event_loop"
+    assert not any(k.startswith(("intermediate/exercises", "advanced/exercises")) for k in workbooks)
 
 
 def test_colab_setup_cell_is_dropped_and_links_rewritten(dist):
@@ -65,8 +82,10 @@ def test_colab_setup_cell_is_dropped_and_links_rewritten(dist):
 
 def test_course_files_for_python_are_present(dist):
     files = json.loads((dist / "data" / "course-files.json").read_text())
-    for needed in ("basics/notebooks/lesson.py", "basics/notebooks/quiz.py", "intermediate/exercises/check.py",
-                   "practice/grader.py", "practice/notebook_check.py", "practice/conftest.py", "conftest.py", "pytest.ini"):
+    needed_files = ["basics/notebooks/lesson.py", "basics/notebooks/quiz.py", "practice/grader.py", "practice/notebook_check.py", "practice/conftest.py", "conftest.py", "pytest.ini"]
+    if not UPPER_LESSON_CHALLENGES:
+        needed_files.append("intermediate/exercises/check.py")
+    for needed in needed_files:
         assert needed in files and (dist / "course" / needed).exists(), needed
     assert not any("solution" in f.lower() for f in files), "never ship solutions"
     assert "faulthandler_timeout" not in (dist / "course" / "pytest.ini").read_text()

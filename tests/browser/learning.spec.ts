@@ -177,3 +177,31 @@ test("playground runs independent scratch code and restores edits", async ({ pag
   await expect(page.getByRole("heading", { name: "Console" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
+
+test("upper-level lessons run async exercises and grade their challenges in the browser", async ({ page }) => {
+  const catalog = await (await page.request.get("/data/catalog.json")).json();
+  test.skip(!catalog.workbooks["pack:advanced_02_concurrency_resilience"], "this course checkout still uses workbooks");
+  await wholeLesson(page);
+  await page.goto("/lesson/advanced/notebooks/05_asyncio_event_loop");
+  await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
+  const ex = await cell(page, "async def double");
+  const editor = ex.getByRole("textbox");
+  await editor.fill(
+    "import asyncio\n\nasync def double(x):\n    await asyncio.sleep(0)\n    return x * 2\n\nasync def main():\n    return await double(21)\n\ncheck(2, run(main()))",
+  );
+  await editor.press("Shift+Enter");
+  await expect(ex.locator(".output")).toContainText("✅ Exercise 2: correct", { timeout: 120000 });
+
+  await page.goto("/lesson/intermediate/notebooks/09_functional_tools_and_itertools");
+  await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
+  const fn = await cell(page, "def power");
+  await fn.getByRole("textbox").fill("def power(base, exponent):\n    return base ** exponent");
+  await fn.getByRole("textbox").press("Shift+Enter");
+  // power has no tests of its own: it is graded through make_square.
+  const square = await cell(page, "def make_square");
+  await square.getByRole("textbox").fill("def make_square():\n    from functools import partial\n    return partial(power, exponent=2)");
+  await square.getByRole("textbox").press("Shift+Enter");
+  const check = page.locator(".code-cell.kind-check", { hasText: "make_square" }).first();
+  await check.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(check.locator(".output")).toContainText("✅ make_square", { timeout: 120000 });
+});
