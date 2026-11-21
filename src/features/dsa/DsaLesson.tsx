@@ -46,6 +46,7 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
   const [status, setStatus] = useState("Starting Python…");
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<DsaCaseResult[] | null>(null);
+  const [checkedCases, setCheckedCases] = useState<DsaCase[]>([]);
   const [consoleOut, setConsoleOut] = useState("");
   const [notice, setNotice] = useState("");
   const [runtimeVersion, setRuntimeVersion] = useState(0);
@@ -83,20 +84,22 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
     setDraft(value);
     save(page.id, "draft", value);
     setResults(null);
+    setCheckedCases([]);
     setNotice("Draft saved. Rerun the cases to check changes.");
   }
   function restart() {
     runner.current?.dispose();
     runner.current = null;
     setRuntimeVersion((n) => n + 1);
-    setRunning(false); setResults(null); setConsoleOut("");
+    setRunning(false); setResults(null); setCheckedCases([]); setConsoleOut("");
     setStatus("Restarting Python…");
     setNotice("Python runtime restarted; previous results cleared.");
   }
-  async function runChecks() {
+  async function runChecks(mode: "sample" | "all" = "all") {
     if (running || !problem || !page.cases?.length || !runner.current) return;
+    const selectedCases = mode === "sample" ? page.cases.slice(0, 2) : page.cases;
     const session = runner.current;
-    setRunning(true); setResults(null); setConsoleOut(""); setNotice("");
+    setRunning(true); setResults(null); setCheckedCases(selectedCases); setConsoleOut(""); setNotice("");
     let collected = "";
     const timeout = setTimeout(() => {
       if (runner.current === session) {
@@ -108,22 +111,24 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
       }
     }, 90_000);
     try {
-      const response = await session.run(dsaPythonScript(draft, page.cases), "/course/dsa",
+      const response = await session.run(dsaPythonScript(draft, selectedCases), "/course/dsa",
         (name, output) => {
           collected += output;
           if (name === "stderr") setConsoleOut((s) => s + output);
         });
       if (runner.current !== session) return;
       if (response.error) throw Error(response.friendly || response.error);
-      const checked = parseDsaResults(collected, page.cases.length);
+      const checked = parseDsaResults(collected, selectedCases.length);
       setResults(checked);
       const count = checked.filter((test) => test.ok).length;
-      if (count === page.cases.length) {
+      if (mode === "all" && count === selectedCases.length) {
         mark(page.id, ["case-suite"]);
         setComplete(true);
         setNotice("Passed all " + count + " published cases! Progress saved locally.");
+      } else if (mode === "sample" && count === selectedCases.length) {
+        setNotice("Both sample cases passed. Run all six published cases to earn completion.");
       } else {
-        setNotice("Passed " + count + " of " + page.cases.length + " published cases. Fix failures and retry.");
+        setNotice("Passed " + count + " of " + selectedCases.length + " " + (mode === "sample" ? "sample" : "published") + " cases. Inspect failures and retry.");
       }
       const marker = collected.lastIndexOf(DSA_RESULT_PREFIX);
       setConsoleOut(marker >= 0 ? collected.slice(0, marker).trim().slice(-3000) : "");
@@ -177,16 +182,24 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
       <div className="steps">
         <section className="step" aria-labelledby="dsa-guide">
           <header className="step-head">
-            <p className="eyebrow">{problem ? "Understand · Solve · Prove" : "Learn · Trace · Practice"}</p>
-            <h2 id="dsa-guide">Activity guide</h2>
+            <p className="eyebrow">{problem ? "Code · Test · Debug · Learn" : "Learn · Trace · Practice"}</p>
+            <h2 id="dsa-guide">{problem ? "Coding challenge" : "Activity guide"}</h2>
           </header>
-          <div ref={guide} className="prose" dangerouslySetInnerHTML={{ __html: page.guideHtml }}/>
+          {!problem && <div ref={guide} className="prose" dangerouslySetInnerHTML={{ __html: page.guideHtml }}/> }
           {problem && <>
             <div className="native-verify">
-              <h3>Practice the algorithm in Python</h3>
+              <h3>Solve the task first</h3>
+              <p className="practice-task-prompt">{page.prompt}</p>
               <p>Implement <code>{page.signature}</code> yourself. Run the published examples in the browser.
                 Passing them confirms these cases only; explain correctness and complexity too.</p>
               {page.constraints && <p><strong>Constraints:</strong> {page.constraints}</p>}
+              <div className="practice-examples" aria-label="Sample inputs and expected outputs">
+                <strong>Start with these two examples</strong>
+                <ol>{tests.slice(0, 2).map((sample, i) => <li key={i}>
+                  <code>Input: {format(sample.args)}</code>
+                  <code>Expected: {format(sample.expected)}</code>
+                </li>)}</ol>
+              </div>
               {page.hints && <details className="sql-hint">
                 <summary>Reveal hints (after attempting)</summary>
                 <ol>{page.hints.map((hint, i) => <li key={i}>{hint}</li>)}</ol>
@@ -202,28 +215,35 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
                   <button type="button" className="button quiet small" onClick={restart}>
                     <Square size={13}/> Stop / restart
                   </button>
-                  <button type="button" className="button primary small" onClick={runChecks} disabled={running}>
+                  <button type="button" className="button quiet small" onClick={() => runChecks("sample")} disabled={running}>
+                    <Play size={14}/> Try 2 examples
+                  </button>
+                  <button type="button" className="button primary small" onClick={() => runChecks("all")} disabled={running}>
                     <Play size={14}/> {running ? "Checking…" : "Run " + tests.length + " public tests"}
                   </button>
                 </span>
               </div>
               <CodeEditor language="python" runner={runner} value={draft} onChange={edit}
-                onRun={runChecks} label="DSA Python solution"/>
+                onRun={() => runChecks("all")} label="DSA Python solution"/>
               <p className="native-caution">Draft and passed-case progress stay on this device.
                 Python runs in a Web Worker; use Stop / restart if a solution gets stuck.</p>
             </div>
             {results && <section className="dsa-results" aria-label="Published case results">
-              <h3>{passed} / {tests.length} published cases passed</h3>
+              <h3>{passed} / {checkedCases.length} {checkedCases.length === 2 ? "sample" : "published"} cases passed</h3>
               <ol>{results.map((result, i) => <li key={i} className={result.ok ? "pass" : "fail"}>
                 <strong>{result.ok ? "✓ PASS" : "✗ FAIL"} · Case {i + 1}</strong>
                 {!result.ok && <div>
-                  <p><strong>Input:</strong> <code>{format(tests[i]?.args)}</code></p>
-                  <p><strong>Expected:</strong> <code>{format(tests[i]?.expected)}</code></p>
+                  <p><strong>Input:</strong> <code>{format(checkedCases[i]?.args)}</code></p>
+                  <p><strong>Expected:</strong> <code>{format(checkedCases[i]?.expected)}</code></p>
                   <p><strong>Actual:</strong> <code>{result.error ?? format(result.actual)}</code></p>
                 </div>}
               </li>)}</ol>
             </section>}
             {consoleOut && <pre className="dsa-console" aria-label="Python console output">{consoleOut}</pre>}
+            <details className="practice-reference">
+              <summary>Need help? Open the detailed walkthrough and solution</summary>
+              <div ref={guide} className="prose" dangerouslySetInnerHTML={{ __html: page.guideHtml }}/>
+            </details>
           </>}
           <div className="step-continue native-complete">
             {problem
