@@ -6,8 +6,8 @@ test("Java practical course offers native-verified exercises, not browser gradin
   await page.goto("/lesson/java/basics/drills/move-zeros");
   await expect(page.getByRole("heading", { name: /Move zeros/ })).toBeVisible();
   await expect(page.getByText(/Move all zeros to the end in place/)).toBeVisible();
-  await expect(page.getByText("Expected output:")).toBeVisible();
-  await expect(page.getByText("Quick explanation:")).toBeVisible();
+  await expect(page.locator(".practice-examples").getByText("Expected output:")).toBeVisible();
+  await expect(page.locator(".practice-examples").getByText("Quick explanation:")).toBeVisible();
   await expect(page.getByText("make check TASK=move-zeros").first()).toBeVisible();
   const editor = page.getByRole("textbox", { name: "Java 17 code draft" });
   await expect(editor).toContainText("TODO");
