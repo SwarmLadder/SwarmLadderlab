@@ -25,6 +25,7 @@ const KIND: Record<string, StopKind> = {
   projects: "build",
 };
 const ORDER: StopKind[] = ["lesson", "practice", "example", "build"];
+const PRACTICE_FIRST: StopKind[] = ["practice", "lesson", "build", "example"];
 
 export function lessonNumber(title: string) {
   const m = title.match(/^(\d+)\s*[—-]\s*(.*)$/);
@@ -40,10 +41,13 @@ export function isComplete(item: Item) {
 
 export function route(catalog: Catalog): Route {
   const last = read().last;
+  // Python already teaches through runnable checked cells inside lessons.
+  // DSA and C begin with genuine checks; reading is available after practice.
+  const priority = /\/(?:Data-Structures-Algorithms|C)$/.test(catalog.course) ? PRACTICE_FIRST : ORDER;
   const all: Stop[] = [];
   const levels = catalog.levels.map((level, chapter) => {
     const stops: Stop[] = [];
-    for (const kind of ORDER)
+    for (const kind of priority)
       for (const section of level.sections)
         if (KIND[section.id] === kind)
           for (const item of section.items) {

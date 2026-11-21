@@ -40,7 +40,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         <div className="course-actions">
           {r.current && (
             <Link className="button primary" href={lessonPath(r.current.item.id)}>
-              {started ? t("course.resume") : t("course.start")} <ArrowRight size={18} strokeWidth={1.8} />
+              {started ? t("course.resume") : (course.id === "c" || course.id === "dsa" ? "Start coding" : t("course.start"))} <ArrowRight size={18} strokeWidth={1.8} />
             </Link>
           )}
           <div className="course-progress" aria-label={`${done} / ${total}`}>
@@ -57,9 +57,9 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
             : course.id === "rust"
               ? "Rust exercises include source drafts and local Cargo tests. Rust is not compiled inside the Lab browser."
               : course.id === "c"
-                ? "C17 mastery labs require native GCC or Clang and Make. The browser saves drafts, not a compiled result."
+                ? "C17 now begins with 81 function coding drills plus 12 mastery labs. Edit actual starters and run native GCC/Clang checks locally; no browser C execution is claimed."
                 : course.id === "dsa"
-                  ? "Solve the Python DSA challenges using six published browser test cases per problem. The browser does not run hidden tests or enforce time complexity."
+                  ? "DSA begins with 48 Python challenges you can code and test immediately, just like the Python course. Each has six published cases and optional deep theory after your attempt."
                   : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
           {" "}Progress is saved on this device. Native C, Git, Rust and Linux lab completion is self-reported; DSA problem checks run in the browser.
         </p>
