@@ -8,7 +8,10 @@ import json
 import re
 from pathlib import Path
 
-from build_git_rust import LEVELS, first_code, heading, html_guide
+try:
+    from .build_git_rust import LEVELS, first_code, heading, html_guide
+except ImportError:  # python build/prepare.py runs with build/ on sys.path
+    from build_git_rust import LEVELS, first_code, heading, html_guide
 
 DSA_REPO = "https://github.com/SwarmLadder/Data-Structures-Algorithms"
 C_REPO = "https://github.com/SwarmLadder/C"
@@ -129,6 +132,14 @@ def build_dsa(course: Path, out: Path) -> dict:
     return output(out, "dsa", entries, catalog)
 
 
+
+def first_c_code(text: str) -> str:
+    """Extract C examples fenced with three tildes or three backticks."""
+    fence = "(?:" + re.escape(chr(96) * 3) + "|~~~)"
+    match = re.search(r"(?ms)^" + fence + r"c\s*\n(.*?)\n" + fence, text)
+    return match.group(1).strip() if match else ""
+
+
 def build_c(course: Path, out: Path) -> dict:
     course = course.resolve()
     entries = {}
@@ -173,7 +184,7 @@ def build_c(course: Path, out: Path) -> dict:
             md = read(path)
             workshops.append(add(level, "workshops", path.stem,
                                  heading(md), source, md,
-                                 code=first_code(md, "c")))
+                                 code=first_c_code(md)))
         if len(workshops) != 6:
             raise ValueError(f"Expected six C workshops for {level}")
 
@@ -182,7 +193,7 @@ def build_c(course: Path, out: Path) -> dict:
             source = path.relative_to(course).as_posix()
             md = read(path)
             deep.append(add(level, "lessons", path.stem, heading(md), source,
-                            md, code=first_code(md, "c")))
+                            md, code=first_c_code(md)))
         if len(deep) != 6:
             raise ValueError(f"Expected six C deep dives for {level}")
 
