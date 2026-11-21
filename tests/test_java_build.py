@@ -39,3 +39,7 @@ def test_java_catalog_and_local_verification(tmp_path):
         assert page["practiceFile"] == "src/starter/Tasks.java"
         assert page["source"].startswith("public class Tasks")
         assert page["challenge"]["prompt"]
+        assert page["exampleInput"]
+        assert page["exampleOutput"]
+        assert page["shortExplanation"]
+        assert page["complexity"]
