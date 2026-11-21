@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Play, RotateCcw, Square } from "lucide-react";
-import Prism from "prismjs";
-import "prismjs/components/prism-python";
+import Prism from "../../lib/prism";
 import { CodeEditor } from "../../components/CodeEditor";
 import { lessonPath, type Catalog } from "../../lib/course";
 import { route } from "../../lib/journey";
