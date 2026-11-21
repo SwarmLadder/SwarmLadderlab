@@ -282,7 +282,7 @@ function Workspace({ lesson, catalog, courseId }: {
                   </span>
                 </div>
                 <CodeEditor
-                  language={courseId === "linux" ? "git" : courseId}
+                  language={courseId}
                   value={draft}
                   onChange={updateDraft}
                   onRun={openInPlayground}
