@@ -7,7 +7,7 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await expect(page.getByRole("heading", { name: "Data Structures & Algorithms", exact: true })).toBeVisible();
   await expect(page.getByText(/48 checks/).first()).toBeVisible();
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
-  await expect(page.getByRole("heading", { name: /Hashing/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Hash maps/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark activity complete" })).toBeVisible();
   await page.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
