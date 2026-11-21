@@ -59,7 +59,7 @@ def build_java(course: Path, out: Path) -> dict:
             ),
             "source": starter, "practiceFile": "src/starter/Tasks.java",
             "checkCommand": "make check TASK=" + task,
-            "practiceCommand": "make reference TASK=" + task,
+            "practiceCommand": "",
             "hint": "Use the method's TODO comment. " + complexity,
             "mode": "local-java", "graded": ["self-reported"],
             "challenge": {"function": method, "prompt": prompt,
