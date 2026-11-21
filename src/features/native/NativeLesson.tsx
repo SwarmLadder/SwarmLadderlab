@@ -20,7 +20,7 @@ type NativePage = {
   checkCommand: string;
   practiceCommand: string;
   graded: string[];
-  mode: "local-git" | "local-rust";
+  mode: "local-git" | "local-rust" | "local-linux";
   hint: string;
 };
 
@@ -29,6 +29,11 @@ const UPSTREAM: Record<string, { url: string; name: string; install: string }> =
     url: "https://github.com/SwarmLadder/git-github-course",
     name: "Git & GitHub",
     install: "git clone https://github.com/SwarmLadder/git-github-course.git",
+  },
+  linux: {
+    url: "https://github.com/SwarmLadder/linux-course",
+    name: "Linux & Bash",
+    install: "git clone https://github.com/SwarmLadder/linux-course.git",
   },
   rust: {
     url: "https://github.com/SwarmLadder/RUST",
@@ -40,7 +45,7 @@ const UPSTREAM: Record<string, { url: string; name: string; install: string }> =
 export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [lesson, setLesson] = useState<NativePage | null>(null);
   const [error, setError] = useState("");
-  const courseId = id.startsWith("git/") ? "git" : "rust";
+  const courseId = id.startsWith("git/") ? "git" : id.startsWith("linux/") ? "linux" : "rust";
   useEffect(() => {
     const controller = new AbortController();
     setLesson(null);
@@ -76,7 +81,7 @@ export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) 
 function Workspace({ lesson, catalog, courseId }: {
   lesson: NativePage;
   catalog: Catalog;
-  courseId: "git" | "rust";
+  courseId: "git" | "rust" | "linux";
 }) {
   const upstream = UPSTREAM[courseId];
   const isGraded = lesson.graded.includes("self-reported");
@@ -110,7 +115,7 @@ function Workspace({ lesson, catalog, courseId }: {
   }, [lesson.id]);
 
   function openInPlayground() {
-    save("playground", courseId === "git" ? "scratch.sh" : "scratch.rs", draft);
+    save("playground", courseId === "rust" ? "scratch.rs" : courseId === "linux" ? "linux.sh" : "scratch.sh", draft);
     window.location.assign("/playground?language=" + courseId);
   }
 
@@ -135,7 +140,7 @@ function Workspace({ lesson, catalog, courseId }: {
     else finish(lesson.id);
     setComplete(true);
     setMessage(isGraded
-      ? "Saved as verified locally — your confirmation, not a browser-run check."
+      ? (lesson.checkCommand ? "Saved as verified locally — your confirmation, not a browser-run check." : "Practice marked complete (self-reported).")
       : "Reading completed. Progress saved on this device.");
   }
 
@@ -150,7 +155,7 @@ function Workspace({ lesson, catalog, courseId }: {
           </nav>
           <span className="runtime" role="status">
             <span className="runtime-dot" aria-hidden="true" />
-            Local {courseId === "git" ? "Git" : "Cargo"} verification
+            {courseId === "linux" ? "Bash / local verification" : `Local ${courseId === "git" ? "Git" : "Cargo"} verification`}
           </span>
         </div>
       </div>
@@ -158,11 +163,11 @@ function Workspace({ lesson, catalog, courseId }: {
       <header className="lesson-head">
         <div className="shell lesson-head-grid">
           <div>
-            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : "Rust engineering"}</p>
+            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : courseId === "linux" ? "Linux operations" : "Rust engineering"}</p>
             <h1 className="lesson-title">{lesson.title}</h1>
             <p className="lesson-meta">
               <span className={"meta-chip" + (complete ? " complete" : "")}>
-                {complete ? "✓ Completed" : isGraded ? "Local verification required" : "Guided activity"}
+                {complete ? "✓ Completed" : isGraded ? (lesson.checkCommand ? "Local verification required" : "Independent practice") : "Guided activity"}
               </span>
               <span className="meta-links">
                 Source: <a href={upstream.url + "/blob/main/" + lesson.sourcePath}
@@ -187,7 +192,9 @@ function Workspace({ lesson, catalog, courseId }: {
           <p className="native-caution">
             {courseId === "git"
               ? "Actual Git commands and grading run in a disposable local repository, not on this website."
-              : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."}
+              : courseId === "linux"
+                ? "The browser offers a limited command simulator, not Linux itself. Run full Bash scripts and the graded lab checker on your own Linux/WSL2 machine."
+                : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."
             {" "}Progress is stored in this browser.
           </p>
         </aside>
@@ -212,7 +219,9 @@ function Workspace({ lesson, catalog, courseId }: {
                 Clone the source repository once, then follow this activity in your own checkout.
                 {courseId === "git"
                   ? " The source Git checker creates isolated practice repositories."
-                  : " The source Cargo tests compile real Rust and check your implementation."}
+                  : courseId === "linux"
+                    ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
+                    : " The source Cargo tests compile real Rust and check your implementation."
               </p>
               <div className="native-command">
                 <code>{upstream.install}</code>
@@ -246,7 +255,7 @@ function Workspace({ lesson, catalog, courseId }: {
                 </div>
               )}
               <p className="native-caution">
-                The Lab does not execute Git commands or compile Rust.
+                The Lab does not run a native Git process or unrestricted Bash, and does not compile Rust.
                 A completion recorded here is self-reported; it does not
                 prove your local tests passed.
               </p>
@@ -255,7 +264,7 @@ function Workspace({ lesson, catalog, courseId }: {
             {lesson.source && (
               <div className="code-cell kind-code native-workspace">
                 <div className="cell-tools">
-                  <span className="cell-label">{courseId === "git" ? "Editable command notes" : "Rust code draft"}</span>
+                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : "Editable command notes"}</span>
                   <span className="cell-buttons">
                     <button type="button" className="button quiet small"
                       onClick={() => updateDraft(lesson.source)}>
@@ -271,15 +280,15 @@ function Workspace({ lesson, catalog, courseId }: {
                   </span>
                 </div>
                 <CodeEditor
-                  language={courseId}
+                  language={courseId === "linux" ? "git" : courseId}
                   value={draft}
                   onChange={updateDraft}
                   onRun={openInPlayground}
-                  label={courseId === "git" ? "Git command notes" : "Rust code draft"}
+                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : "Git command notes"}
                 />
                 <p className="native-caution">
                   Highlighted editing, completion and Shift+Enter to open the Playground are available.
-                  The Playground supports a Git command simulator or Rust source compilation;
+                  The Playground supports safe Git/Linux teaching simulators or Rust compilation;
                   project-specific checks still run in the original local course.
                 </p>
               </div>
@@ -290,13 +299,13 @@ function Workspace({ lesson, catalog, courseId }: {
                 <label className="native-attest">
                   <input type="checkbox" checked={attested}
                     onChange={(event) => setAttested(event.target.checked)} />
-                  I ran the verification command locally and saw a passing result.
+                  {lesson.checkCommand ? "I ran the verification command locally and saw a passing result." : "I completed and checked this practice task locally."}
                 </label>
               )}
               <button type="button" className="button primary" disabled={complete || (isGraded && !attested)}
                 onClick={completeActivity}>
                 {complete ? <><Check size={17} /> Completed</>
-                  : isGraded ? <><Check size={17} /> Mark verified locally</>
+                  : isGraded ? <><Check size={17} /> {lesson.checkCommand ? "Mark verified locally" : "Mark practice complete"}</>
                   : <>Mark activity complete <Check size={17} /></>}
               </button>
               {next && <Link className="button quiet" href={lessonPath(next.item.id)}>
