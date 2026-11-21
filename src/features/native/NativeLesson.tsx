@@ -21,13 +21,22 @@ type NativePage = {
   checkCommand: string;
   practiceCommand: string;
   graded: string[];
-  mode: "local-git" | "local-rust" | "local-linux" | "local-c";
+  mode: "local-git" | "local-rust" | "local-linux" | "local-c" | "local-java";
   hint: string;
   practiceFile?: string;
+  exampleInput?: string;
+  exampleOutput?: string;
+  shortExplanation?: string;
+  complexity?: string;
   challenge?: { function: string; prompt: string; practiceFile: string; testSnippet: string } | null;
 };
 
 const UPSTREAM: Record<string, { url: string; name: string; install: string }> = {
+  java: {
+    url: "https://github.com/SwarmLadder/Java",
+    name: "Java 17",
+    install: "git clone https://github.com/SwarmLadder/Java.git",
+  },
   c: {
     url: "https://github.com/SwarmLadder/C",
     name: "C17",
@@ -53,7 +62,7 @@ const UPSTREAM: Record<string, { url: string; name: string; install: string }> =
 export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [lesson, setLesson] = useState<NativePage | null>(null);
   const [error, setError] = useState("");
-  const courseId = id.startsWith("c/") ? "c" : id.startsWith("git/") ? "git" : id.startsWith("linux/") ? "linux" : "rust";
+  const courseId = id.startsWith("java/") ? "java" : id.startsWith("c/") ? "c" : id.startsWith("git/") ? "git" : id.startsWith("linux/") ? "linux" : "rust";
   useEffect(() => {
     const controller = new AbortController();
     setLesson(null);
@@ -89,14 +98,14 @@ export function NativeLesson({ id, catalog }: { id: string; catalog: Catalog }) 
 function Workspace({ lesson, catalog, courseId }: {
   lesson: NativePage;
   catalog: Catalog;
-  courseId: "git" | "rust" | "linux" | "c";
+  courseId: "git" | "rust" | "linux" | "c" | "java";
 }) {
   const upstream = UPSTREAM[courseId];
   const isGraded = lesson.graded.includes("self-reported");
   // All four workshop exercises share one physical starter file. Preserve
   // edits as learners progress from one function to the next.
-  const draftKey = courseId === "c" && lesson.practiceFile ? "c/source/" + lesson.practiceFile : lesson.id;
-  const isCPractice = courseId === "c" && lesson.graded.includes("self-reported");
+  const draftKey = (courseId === "c" || courseId === "java") && lesson.practiceFile ? courseId + "/source/" + lesson.practiceFile : lesson.id;
+  const isCPractice = (courseId === "c" || courseId === "java") && lesson.graded.includes("self-reported");
   const [draft, setDraft] = useState(() => read().code?.[draftKey]?.draft ?? lesson.source);
   const [complete, setComplete] = useState(() =>
     isGraded ? doneIn(lesson.id).includes("self-reported") : isFinished(lesson.id));
@@ -127,7 +136,7 @@ function Workspace({ lesson, catalog, courseId }: {
   }, [lesson.id]);
 
   function openInPlayground() {
-    if (courseId === "c") return; // No C compiler runs in the browser.
+    if (courseId === "c" || courseId === "java") return; // No C or Java compiler runs in the browser.
     save("playground", courseId === "rust" ? "scratch.rs" : courseId === "linux" ? "linux.sh" : "scratch.sh", draft);
     window.location.assign("/playground?language=" + courseId);
   }
@@ -180,6 +189,8 @@ function Workspace({ lesson, catalog, courseId }: {
                     ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
                     : courseId === "c"
                     ? " Compile with a C17-compatible compiler and run the source Makefile tests locally; never mark a check as verified without a passing result."
+                    : courseId === "java"
+                    ? " Compile with JDK 17+ and run the source Makefile checks locally; compare expected and actual output."
                     : " The source Cargo tests compile real Rust and check your implementation."}
               </p>
               <div className="native-command">
@@ -218,6 +229,8 @@ function Workspace({ lesson, catalog, courseId }: {
                   ? "The Lab provides a limited command simulator, not a real Bash or Linux environment."
                   : courseId === "c"
                     ? "The Lab cannot execute C or evaluate native compiler results."
+                    : courseId === "java"
+                    ? "The Lab has no browser JVM; run Java tests with a local JDK."
                     : "The Lab does not execute Git commands or compile Rust."}
                 A completion recorded here is self-reported; it does not
                 prove your local tests passed.
@@ -229,7 +242,7 @@ function Workspace({ lesson, catalog, courseId }: {
             {lesson.source && (
               <div className="code-cell kind-code native-workspace">
                 <div className="cell-tools">
-                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : courseId === "c" ? "C17 code draft" : "Editable command notes"}</span>
+                  <span className="cell-label">{courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Editable Bash practice" : courseId === "c" ? "C17 code draft" : courseId === "java" ? "Java 17 code draft" : "Editable command notes"}</span>
                   <span className="cell-buttons">
                     <button type="button" className="button quiet small"
                       onClick={() => updateDraft(lesson.source)}>
@@ -239,7 +252,7 @@ function Workspace({ lesson, catalog, courseId }: {
                       onClick={() => copy(draft, "Draft")}>
                       <Clipboard size={14} /> Copy draft
                     </button>
-                    {courseId !== "c" && <button type="button" className="button quiet small" onClick={openInPlayground}>
+                    {courseId !== "c" && courseId !== "java" && <button type="button" className="button quiet small" onClick={openInPlayground}>
                       <Play size={14} /> Try in Playground
                     </button>}
                   </span>
@@ -248,12 +261,12 @@ function Workspace({ lesson, catalog, courseId }: {
                   language={courseId}
                   value={draft}
                   onChange={updateDraft}
-                  onRun={courseId === "c" ? () => { void copy(draft, "C source"); } : openInPlayground}
-                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : courseId === "c" ? "C17 code draft" : "Git command notes"}
+                  onRun={courseId === "c" || courseId === "java" ? () => { void copy(draft, "Source code"); } : openInPlayground}
+                  label={courseId === "rust" ? "Rust code draft" : courseId === "linux" ? "Bash practice draft" : courseId === "c" ? "C17 code draft" : courseId === "java" ? "Java 17 code draft" : "Git command notes"}
                 />
                 <p className="native-caution">
-                  {courseId === "c"
-                    ? "Draft saved for this starter file. Copy it into the named file in your C repository, run the local Make checker, then confirm a real PASS. Shift+Enter copies your code; nothing compiles in this browser."
+                  {courseId === "c" || courseId === "java"
+                    ? "Draft saved for this starter file. Copy it into the source repository, run the local Make checker, then confirm a real PASS. Shift+Enter copies code; nothing compiles in this browser."
                     : "Highlighted editing, completion and Shift+Enter to open the Playground are available. The Playground supports Git/Linux teaching simulators or Rust compilation; project-specific checks still run in the original local course."}
                 </p>
               </div>
@@ -292,7 +305,7 @@ function Workspace({ lesson, catalog, courseId }: {
           </nav>
           <span className="runtime" role="status">
             <span className="runtime-dot" aria-hidden="true" />
-            {courseId === "linux" ? "Bash / local verification" : courseId === "c" ? "C17 · local compiler verification" : `Local ${courseId === "git" ? "Git" : "Cargo"} verification`}
+            {courseId === "linux" ? "Bash / local verification"  : courseId === "c" ? "C17 · local compiler verification" : courseId === "java" ? "Java 17 · local JDK verification" : `Local ${courseId === "git" ? "Git" : "Cargo"} verification`}
           </span>
         </div>
       </div>
@@ -300,7 +313,7 @@ function Workspace({ lesson, catalog, courseId }: {
       <header className="lesson-head">
         <div className="shell lesson-head-grid">
           <div>
-            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : courseId === "linux" ? "Linux operations" : courseId === "c" ? "Systems programming" : "Rust engineering"}</p>
+            <p className="eyebrow">{level} · {courseId === "git" ? "Version control" : courseId === "linux" ? "Linux operations"  : courseId === "c" ? "Systems programming" : courseId === "java" ? "Java programming & DSA" : "Rust engineering"}</p>
             <h1 className="lesson-title">{lesson.title}</h1>
             <p className="lesson-meta">
               <span className={"meta-chip" + (complete ? " complete" : "")}>
@@ -333,6 +346,8 @@ function Workspace({ lesson, catalog, courseId }: {
                 ? "The browser offers a limited command simulator, not Linux itself. Run full Bash scripts and the graded lab checker on your own Linux/WSL2 machine."
                 : courseId === "c"
                 ? "The Lab does not compile or execute C. Use a local GCC or Clang C17 compiler and Make to verify mastery labs."
+                : courseId === "java"
+                ? "Java editing is available here; compile and verify with JDK 17+ and Make on your machine. The browser does not execute Java."
                 : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."}
             {" "}Progress is stored in this browser.
           </p>
@@ -349,9 +364,15 @@ function Workspace({ lesson, catalog, courseId }: {
               <>
                 <div className="native-verify c-practice-intro">
                   <p className="eyebrow">Your next task · Start coding now</p>
-                  <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : "Implement and verify the C starter"}</h3>
+                  <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : "Implement and verify the starter"}</h3>
                   <p className="practice-task-prompt">{lesson.challenge?.prompt ??
                     "Implement the function in the starter file. Preserve the required error behavior and test boundary cases."}</p>
+                  {courseId === "java" && lesson.exampleInput && <div className="practice-examples">
+                    <p><strong>Example input:</strong> <code>{lesson.exampleInput}</code></p>
+                    <p><strong>Expected output:</strong> <code>{lesson.exampleOutput}</code></p>
+                    <p><strong>Quick explanation:</strong> {lesson.shortExplanation}</p>
+                    <p><strong>Complexity:</strong> {lesson.complexity}</p>
+                  </div>}
                   {lesson.practiceFile && <p><strong>File to edit:</strong>{" "}
                     <code>{lesson.practiceFile}</code>. Your edits carry over to other functions in the same starter file.</p>}
                   {lesson.challenge?.testSnippet && <details className="sql-hint">

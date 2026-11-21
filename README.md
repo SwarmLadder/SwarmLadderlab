@@ -1,6 +1,6 @@
 # SwarmLadder Lab
 
-**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router (via vinext), strict TypeScript and Cloudflare Workers. The seven open courses import their content from [Python](https://github.com/SwarmLadder/python-notebook), [SQL](https://github.com/SwarmLadder/SQL), [Git & GitHub](https://github.com/SwarmLadder/git-github-course), [Rust](https://github.com/SwarmLadder/RUST) [Linux & Bash](https://github.com/SwarmLadder/linux-course), [DSA](https://github.com/SwarmLadder/Data-Structures-Algorithms), and [C](https://github.com/SwarmLadder/C).
+**Learn Together. Rise Together.** SwarmLadder's interactive developer education platform uses Next.js App Router (via vinext), strict TypeScript and Cloudflare Workers. The eight open courses import their content from [Python](https://github.com/SwarmLadder/python-notebook), [SQL](https://github.com/SwarmLadder/SQL), [Git & GitHub](https://github.com/SwarmLadder/git-github-course), [Rust](https://github.com/SwarmLadder/RUST) [Linux & Bash](https://github.com/SwarmLadder/linux-course), [DSA](https://github.com/SwarmLadder/Data-Structures-Algorithms), [C](https://github.com/SwarmLadder/C), and [Java](https://github.com/SwarmLadder/Java).
 
 ## Development
 
@@ -14,6 +14,7 @@ git clone https://github.com/SwarmLadder/RUST ../RUST
 git clone https://github.com/SwarmLadder/linux-course ../linux-course
 git clone https://github.com/SwarmLadder/Data-Structures-Algorithms ../Data-Structures-Algorithms
 git clone https://github.com/SwarmLadder/C ../C
+git clone https://github.com/SwarmLadder/Java ../Java
 python -m pip install markdown pytest
 npm ci
 npm run curriculum
@@ -22,7 +23,7 @@ npm run dev
 
 Every build (through `scripts/ensure-curriculum.mjs`) prepares all seven curricula when generated assets are missing. It uses `COURSE`, `SQL_COURSE`, `GIT_COURSE` `RUST_COURSE` and `LINUX_COURSE`, `DSA_COURSE` and `C_COURSE` or their sibling checkout defaults, cloning missing sources into `.generated/`. This lets hosted builders such as Cloudflare Workers Builds build from this repository alone.
 
-Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/python --sql-course /path/to/SQL --git-course /path/to/git --rust-course /path/to/rust --linux-course /path/to/linux --dsa-course /path/to/dsa --c-course /path/to/C` for other curriculum checkouts. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
+Open the URL printed by Vite. Use `python build/prepare.py --course /path/to/python --sql-course /path/to/SQL --git-course /path/to/git --rust-course /path/to/rust --linux-course /path/to/linux --dsa-course /path/to/dsa --c-course /path/to/C --java-course /path/to/Java` for other curriculum checkouts. Regenerate assets after updating course content. Lesson, workbook, quiz, and project counts come from the course checkout. Courses that aren't open yet appear on the shelf as "In preparation".
 
 ## Course library
 
@@ -58,6 +59,10 @@ Linux & Bash is open at `/learn/linux` with **186 activities**: 36 guided lesson
 **Practice first, as in the Python notebooks.** DSA starts with an editable Python problem rather than a theory chapter: [try B01](/lesson/dsa/basics/problems/B01). Learners can run two examples immediately, then run all six published browser cases to earn completion. The full explanation is hidden below the editor until opened. The complete DSA course still contains 94 activities: 48 Python coding problems, 36 deep lessons, three projects, three mock interviews and four mastery resources. Tests are public—not hidden or complexity checks. The offline source is [DSA](https://github.com/SwarmLadder/Data-Structures-Algorithms).
 
 C17 now starts with **81 individual coding drills** from the existing real C source tests, plus **12 advanced mastery labs**—**93 practice checks** in **182 total activities**. [Try the first C drill](/lesson/c/basics/drills/whole_minutes). Each task shows its real API contract, editable upstream starter, published C test and an exact Make command. Edits persist across four tasks in a shared starter file. Theory is optional and collapsed below practice. **C cannot compile or be graded in the browser**: learners run GCC/Clang + Make locally and explicitly confirm a passing result. See the [C repository](https://github.com/SwarmLadder/C) and [integration guide](docs/DSA_C_INTEGRATION.md).
+
+### Java 17 practice course
+
+Java has eight practical algorithms at `/learn/java`, with editable starter drafts, concise challenges and exact local Make commands. Native Java runs with JDK 17+ on the learner's computer, not in the browser; completion is self-reported only after a real PASS. See [Java integration](docs/JAVA_INTEGRATION.md).
 
 ### Five-language Playground and highlighted native lessons
 

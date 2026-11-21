@@ -43,7 +43,7 @@ export function route(catalog: Catalog): Route {
   const last = read().last;
   // Python already teaches through runnable checked cells inside lessons.
   // DSA and C begin with genuine checks; reading is available after practice.
-  const priority = /\/(?:Data-Structures-Algorithms|C)$/.test(catalog.course ?? "") ? PRACTICE_FIRST : ORDER;
+  const priority = /\/(?:Data-Structures-Algorithms|C|Java)$/.test(catalog.course ?? "") ? PRACTICE_FIRST : ORDER;
   const all: Stop[] = [];
   const levels = catalog.levels.map((level, chapter) => {
     const stops: Stop[] = [];

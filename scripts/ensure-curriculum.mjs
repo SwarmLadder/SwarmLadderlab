@@ -9,7 +9,8 @@ if (existsSync("public/data/catalog.json") && existsSync("public/data/sql/catalo
     && existsSync("public/data/rust/catalog.json")
     && existsSync("public/data/linux/catalog.json")
     && existsSync("public/data/dsa/catalog.json")
-    && existsSync("public/data/c/catalog.json")) process.exit(0);
+    && existsSync("public/data/c/catalog.json")
+    && existsSync("public/data/java/catalog.json")) process.exit(0);
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 const python = ["python3", "python"].find((p) => {
@@ -48,6 +49,8 @@ const dsa = source("DSA_COURSE", "../Data-Structures-Algorithms", ".generated/Da
   "https://github.com/SwarmLadder/Data-Structures-Algorithms", "DSA_COURSE_REPO");
 const c = source("C_COURSE", "../C", ".generated/C",
   "https://github.com/SwarmLadder/C", "C_COURSE_REPO");
+const java = source("JAVA_COURSE", "../Java", ".generated/Java",
+  "https://github.com/SwarmLadder/Java", "JAVA_COURSE_REPO");
 
 try {
   execFileSync(python, ["-c", "import markdown"], { stdio: "ignore" });
@@ -62,4 +65,4 @@ try {
 console.log("Preparing Python, SQL, Git, Rust, Linux, DSA and C curricula");
 run(python, ["build/prepare.py", "--course", course, "--sql-course", sql,
   "--git-course", git, "--rust-course", rust, "--linux-course", linux,
-  "--dsa-course", dsa, "--c-course", c]);
+  "--dsa-course", dsa, "--c-course", c, "--java-course", java]);
