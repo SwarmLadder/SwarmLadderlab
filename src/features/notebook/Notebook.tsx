@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, ListOrdered, Play, RotateCcw, Rows3, Square } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Check, PanelLeft, Play, RotateCcw, Square } from "lucide-react";
 import { courseRepo, lessonPath, notebookData, type Catalog, type CodeCell, type Notebook } from "../../lib/course";
 import { coursePath } from "../../lib/courses";
 import { topic, lessonNumber, route } from "../../lib/journey";
-import { doneIn, finish, graduatedKeys, mark, onProgress, reach, reachedIn, read, save, setLast } from "../progress/store";
+import { doneIn, finish, graduatedKeys, mark, onProgress, read, save, setLast } from "../progress/store";
 import { highlightPython } from "../../lib/pythonSyntax";
 import { Runner } from "../../workers/runner";
 import { LadderMark } from "../../components/Brand";
@@ -14,7 +14,6 @@ import { buildSteps, keysFor, quizFingerprint, type QuizData, type Step } from "
 import { t } from "../../i18n";
 
 type Output = { name: string; text: string };
-const VIEW_KEY = "swarmladderlab.view";
 
 export function Lesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [nb, setNb] = useState<Notebook>();
@@ -45,24 +44,36 @@ function useDone(id: string) {
   return done;
 }
 
+type View = "notebook" | "practice";
+type Outcome = "ok" | "no" | "ran";
+const TOC_KEY = "swarmladderlab.toc";
+// Short labels keep the practice strip on one line: "Ex 2", "7", "Quiz".
+const pillLabel = (s: Step) => (s.quiz ? t("lesson.quiz") : s.title.match(/^Exercise (\d+)/)?.[1] ? "Ex " + s.title.match(/^Exercise (\d+)/)![1] : s.title.match(/^(\d+)\./)?.[1] ?? s.title);
+const plain = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+
 function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const steps = useMemo(() => buildSteps(nb), [nb]);
   const done = useDone(nb.id);
+  const viewKey = "swarmladderlab.view." + nb.id;
+  const isWorkbook = nb.id.includes("/exercises/");
+  const [view, setView] = useState<View>(() => (localStorage.getItem(viewKey) as View | null) ?? (isWorkbook ? "practice" : "notebook"));
+  const [tocOpen, setTocOpen] = useState(() => localStorage.getItem(TOC_KEY) !== "closed");
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [status, setStatus] = useState(t("runtime.loading"));
   const [edits, setEdits] = useState<Record<string, string>>(() => read().code?.[nb.id] ?? {});
   const [outputs, setOutputs] = useState<Record<string, Output[]>>({});
   const [errors, setErrors] = useState<Record<string, RuntimeError>>({});
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [batch, setBatch] = useState(false);
-  const [reached, setReached] = useState(() => Math.min(reachedIn(nb.id), steps.length - 1));
-  const [showAll, setShowAll] = useState(() => localStorage.getItem(VIEW_KEY) === "all");
   const runner = useRef<Runner | null>(null);
   const running = useRef(false);
+  const runCount = useRef(0);
   const setupRan = useRef(false);
   const [setupDone, setSetupDone] = useState(false);
   const article = useRef<HTMLDivElement>(null);
-  const stepRefs = useRef<(HTMLElement | null)[]>([]);
-  const [focusStep, setFocusStep] = useState<number | null>(null);
+  const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     runner.current = new Runner((s) => setStatus(s === "Python ready" ? t("runtime.ready") : s));
@@ -80,30 +91,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       if (!block.querySelector(".token")) block.innerHTML = highlightPython(block.textContent ?? "");
     }
   });
-
-  useEffect(() => {
-    if (focusStep === null) return;
-    const el = stepRefs.current[focusStep];
-    el?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-    el?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
-    setFocusStep(null);
-  }, [focusStep]);
-
-  const visible = showAll ? steps.length - 1 : reached;
-  const lastStep = steps.length - 1;
-  const atEnd = visible >= lastStep;
-  useEffect(() => {
-    if (atEnd) finish(nb.id);
-  }, [atEnd, nb.id]);
-
-  function goTo(i: number) {
-    const target = Math.min(i, lastStep);
-    if (target > reached) {
-      reach(nb.id, target);
-      setReached(target);
-    }
-    setFocusStep(target);
-  }
 
   function change(c: CodeCell, v?: string) {
     save(nb.id, c.id, v);
@@ -142,6 +129,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
         if (!quiet) {
           setOutputs((o) => ({ ...o, [c.id]: [] }));
           setErrors((e) => ({ ...e, [c.id]: null }));
+          setCounts((n) => ({ ...n, [c.id]: ++runCount.current }));
         }
         let text = "";
         const code = read().code?.[nb.id]?.[c.id] ?? c.source;
@@ -161,6 +149,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
         }
         const keys = graduatedKeys(text);
         if (keys.length) mark(nb.id, keys);
+        if (!quiet) setOutcomes((o) => ({ ...o, [c.id]: result.error || /❌/.test(text) ? "no" : keys.length ? "ok" : "ran" }));
         if (result.stopped) break;
       }
       requested.current = null;
@@ -181,8 +170,12 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     chain.current = Promise.resolve();
     const stoppedCell = requested.current ?? busy;
     requested.current = null;
-    if (clear) setOutputs({});
-    else if (stoppedCell) append(stoppedCell, "stderr", t("lesson.stopped"));
+    if (clear) {
+      setOutputs({});
+      setOutcomes({});
+      setCounts({});
+      runCount.current = 0;
+    } else if (stoppedCell) append(stoppedCell, "stderr", t("lesson.stopped"));
     running.current = false;
     setBusy(null);
     setBatch(false);
@@ -196,180 +189,235 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const nextStop = here >= 0 ? r.all[here + 1] ?? null : null;
   const { number, name: fullName } = lessonNumber(nb.title);
   const name = topic(fullName);
+  const graded = nb.graded.length;
   const solvedHere = nb.graded.filter((k) => done.includes(k)).length;
-  const stepDone = (s: Step, i: number) => (s.keys.length ? s.keys.every((k) => done.includes(k)) : i < reached);
+  const complete = graded > 0 && solvedHere === graded;
 
+  // Practice items: every step that holds a check or a quiz.
+  const isPractice = (s: Step) => s.keys.length > 0 || Boolean(s.quiz);
+  const stepStatus = (s: Step): "ok" | "no" | "todo" =>
+    s.keys.length && s.keys.every((k) => done.includes(k))
+      ? "ok"
+      : s.cells.some((c) => c.type === "code" && outcomes[c.id] === "no")
+        ? "no"
+        : "todo";
+  const practice = steps.map((s, i) => ({ s, i })).filter(({ s }) => isPractice(s));
+  const learn = steps.map((s, i) => ({ s, i })).filter(({ s }) => !isPractice(s));
+  const nextUp = practice.find(({ s }) => stepStatus(s) !== "ok");
+
+  // Ungraded pages count as finished once the reader reaches the end.
+  useEffect(() => {
+    if (complete) finish(nb.id);
+  }, [complete, nb.id]);
+  useEffect(() => {
+    if (graded || !bottom.current || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver((e) => e[0]?.isIntersecting && finish(nb.id));
+    io.observe(bottom.current);
+    return () => io.disconnect();
+  }, [graded, nb.id]);
+
+  function switchView(v: View) {
+    setView(v);
+    localStorage.setItem(viewKey, v);
+  }
+  function jump(i: number) {
+    const show = view === "practice" && !isPractice(steps[i]);
+    if (show) setReviewOpen(true);
+    requestAnimationFrame(() =>
+      document.getElementById(`step-${i}`)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }),
+    );
+  }
+  function toggleToc() {
+    localStorage.setItem(TOC_KEY, tocOpen ? "closed" : "open");
+    setTocOpen(!tocOpen);
+  }
+
+  function renderStep(s: Step, i: number) {
+    const practiceStep = isPractice(s);
+    // An exercise's prompt moves into the cell header; the rest of its text stays as text.
+    const promptCell = practiceStep && !s.quiz ? s.cells.find((c) => c.type === "md") : undefined;
+    const prompt = promptCell && promptCell.type === "md" ? plain(promptCell.html).replace(/^Exercise \d+\.\s*/, "") : "";
+    return (
+      <section key={i} id={`step-${i}`} className={"nb-step" + (practiceStep ? " is-practice" : "")} aria-labelledby={`step-h-${i}`}>
+        {s.part && <p className="nb-part">{s.part}</p>}
+        <h2 id={`step-h-${i}`} className={practiceStep && !s.quiz ? "sr-only" : "nb-heading"}>{s.title}</h2>
+        {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} />}
+        {s.cells.map((c, ci) => {
+          if (c === promptCell) return null;
+          if (c.type === "md") return <div key={ci} className="nb-text prose" dangerouslySetInnerHTML={{ __html: c.html }} />;
+          if (c.kind === "quiz" && s.quiz) return null;
+          if (c.kind === "setup")
+            return (
+              <p key={c.id} className={"setup-cell" + (setupDone ? " ready" : "")}>
+                <span className="setup-dot" aria-hidden="true" />
+                {setupDone ? t("lesson.setupReady") : t("lesson.setupLoading")}
+              </p>
+            );
+          const before = s.cells.slice(0, ci).filter((x): x is CodeCell => x.type === "code" && x.kind === "code");
+          return (
+            <CodeSpecimen
+              key={c.id}
+              cell={c}
+              prompt={c.kind === "exercise" || c.kind === "check" ? prompt : ""}
+              value={edits[c.id] ?? c.source}
+              busy={busy}
+              output={outputs[c.id]}
+              count={counts[c.id]}
+              solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}
+              runner={runner}
+              error={errors[c.id] ?? null}
+              onChange={(v) => change(c, v)}
+              onRun={() => execute(c.kind === "check" ? [...before, c] : [c])}
+            />
+          );
+        })}
+      </section>
+    );
+  }
+
+  const ready = status === t("runtime.ready");
   return (
-    <div className="lesson">
-      <div className="lesson-bar" role="region" aria-label={t("lesson.steps")}>
-        <div className="lesson-bar-row">
-          <nav className="crumbs" aria-label="Breadcrumb">
-            <Link href={coursePath("python")}>Python</Link>
-            <span aria-hidden="true">/</span>
-            <span>{stop?.level.title}</span>
-          </nav>
-          <span className="lesson-bar-progress">{t("lesson.of", { n: Math.min(visible, lastStep) + 1, total: steps.length })}</span>
-          <span className={"runtime " + (status === t("runtime.ready") ? "ready" : "")} role="status">
-            <span className="runtime-dot" aria-hidden="true" />
-            {status}
+    <div className={"nbook" + (tocOpen ? " toc-open" : "")}>
+      <div className="nb-bar" role="toolbar" aria-label={t("lesson.tools")}>
+        <button className="nb-btn icon" onClick={toggleToc} aria-pressed={tocOpen} aria-label={t("lesson.contents")} title={t("lesson.contents")}>
+          <PanelLeft size={16} />
+        </button>
+        <nav className="crumbs" aria-label="Breadcrumb">
+          <Link href={coursePath("python")}>Python</Link>
+          <span aria-hidden="true">/</span>
+          <span>{stop?.level.title}</span>
+        </nav>
+        <div className="seg" role="group" aria-label={t("lesson.view")}>
+          <button aria-pressed={view === "notebook"} onClick={() => switchView("notebook")}>{t("lesson.notebook")}</button>
+          <button aria-pressed={view === "practice"} onClick={() => switchView("practice")}>{t("lesson.practice")}</button>
+        </div>
+        <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
+          <Play size={14} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
+        </button>
+        <button className="nb-btn" onClick={() => restart(false)} aria-label={t("lesson.stop")}>
+          <Square size={13} /> <span className="bl">{t("lesson.stop")}</span>
+        </button>
+        <button className="nb-btn" onClick={() => restart(true)} aria-label={t("lesson.restart")}>
+          <RotateCcw size={14} /> <span className="bl">{t("lesson.restart")}</span>
+        </button>
+        <span className={"runtime chip" + (ready ? " ready" : "")} role="status">
+          <span className="runtime-dot" aria-hidden="true" />
+          {status}
+        </span>
+        {graded > 0 && (
+          <span className="nb-score" aria-label={t("lesson.score", { n: solvedHere, total: graded })}>
+            <span className="nb-meter"><span style={{ width: `${(100 * solvedHere) / graded}%` }} /></span>
+            <b>{solvedHere}</b>/{graded}
           </span>
-          <div className="lesson-bar-actions">
-            <button className="button quiet small" aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")} disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)}>
-              <Play size={14} strokeWidth={1.8} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
-            </button>
-            <button className="button quiet small" aria-label={t("lesson.stop")} onClick={() => restart(false)}>
-              <Square size={13} strokeWidth={1.8} /> <span className="bl">{t("lesson.stop")}</span>
-            </button>
-            <button className="button quiet small" aria-label={t("lesson.restart")} onClick={() => restart(true)}>
-              <RotateCcw size={14} strokeWidth={1.8} /> <span className="bl">{t("lesson.restart")}</span>
-            </button>
-            <button
-              className="button quiet small"
-              aria-pressed={showAll}
-              aria-label={showAll ? t("lesson.stepByStep") : t("lesson.showAll")}
-              onClick={() => {
-                localStorage.setItem(VIEW_KEY, showAll ? "steps" : "all");
-                setShowAll(!showAll);
-              }}
-            >
-              {showAll ? <ListOrdered size={14} strokeWidth={1.8} /> : <Rows3 size={14} strokeWidth={1.8} />} <span className="bl">{showAll ? t("lesson.stepByStep") : t("lesson.showAll")}</span>
-            </button>
-          </div>
-        </div>
-        <div className="lesson-bar-track" aria-hidden="true">
-          <span style={{ width: `${(100 * (Math.min(visible, lastStep) + 1)) / steps.length}%` }} />
-        </div>
+        )}
       </div>
 
-      <header className="lesson-head">
-        <div className="shell lesson-head-grid">
-          <div>
-            <p className="eyebrow">
-              {stop?.level.title} {stop && stop.kind !== "lesson" ? "· " + t(stop.kind === "practice" ? "course.practice" : stop.kind === "build" ? "course.build" : "course.examples") : ""}
-            </p>
-            <h1 className="lesson-title">
-              {number && <span className="lesson-number">{number}</span>}
-              {name}
-            </h1>
-            <p className="lesson-meta">
-              <span className="meta-chip">{t("lesson.stepCount", { n: steps.length })}</span>
-              {nb.graded.length > 0 && <span className={"meta-chip" + (solvedHere === nb.graded.length ? " complete" : "")}>{solvedHere} / {t("course.checks", { n: nb.graded.length })}</span>}
-              <span className="meta-links">
-                {t("lesson.sources")}{" "}
-                <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a>
-                <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
-              </span>
-            </p>
-          </div>
-
-        </div>
-        {number && <span className="lesson-numeral" aria-hidden="true">{number}</span>}
-      </header>
-
-      <div className="lesson-layout shell">
-        <aside className="step-rail" aria-label={t("lesson.steps")}>
-          <p className="eyebrow">{t("lesson.steps")}</p>
-          <ol style={{ ["--fill" as string]: `${steps.length > 1 ? (100 * (showAll ? lastStep : Math.min(visible, lastStep))) / (steps.length - 1) : 0}%` }}>
-            {steps.map((s, i) => {
-              const state = stepDone(s, i) ? "done" : i === visible && !showAll ? "current" : i <= visible ? "open" : "ahead";
-              return (
-                <li key={i} className={state}>
-                  {s.part && <span className="step-rail-part">{s.part}</span>}
-                  <button onClick={() => goTo(i)} aria-current={i === visible && !showAll ? "step" : undefined}>
-                    <span className="step-rail-node" aria-hidden="true">{state === "done" ? <Check size={11} strokeWidth={2.6} /> : i + 1}</span>
-                    <span className="step-rail-title">{s.title}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+      <div className="nb-body">
+        <aside className="nb-toc" aria-label={t("lesson.contents")} hidden={!tocOpen}>
+          <p className="nb-toc-title">{t("lesson.contents")}</p>
+          {learn.length > 0 && <p className="nb-toc-group">{t("lesson.learn")}</p>}
+          {learn.map(({ s, i }) => (
+            <button key={i} onClick={() => jump(i)}>
+              <span className="toc-mark doc" aria-hidden="true" />
+              {s.title}
+            </button>
+          ))}
+          {practice.length > 0 && <p className="nb-toc-group">{t("lesson.practice")}</p>}
+          {practice.map(({ s, i }) => {
+            const st = stepStatus(s);
+            return (
+              <button key={i} onClick={() => jump(i)} className={nextUp?.i === i ? "next" : ""}>
+                <span className={"toc-mark " + st} aria-hidden="true">{st === "ok" ? <Check size={10} strokeWidth={3} /> : null}</span>
+                {s.title}
+                <span className="sr-only">{st === "ok" ? t("course.complete") : ""}</span>
+              </button>
+            );
+          })}
         </aside>
 
-        <div className="steps" ref={article}>
-          {steps.slice(0, visible + 1).map((s, i) => (
-            <section key={i} className={"step" + (stepDone(s, i) ? " done" : "")} ref={(el) => { stepRefs.current[i] = el; }} aria-labelledby={`step-${i}`}>
-              <header className="step-head">
-                {s.part && <p className="step-part">{s.part}</p>}
-                <p className="eyebrow">{t("lesson.step", { n: i + 1 })}</p>
-                <h2 id={`step-${i}`} tabIndex={-1}>{s.title}</h2>
-              </header>
-              {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} />}
-              {s.cells.map((c, ci) => {
-                if (c.type === "md") return <div key={ci} className="prose" dangerouslySetInnerHTML={{ __html: c.html }} />;
-                if (c.kind === "quiz" && s.quiz) return null;
-                if (c.kind === "setup")
-                  return (
-                    <p key={c.id} className={"setup-cell" + (setupDone ? " ready" : "")}>
-                      <span className="setup-dot" aria-hidden="true" />
-                      {setupDone ? t("lesson.setupReady") : t("lesson.setupLoading")}
-                    </p>
-                  );
-                const before = s.cells.slice(0, ci).filter((x): x is CodeCell => x.type === "code" && x.kind === "code");
-                return (
-                  <CodeSpecimen
-                    key={c.id}
-                    cell={c}
-                    value={edits[c.id] ?? c.source}
-                    busy={busy}
-                    output={outputs[c.id]}
-                    solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}
-                    runner={runner}
-                    error={errors[c.id] ?? null}
-                    onChange={(v) => change(c, v)}
-                    onRun={() => execute(c.kind === "check" ? [...before, c] : [c])}
-                  />
-                );
-              })}
-              {!showAll && i === visible && i < lastStep && (
-                <div className="step-continue">
-                  <button className="button primary" onClick={() => goTo(i + 1)}>
-                    {t("lesson.continueTo", { title: steps[i + 1].title })} <ArrowRight size={18} strokeWidth={1.8} />
+        <main className="nb-main" ref={article}>
+          <div className="nb-page">
+            <header className="nb-head">
+              <h1>
+                {number && <small>{number}</small>}
+                {name}
+              </h1>
+              <p className="nb-links">
+                <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a>
+                <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
+              </p>
+            </header>
+
+            {practice.length > 0 && (
+              <div className="practice-strip">
+                <span className="practice-label">{t("lesson.practice")}</span>
+                <div className="practice-pills">
+                  {practice.map(({ s, i }) => {
+                    const st = stepStatus(s);
+                    return (
+                      <button key={i} className={"pill " + st + (nextUp?.i === i ? " next" : "")} onClick={() => jump(i)} title={s.title} aria-label={s.title}>
+                        {st === "ok" ? "✓ " : st === "no" ? "✕ " : ""}
+                        {pillLabel(s)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {nextUp ? (
+                  <button className="button primary small practice-next" onClick={() => jump(nextUp.i)}>
+                    {t("lesson.continueWith", { title: nextUp.s.quiz ? t("lesson.quiz") : nextUp.s.title })} <ArrowRight size={15} />
                   </button>
-                  <span className="step-continue-count">{t("lesson.of", { n: i + 2, total: steps.length })}</span>
-                </div>
-              )}
-            </section>
-          ))}
-
-          {atEnd && (
-            <section className="lesson-end" aria-labelledby="lesson-end">
-              <div className="lesson-end-art" aria-hidden="true">
-                <LadderMark size={96} />
+                ) : (
+                  <span className="practice-done"><Check size={14} strokeWidth={2.6} /> {t("lesson.allDone")}</span>
+                )}
               </div>
-              <div className="lesson-end-body">
-                <p className="eyebrow">{t("lesson.complete.eyebrow", { level: stop?.level.title ?? "" })}</p>
-                <h2 id="lesson-end">{t("lesson.complete.title")}</h2>
-                <p>{t("lesson.complete.body")}</p>
-                <dl className="lesson-end-stats">
-                  <div><dt>{t("lesson.complete.steps")}</dt><dd>{steps.length}</dd></div>
-                  {nb.graded.length > 0 && <div><dt>{t("lesson.complete.checks")}</dt><dd>{solvedHere}<small> / {nb.graded.length}</small></dd></div>}
-                  {here >= 0 && <div><dt>{t("lesson.complete.route2")}</dt><dd>{here + 1}<small> / {r.all.length}</small></dd></div>}
-                </dl>
-                <div className="lesson-end-actions">
-                  {nextStop && (
-                    <Link className="button primary" href={lessonPath(nextStop.item.id)}>
-                      {t("lesson.complete.next", { title: lessonNumber(nextStop.item.title).name })} <ArrowRight size={18} strokeWidth={1.8} />
-                    </Link>
-                  )}
-                  <Link className="button quiet" href={coursePath("python")}>{t("lesson.complete.route")}</Link>
-                </div>
-              </div>
-            </section>
-          )}
-
-          <nav className="pager" aria-label="Lessons">
-            {prevStop ? (
-              <Link href={lessonPath(prevStop.item.id)}>
-                <ArrowLeft size={16} strokeWidth={1.8} /> <span><small>{t("lesson.prev")}</small>{lessonNumber(prevStop.item.title).name}</span>
-              </Link>
-            ) : <span />}
-            {nextStop && (
-              <Link href={lessonPath(nextStop.item.id)} className="pager-next">
-                <span><small>{t("lesson.nextLesson")}</small>{lessonNumber(nextStop.item.title).name}</span> <ArrowRight size={16} strokeWidth={1.8} />
-              </Link>
             )}
-          </nav>
-        </div>
+
+            {view === "practice" && learn.length > 0 && (
+              <button className="review-bar" aria-expanded={reviewOpen} onClick={() => setReviewOpen(!reviewOpen)}>
+                <BookOpen size={15} />
+                <b>{t("lesson.review")}</b>
+                <span className="review-topics">{learn.map(({ s }) => s.title).join(" · ")}</span>
+                <span className="review-toggle">{reviewOpen ? t("lesson.hide") : t("lesson.show")}</span>
+              </button>
+            )}
+
+            {steps.map((s, i) => (view === "notebook" || isPractice(s) || reviewOpen ? renderStep(s, i) : null))}
+
+            <div ref={bottom} />
+            {(complete || (!graded && here >= 0)) && (
+              <section className="lesson-end" aria-labelledby="lesson-end">
+                <div className="lesson-end-art" aria-hidden="true">
+                  <LadderMark size={96} />
+                </div>
+                <div className="lesson-end-body">
+                  <p className="eyebrow">{t("lesson.complete.eyebrow", { level: stop?.level.title ?? "" })}</p>
+                  <h2 id="lesson-end">{complete ? t("lesson.complete.title") : t("lesson.complete.read")}</h2>
+                  <div className="lesson-end-actions">
+                    {nextStop && (
+                      <Link className="button primary" href={lessonPath(nextStop.item.id)}>
+                        {t("lesson.complete.next", { title: topic(lessonNumber(nextStop.item.title).name) })} <ArrowRight size={18} strokeWidth={1.8} />
+                      </Link>
+                    )}
+                    <Link className="button quiet" href={coursePath("python")}>{t("lesson.complete.route")}</Link>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <nav className="pager" aria-label="Lessons">
+              {prevStop ? (
+                <Link href={lessonPath(prevStop.item.id)}>
+                  <ArrowLeft size={16} strokeWidth={1.8} /> <span><small>{t("lesson.prev")}</small>{topic(lessonNumber(prevStop.item.title).name)}</span>
+                </Link>
+              ) : <span />}
+              {nextStop && (
+                <Link href={lessonPath(nextStop.item.id)} className="pager-next">
+                  <span><small>{t("lesson.nextLesson")}</small>{topic(lessonNumber(nextStop.item.title).name)}</span> <ArrowRight size={16} strokeWidth={1.8} />
+                </Link>
+              )}
+            </nav>
+          </div>
+        </main>
       </div>
     </div>
   );
@@ -390,57 +438,82 @@ function lineClass(line: string) {
   return "";
 }
 
-function CodeSpecimen({ cell, value, busy, output, solved, onChange, onRun, runner, error }: {
-  cell: CodeCell; value: string; busy: string | null; output?: Output[]; solved: boolean;
+function CodeSpecimen({ cell, prompt, value, busy, output, count, solved, onChange, onRun, runner, error }: {
+  cell: CodeCell; prompt: string; value: string; busy: string | null; output?: Output[]; count?: number; solved: boolean;
   onChange: (v?: string) => void; onRun: () => void; runner: { current: Runner | null }; error: RuntimeError;
 }) {
   const isCheck = cell.kind === "check";
+  const isTask = cell.kind === "exercise" || isCheck || /___/.test(cell.source);
+  const running = busy === cell.id;
   const text = output?.map((o) => o.text).join("") ?? "";
   const errText = output?.filter((o) => o.name === "stderr").map((o) => o.text).join("") ?? "";
-  const lines = text.replace(errText, "").split(/(?<=\n)/);
-  const outcome = busy === cell.id ? "" : errText || lines.some((l) => lineClass(l) === "no") ? "is-error" : lines.some((l) => lineClass(l) === "ok") ? "is-ok" : "";
+  const lines = text.replace(errText, "").split(/(?<=\n)/).filter((l, i, all) => l || i < all.length - 1);
+  const outcome = running ? "" : errText || lines.some((l) => lineClass(l) === "no") ? "is-error" : lines.some((l) => lineClass(l) === "ok") ? "is-ok" : "";
+  const runLabel = isCheck ? t("lesson.check") : t("lesson.run");
   return (
-    <div className={"code-cell kind-" + cell.kind + (busy === cell.id ? " busy" : "") + (solved ? " solved" : "")}>
-      <div className="cell-tools">
-        <span className="cell-label">
-          {label(cell)}
-          {solved && <span className="cell-solved"><Check size={13} strokeWidth={2.4} /> {t("lesson.solved")}</span>}
-        </span>
-        <span className="cell-buttons">
-          {!isCheck && (
-            <button
-              className="button quiet small"
-              onClick={() => {
-                if (value === cell.source || confirm(t("lesson.resetConfirm"))) onChange(undefined);
-              }}
-            >
-              {t("lesson.reset")}
-            </button>
-          )}
-          <button className="button small run cell-run" disabled={!!busy} onClick={onRun}>
-            <Play size={13} strokeWidth={2} /> {isCheck ? t("lesson.check") : t("lesson.run")}
-          </button>
-        </span>
+    <div className={"nb-cell" + (isTask ? " is-task" : "") + (solved ? " solved" : "") + (outcome === "is-error" ? " failed" : "")}>
+      <div className="nb-gutter">
+        <button className={"nb-play" + (running ? " running" : "")} disabled={!!busy && !running} onClick={onRun} aria-label={runLabel + " · " + label(cell)} title={runLabel + " (Shift + Enter)"}>
+          {running ? <span className="nb-spin" aria-hidden="true" /> : <Play size={12} fill="currentColor" strokeWidth={0} />}
+        </button>
+        <span className="nb-count" aria-hidden="true">[{running ? "*" : count ?? " "}]</span>
       </div>
-      {isCheck ? (
-        <p className="check-line">{t("lesson.checkHint")}</p>
-      ) : (
-        <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} runner={runner} error={error} />
-      )}
-      {(output !== undefined || busy === cell.id) && (
-        <div className={"output-wrap " + outcome}>
-          <span className="output-label">
-            {outcome === "is-ok" ? <><Check size={12} strokeWidth={2.6} /> {t("lesson.passed")}</> : outcome === "is-error" ? <>✕ {t("lesson.failed")}</> : t("lesson.output")}
-          </span>
-          <pre className="output" aria-live="polite">
-            {!text && <span className="output-hint">{busy === cell.id ? t("lesson.running") : t("lesson.noOutput")}</span>}
-            {lines.map((line, i) => (
+      <div className={"code-cell kind-" + cell.kind + (running ? " busy" : "") + (solved ? " solved" : "")}>
+        {isTask && (
+          <div className="cell-head">
+            <span className="cell-tag">
+              {solved && <Check size={12} strokeWidth={2.8} />} {label(cell)}
+            </span>
+            {prompt && <span className="cell-prompt">{prompt}</span>}
+            <span className="cell-actions">
+              {!isCheck && (
+                <button
+                  className="mini"
+                  onClick={() => {
+                    if (value === cell.source || confirm(t("lesson.resetConfirm"))) onChange(undefined);
+                  }}
+                >
+                  {t("lesson.reset")}
+                </button>
+              )}
+              {isCheck && (
+                <button className="mini strong cell-run" disabled={!!busy} onClick={onRun}>
+                  {t("lesson.check")}
+                </button>
+              )}
+            </span>
+          </div>
+        )}
+        {isCheck ? (
+          <p className="check-line">{t("lesson.checkHint")}</p>
+        ) : (
+          <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} runner={runner} error={error} />
+        )}
+        {isTask && !solved && !isCheck && (
+          <p className="cell-tip">
+            <b>{t("lesson.tip")}</b>
+            {/___/.test(value) && <span>{t("lesson.tipBlanks")}</span>}
+            <span><kbd>⇧</kbd> <kbd>↵</kbd> {t("lesson.tipRun")}</span>
+            <span>{t("lesson.tipHint")}</span>
+          </p>
+        )}
+        {(output !== undefined || running) && (
+          <div className={"output-wrap " + outcome}>
+            {outcome && (
+              <span className="output-label">
+                {outcome === "is-ok" ? <><Check size={12} strokeWidth={2.6} /> {t("lesson.passed")}</> : <>✕ {t("lesson.failed")}</>}
+              </span>
+            )}
+            <pre className="output" aria-live="polite">
+              {!text && <span className="output-hint">{running ? t("lesson.running") : t("lesson.noOutput")}</span>}
+              {lines.map((line, i) => (
                 <span key={i} className={lineClass(line)}>{line}</span>
               ))}
-            {errText && <span className="stderr">{errText}</span>}
-          </pre>
-        </div>
-      )}
+              {errText && <span className="stderr">{errText}</span>}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
