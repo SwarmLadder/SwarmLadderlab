@@ -194,7 +194,7 @@ function Workspace({ lesson, catalog, courseId }: {
               ? "Actual Git commands and grading run in a disposable local repository, not on this website."
               : courseId === "linux"
                 ? "The browser offers a limited command simulator, not Linux itself. Run full Bash scripts and the graded lab checker on your own Linux/WSL2 machine."
-                : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."
+                : "Rust drafts are editable here; run the compiler and tests with Cargo on your computer."}
             {" "}Progress is stored in this browser.
           </p>
         </aside>
@@ -221,7 +221,7 @@ function Workspace({ lesson, catalog, courseId }: {
                   ? " The source Git checker creates isolated practice repositories."
                   : courseId === "linux"
                     ? " For Bash labs, the source grader checks your script on two temporary local fixtures. Independent exercises are self-reported."
-                    : " The source Cargo tests compile real Rust and check your implementation."
+                    : " The source Cargo tests compile real Rust and check your implementation."}
               </p>
               <div className="native-command">
                 <code>{upstream.install}</code>
