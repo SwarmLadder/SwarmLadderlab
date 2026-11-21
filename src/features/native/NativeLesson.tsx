@@ -24,6 +24,10 @@ type NativePage = {
   mode: "local-git" | "local-rust" | "local-linux" | "local-c" | "local-java";
   hint: string;
   practiceFile?: string;
+  exampleInput?: string;
+  exampleOutput?: string;
+  shortExplanation?: string;
+  complexity?: string;
   challenge?: { function: string; prompt: string; practiceFile: string; testSnippet: string } | null;
 };
 
@@ -363,6 +367,12 @@ function Workspace({ lesson, catalog, courseId }: {
                   <h3>{lesson.challenge ? "Implement " + lesson.challenge.function + "(...)" : "Implement and verify the starter"}</h3>
                   <p className="practice-task-prompt">{lesson.challenge?.prompt ??
                     "Implement the function in the starter file. Preserve the required error behavior and test boundary cases."}</p>
+                  {courseId === "java" && lesson.exampleInput && <div className="practice-examples">
+                    <p><strong>Example input:</strong> <code>{lesson.exampleInput}</code></p>
+                    <p><strong>Expected output:</strong> <code>{lesson.exampleOutput}</code></p>
+                    <p><strong>Quick explanation:</strong> {lesson.shortExplanation}</p>
+                    <p><strong>Complexity:</strong> {lesson.complexity}</p>
+                  </div>}
                   {lesson.practiceFile && <p><strong>File to edit:</strong>{" "}
                     <code>{lesson.practiceFile}</code>. Your edits carry over to other functions in the same starter file.</p>}
                   {lesson.challenge?.testSnippet && <details className="sql-hint">
