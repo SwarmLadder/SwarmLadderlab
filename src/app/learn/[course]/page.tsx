@@ -11,7 +11,7 @@ export function generateStaticParams() {
 export default async function Page({ params }: { params: Promise<{ course: string }> }) {
   const id = (await params).course;
   const course = courses.find((c) => c.id === id && c.status === "open");
-  if (!course || !["python", "sql", "git", "rust", "linux", "dsa", "c"].includes(id)) notFound();
+  if (!course || !["python", "sql", "git", "rust", "linux", "dsa", "c", "java"].includes(id)) notFound();
   return (
     <Personal>
       <CourseRoute catalog={catalog(id as CourseId)} course={course} />
