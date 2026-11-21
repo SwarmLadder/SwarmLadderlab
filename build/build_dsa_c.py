@@ -6,6 +6,7 @@ C source stays native: the site saves drafts and asks for explicit local PASS.
 from __future__ import annotations
 import json
 import re
+import html
 from pathlib import Path
 
 try:
@@ -140,6 +141,75 @@ def first_c_code(text: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+
+def c_workshop_drills(course: Path, level: str) -> list[dict]:
+    """Turn 27 *actual native-tested C functions per level* into tasks.
+
+    The upstream course.h is the canonical contract, tests/course.c the
+    published expected behavior, and each starter .c the editable source.
+    Each check is learner-verified locally; no browser C execution is implied.
+    """
+    header = read(course / "include/course.h")
+    test_code = read(course / "tests/course.c")
+    contracts: dict[str, str] = {}
+    for match in re.finditer(r"/\*\*(.*?)\*/\s*([^;]+);", header, flags=re.S):
+        comment = re.sub(r"\s*\n\s*\*\s?", " ", match.group(1)).strip()
+        declaration = " ".join(match.group(2).split())
+        name_match = re.search(r"(\w+)\s*\([^;{}]*\)$", declaration)
+        if name_match:
+            contracts[name_match.group(1)] = comment
+
+    by_test = {}
+    for match in re.finditer(
+        r"(?ms)^static void test_(\w+)\(void\) \{(.*?)^\}", test_code
+    ):
+        by_test[match.group(1)] = (
+            "static void test_" + match.group(1) + "(void) {"
+            + match.group(2) + "}"
+        )
+    registered = set(re.findall(
+        r'\{"(\w+)", "' + re.escape(level) + r'", test_\w+\}',
+        test_code,
+    ))
+    drills = []
+    consumed: set[str] = set()
+    workshops = sorted((course / level).glob("*.md"))
+    projects = sorted((course / level / "projects").glob("*.md"))
+    for doc in [*workshops, *projects]:
+        if doc.name == "README.md":
+            continue
+        md = read(doc)
+        targets = list(dict.fromkeys(re.findall(r"make check TASK=(\w+)", md)))
+        if not targets:
+            raise ValueError(f"No C coding problems in {doc}")
+        starter_path = f"{level}/starter/{doc.stem}.c"
+        starter = read(course / starter_path)
+        for name in targets:
+            if name not in registered or name in consumed:
+                raise ValueError(f"Unregistered or duplicate C task: {level}/{name}")
+            if name not in contracts or name not in by_test:
+                raise ValueError(f"Missing C contract or public test: {name}")
+            if not re.search(r"\b" + re.escape(name) + r"\s*\(", starter):
+                raise ValueError(f"Missing implementation stub for C task {name}")
+            consumed.add(name)
+            description = contracts[name]
+            drills.append({
+                "name": name,
+                "title": name.replace("_", " ").capitalize(),
+                "prompt": description,
+                "sourcePath": doc.relative_to(course).as_posix(),
+                "practiceFile": starter_path,
+                "starter": starter,
+                "guide": md,
+                "testSnippet": by_test[name],
+            })
+    if consumed != registered or len(drills) != 27:
+        raise ValueError(
+            f"Expected 27 C drills for {level}; got {len(drills)} "
+            f"(missing {sorted(registered - consumed)})"
+        )
+    return drills
+
 def build_c(course: Path, out: Path) -> dict:
     course = course.resolve()
     entries = {}
@@ -147,7 +217,7 @@ def build_c(course: Path, out: Path) -> dict:
 
     def add(level: str, section: str, slug: str, title: str, source_path: str,
             markdown: str, *, code: str = "", check: str = "",
-            practice: str = "", hint: str = "") -> dict:
+            practice: str = "", hint: str = "", task: dict | None = None) -> dict:
         id = f"c/{level}/{section}/{slug}"
         if id in entries:
             raise ValueError(f"Duplicate C activity {id}")
@@ -157,6 +227,8 @@ def build_c(course: Path, out: Path) -> dict:
             "source": code, "checkCommand": check, "practiceCommand": practice,
             "hint": hint, "mode": "local-c",
             "graded": ["self-reported"] if check else [],
+            "challenge": task,
+            "practiceFile": task.get("practiceFile", "") if task else "",
         }
         return {"id": id, "title": title, "graded": int(bool(check))}
 
@@ -187,6 +259,27 @@ def build_c(course: Path, out: Path) -> dict:
                                  code=first_c_code(md)))
         if len(workshops) != 6:
             raise ValueError(f"Expected six C workshops for {level}")
+
+        drills = []
+        for problem in c_workshop_drills(course, level):
+            command = f"make check TASK={problem['name']}"
+            challenge = {
+                "function": problem["name"],
+                "prompt": problem["prompt"],
+                "practiceFile": problem["practiceFile"],
+                "testSnippet": problem["testSnippet"],
+            }
+            # The same starter file contains four functions in a workshop.
+            # A shared draft key in the UI keeps edits between those drills.
+            drills.append(add(
+                level, "drills", problem["name"],
+                f"Code {problem['name']} — {problem['title']}",
+                problem["sourcePath"], problem["guide"],
+                code=problem["starter"], check=command,
+                hint="Follow the contract and public test expectations. "
+                     "Run the native checker before self-reporting a pass.",
+                task=challenge,
+            ))
 
         deep = []
         for path in sorted((course / level / "deep-dives").glob("[0-9][0-9]_*.md")):
@@ -247,8 +340,9 @@ def build_c(course: Path, out: Path) -> dict:
                                   f"Interview {int(number):02} — {title}",
                                   "curriculum/INTERVIEW.md", md))
         catalog["levels"].append({
-            "id": level, "title": label, "medal": medal, "total": len(labs),
+            "id": level, "title": label, "medal": medal, "total": len(drills) + len(labs),
             "sections": [
+                {"id": "exercises", "title": "Code it: 27 native C function drills", "items": drills},
                 {"id": "notebooks", "title": "Professional C17 deep dives", "items": deep},
                 {"id": "notebooks", "title": "Guided C workshops", "items": workshops},
                 {"id": "exercises", "title": "Native C17 graded mastery labs", "items": labs},
