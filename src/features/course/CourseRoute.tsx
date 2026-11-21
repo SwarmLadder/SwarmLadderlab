@@ -40,7 +40,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         <div className="course-actions">
           {r.current && (
             <Link className="button primary" href={lessonPath(r.current.item.id)}>
-              {started ? t("course.resume") : (course.id === "c" || course.id === "dsa" ? "Start coding" : t("course.start"))} <ArrowRight size={18} strokeWidth={1.8} />
+              {started ? t("course.resume") : (course.id === "c" || course.id === "dsa" || course.id === "java" ? "Start coding" : t("course.start"))} <ArrowRight size={18} strokeWidth={1.8} />
             </Link>
           )}
           <div className="course-progress" aria-label={`${done} / ${total}`}>
@@ -50,7 +50,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         </div>
       </header>
 
-      {(course.id === "git" || course.id === "rust" || course.id === "linux" || course.id === "c" || course.id === "dsa") && (
+      {(course.id === "git" || course.id === "rust" || course.id === "linux" || course.id === "c" || course.id === "dsa" || course.id === "java") && (
         <p className="native-catalog-note" role="note">
           {course.id === "git"
             ? "These Git activities include native CLI labs. Run the offline course checker on your computer, then record the pass here."
@@ -60,8 +60,10 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
                 ? "C17 now begins with 81 function coding drills plus 12 mastery labs. Edit actual starters and run native GCC/Clang checks locally; no browser C execution is claimed."
                 : course.id === "dsa"
                   ? "DSA begins with 48 Python challenges you can code and test immediately, just like the Python course. Each has six published cases and optional deep theory after your attempt."
+                  : course.id === "java"
+                  ? "Java begins with eight editable programming and DSA tasks. Run the native JDK 17 checker locally and compare expected/actual output; there is no browser Java execution."
                   : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
-          {" "}Progress is saved on this device. Native C, Git, Rust and Linux lab completion is self-reported; DSA problem checks run in the browser.
+          {" "}Progress is saved on this device. Native Java, C, Git, Rust and Linux lab completion is self-reported; DSA problem checks run in the browser.
         </p>
       )}
 
