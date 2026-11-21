@@ -394,3 +394,17 @@ body:has(.nbook) .colophon { display: none; }
   .runtime.chip { width: 1.75rem; padding: 0; justify-content: center; font-size: 0; gap: 0; }
   .nb-score { margin-left: auto; }
 }
+/* outline: sections with their questions as status dots */
+.toc-group { margin-bottom: 0.15rem; }
+.toc-group > button.here { background: var(--signal-soft); color: var(--ink); font-weight: 650; }
+.toc-dots { display: flex; flex-wrap: wrap; gap: 4px; padding: 0.15rem 0.5rem 0.5rem 2.1rem; }
+.toc-dots .dot, .practice-pills.compact .pill { width: 0.8rem; height: 0.8rem; padding: 0; border-radius: 3px; border: 1px solid var(--rule-2); background: var(--paper); cursor: pointer; font-size: 0; }
+.toc-dots .dot.ok, .practice-pills.compact .pill.ok { background: var(--moss); border-color: var(--moss); }
+.toc-dots .dot.no, .practice-pills.compact .pill.no { background: var(--danger); border-color: var(--danger); }
+.toc-dots .dot.next, .practice-pills.compact .pill.next { outline: 2px solid var(--signal); outline-offset: 1px; }
+.practice-pills.compact { gap: 5px; flex: 1; }
+.practice-pills.compact .pill { width: 1.05rem; height: 1.05rem; }
+.practice-label b { color: var(--ink); margin-left: 0.3rem; letter-spacing: 0; }
+.nb-next { margin-left: auto; color: var(--signal); }
+.nb-next + .nb-score { margin-left: 0.6rem; }
+@media (max-width: 900px) { .nb-next { font-size: 0.78rem; } }

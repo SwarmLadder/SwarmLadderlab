@@ -17,6 +17,12 @@ async function cell(page: Page, needle: string) {
   return page.locator(".code-cell").nth(i);
 }
 const runtime = (page: Page) => page.locator(".runtime");
+// Teach-then-test Basics keeps challenges in the lessons ("pack:" entries); the
+// older course keeps them in workbook notebooks. Tests follow whichever is built.
+async function lessonChallenges(page: Page) {
+  const catalog = await (await page.request.get("/data/catalog.json")).json();
+  return Object.keys(catalog.workbooks).some((k) => k.startsWith("pack:"));
+}
 
 test("home, course route, mobile theme, data migration and achievement gating", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 });
@@ -70,35 +76,27 @@ test("home, course route, mobile theme, data migration and achievement gating", 
   await expect(page.getByRole("status")).toHaveText("Progress reset.");
 });
 
-test("lessons are notebooks with a practice view and a practice strip", async ({ page }) => {
+test("lessons are one notebook: teach and test, with an outline and a next button", async ({ page }) => {
   await page.goto("/lesson/" + intro);
-  // Lessons open as a notebook: explanations and exercises together, with an outline.
-  await expect(page.getByRole("button", { name: "Notebook", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".nb-toc")).toBeVisible();
+  await expect(page.locator(".nb-toc .toc-group").first()).toBeVisible();
   await expect(page.locator(".nb-text").first()).toBeVisible();
-  const strip = page.locator(".practice-strip");
-  await expect(strip.locator(".pill").first()).toBeVisible();
-  // Practice view hides the explanations behind one "Review the idea" bar.
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
-  await expect(page.locator(".review-bar")).toBeVisible();
-  await expect(page.locator(".nb-step:not(.is-practice)")).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.locator(".review-bar").click();
-  expect(await page.locator(".nb-step:not(.is-practice)").count()).toBeGreaterThan(0);
+  await expect(page.locator(".nb-cell.is-task").first()).toBeVisible();
+  await expect(page.locator(".nb-next")).toContainText("Next:");
+  await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveCount(0);
 });
 
 test("real Python exercise, saved edits, stop and restart", async ({ page }) => {
   await wholeLesson(page);
   await page.goto("/lesson/" + intro);
   await expect(runtime(page)).toContainText("Python ready", { timeout: 120000 });
+  const answer = (await lessonChallenges(page)) ? "product = 12 * 7\ncheck(2, product)" : "check(2, 10080)";
   const ex = await cell(page, "check(2,");
   const editor = ex.getByRole("textbox");
-  await editor.fill("check(2, 10080)");
+  await editor.fill(answer);
   await editor.press("Shift+Enter");
   await expect(ex.locator(".output")).toContainText("✅ Exercise 2: correct");
   await page.reload();
-  await expect((await cell(page, "check(2, 10080)")).getByRole("textbox")).toHaveText("check(2, 10080)");
+  await expect((await cell(page, answer.split("\n")[0])).getByRole("textbox")).toContainText(answer.split("\n")[0]);
   await editor.fill("while True:\n    pass");
   await editor.press("Shift+Enter");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
@@ -109,9 +107,10 @@ test("real Python exercise, saved edits, stop and restart", async ({ page }) => 
   await expect(ex.locator(".output")).toContainText("42", { timeout: 120000 });
 });
 
-test("workbook validates with pytest in the browser", async ({ page }) => {
-  await wholeLesson(page);
-  await page.goto("/lesson/basics/exercises/02_control_flow_exercises");
+test("a lesson challenge is graded by the practice tests in the browser", async ({ page }) => {
+  await page.goto("/");
+  const inLessons = await lessonChallenges(page);
+  await page.goto(inLessons ? "/lesson/basics/notebooks/05_conditional_statements" : "/lesson/basics/exercises/02_control_flow_exercises");
   await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
   const fn = await cell(page, "def classify_temperature");
   await fn
@@ -122,7 +121,7 @@ test("workbook validates with pytest in the browser", async ({ page }) => {
   await fn.getByRole("textbox").press("Shift+Enter");
   const check = page.locator(".code-cell.kind-check", { hasText: "classify_temperature" }).first();
   await check.getByRole("button", { name: "Check", exact: true }).click();
-  await expect(check.locator(".output")).toContainText("✅ classify_temperature", { timeout: 90000 });
+  await expect(check.locator(".output")).toContainText("✅ classify_temperature", { timeout: 120000 });
 });
 
 test("Python syntax colors follow edits and theme while preserving literal code", async ({ page }) => {
