@@ -3,6 +3,7 @@ import "@fontsource-variable/fraunces/full.css";
 import "@fontsource-variable/instrument-sans/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "../styles/field.css";
+import "../styles/brand.css";
 import "../styles/lesson.css";
 import "../styles/native.css";
 import "../styles/pages.css";
