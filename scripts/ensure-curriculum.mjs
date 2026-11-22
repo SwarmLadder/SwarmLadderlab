@@ -1,16 +1,7 @@
 // Fetch all seven curricula when generated static assets are missing.
 // The Lab can build from a single checkout on Cloudflare Workers Builds.
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-
-if (existsSync("public/data/catalog.json") && existsSync("public/data/sql/catalog.json")
-    && existsSync("public/course/sql/fixtures/base.sql")
-    && existsSync("public/data/git/catalog.json")
-    && existsSync("public/data/rust/catalog.json")
-    && existsSync("public/data/linux/catalog.json")
-    && existsSync("public/data/dsa/catalog.json")
-    && existsSync("public/data/c/catalog.json")
-    && existsSync("public/data/java/catalog.json")) process.exit(0);
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 const python = ["python3", "python"].find((p) => {
@@ -37,6 +28,14 @@ function source(env, local, generated, defaultRepo, repoOverride) {
 }
 const course = source("COURSE", "../python-notebook", ".generated/python-notebook",
   "https://github.com/SwarmLadder/python-notebook", "COURSE_REPO");
+const revision = JSON.parse(readFileSync("build/python-revision.json", "utf8"));
+const head = () => execFileSync("git", ["-C", course, "rev-parse", "HEAD"], {encoding: "utf8"}).trim();
+if (head() !== revision && course === ".generated/python-notebook") {
+  run("git", ["-C", course, "fetch", "--depth=1", "origin", revision]);
+  run("git", ["-C", course, "checkout", "--detach", revision]);
+}
+if (execFileSync("git", ["-C", course, "status", "--porcelain", "--untracked-files=no"], {encoding: "utf8"}).trim()) throw Error("Python checkout has modified tracked files");
+if (head() !== revision) throw Error("Python curriculum checkout must match " + revision);
 const sql = source("SQL_COURSE", "../SQL", ".generated/SQL",
   "https://github.com/SwarmLadder/SQL", "SQL_COURSE_REPO");
 const git = source("GIT_COURSE", "../git-github-course", ".generated/git-github-course",

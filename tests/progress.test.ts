@@ -1,7 +1,9 @@
+import pythonRevision from "../build/python-revision.json" with {type:"json"};
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   STORE,
+  validate,
   exportData,
   importData,
   graduatedKeys,
@@ -32,7 +34,7 @@ test("v1 export keeps last lesson, exact code and original timestamps", () => {
     JSON.stringify({ format: STORE, exported: "2024-07-03", ...state }),
   );
   mark("lesson", ["ex2"]);
-  assert.deepEqual(read(), state);
+  assert.deepEqual(read(), { ...state, version: 2 });
   save("lesson", "cell", "");
   setLast("workbook");
   assert.equal(read().code?.lesson.cell, "");
@@ -54,3 +56,22 @@ test("recognizes exercise, quiz and workbook results", () =>
     ),
     ["ex2", "q1", "wb:demo"],
   ));
+
+
+test("legacy Python passes are history; dependent edits revoke current evidence across backups", () => {
+  const id = "basics/notebooks/test", key = "ex2";
+  importData(JSON.stringify({ format: STORE, done: { [id + "#ex2"]: 1, [id + "#q1"]: 2 }, code: { [id]: { dep: "old" } } }));
+  assert.deepEqual(doneIn(id), ["q1"]);
+  const evidence = {cells: ["dep","target"], revision: pythonRevision};
+  validate(id, key, {...evidence, status: "passed"});
+  save(id, "dep", "new");
+  importData(exportData());
+  assert.equal(read().current?.[id + "#ex2"].status, "stale");
+  validate(id, key, {...evidence, status: "failed"});
+  assert.deepEqual(doneIn(id), ["q1"]);
+  validate(id, key, {...evidence, status: "passed"});
+  assert.deepEqual(doneIn(id), ["ex2","q1"]);
+  assert.equal(read().done?.[id + "#ex2"], 1);
+  validate(id, key, {...evidence, revision:"old", status:"passed"});
+  assert.deepEqual(doneIn(id), ["q1"]);
+});

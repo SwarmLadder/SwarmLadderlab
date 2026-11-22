@@ -91,3 +91,18 @@ def test_course_files_for_python_are_present(dist):
     assert "faulthandler_timeout" not in (dist / "course" / "pytest.ini").read_text()
 
 
+
+def test_export_preserves_dependencies_and_current_helper(dist):
+    revision = subprocess.check_output(["git", "-C", str(COURSE), "rev-parse", "HEAD"], text=True).strip()
+    assert json.loads((dist / "data/catalog.json").read_text())["revision"] == revision
+    for path in COURSE.glob("*/*/*.ipynb"):
+        nb_id = path.relative_to(COURSE).with_suffix("").as_posix().replace("/", "__")
+        generated = json.loads((dist / f"data/nb/{nb_id}.json").read_text())
+        exported = {c["id"]: c for c in generated["cells"] if c["type"] == "code"}
+        assert generated["revision"] == revision
+        for c in json.loads(path.read_text())["cells"]:
+            if c["cell_type"] == "code" and c["id"] != "colab-setup":
+                assert exported[c["id"]]["requires_cells"] == c["metadata"].get("requires_cells", [])
+                assert exported[c["id"]]["source"] == "".join(c["source"])
+    for helper in ["practice/notebook_check.py","practice/practice_loader.py","advanced/notebooks/lesson.py"]:
+        assert (dist / "course" / helper).read_bytes() == (COURSE / helper).read_bytes()

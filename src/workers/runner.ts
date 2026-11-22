@@ -1,11 +1,12 @@
 // Pyodide imports its runtime in a classic Web Worker.
 const workerUrl = "/assets/py-worker.js";
-export type Result = { error?: string; friendly?: string; stopped?: boolean; line?: number };
+export type Result = { assessment?: "passed" | "failed" | "not_attempted"; error?: string; friendly?: string; stopped?: boolean; line?: number };
 export type Problem = { line: number; col: number; message: string };
 type Job = {
   code: string;
   cwd: string;
   stream: (name: string, text: string) => void;
+  options: { fresh?: boolean; assessment?: string | null };
   finish: (r: Result) => void;
   id: number;
 };
@@ -51,10 +52,10 @@ export class Runner {
       base: new URL("/", location.href).href,
     });
   }
-  run(code: string, cwd: string, stream: Job["stream"]): Promise<Result> {
+  run(code: string, cwd: string, stream: Job["stream"], options: Job["options"] = {}): Promise<Result> {
     if (this.failure) return Promise.resolve({ error: this.failure });
     return new Promise((finish) => {
-      this.queue.push({ code, cwd, stream, finish, id: ++this.sequence });
+      this.queue.push({ code, cwd, stream, options, finish, id: ++this.sequence });
       this.pump();
     });
   }
@@ -81,8 +82,8 @@ export class Runner {
     if (!this.ready || this.current || this.failure) return;
     this.current = this.queue.shift();
     if (this.current) {
-      const { id, code, cwd } = this.current;
-      this.worker.postMessage({ type: "run", id, code, cwd });
+      const { id, code, cwd, options } = this.current;
+      this.worker.postMessage({ type: "run", id, code, cwd, ...options });
     }
   }
   private flush(r: Result) {

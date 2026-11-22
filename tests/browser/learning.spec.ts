@@ -14,7 +14,7 @@ async function cell(page: Page, needle: string) {
     needle,
   );
   expect(i).toBeGreaterThanOrEqual(0);
-  return page.locator(".code-cell").nth(i);
+  return edit.nth(i).locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' code-cell ')][1]");
 }
 const runtime = (page: Page) => page.locator(".runtime");
 // Teach-then-test Basics keeps challenges in the lessons ("pack:" entries); the
@@ -204,4 +204,93 @@ test("upper-level lessons run async exercises and grade their challenges in the 
   const check = page.locator(".code-cell.kind-check", { hasText: "make_square" }).first();
   await check.getByRole("button", { name: "Check", exact: true }).click();
   await expect(check.locator(".output")).toContainText("✅ make_square", { timeout: 120000 });
+});
+
+const specimen = (page: Page, id: string) => page.locator('[data-cell-id="' + id + '"]');
+async function runCell(page: Page, id: string, status: string, source?: string) {
+  const item = specimen(page, id);
+  if (source !== undefined) await item.getByRole("textbox").fill(source);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation", status, {timeout:120000});
+}
+async function starter(page: Page, id: string) {
+  return specimen(page, id).locator(".cm-content").evaluate(el =>
+    Array.from(el.querySelectorAll(".cm-line"), line => line.textContent).join("\n"));
+}
+
+test("Running Totals tracks only current checked code after reload", async ({page}) => {
+  await page.goto("/lesson/basics/notebooks/16_basic_problem_solving");
+  await runCell(page, "ex-2","not_attempted");
+  const original = await starter(page,"ex-2");
+  const correct = original.replace("___","running.append(total)") + "\nprint(running)";
+  await runCell(page,"ex-2","passed",correct);
+  await expect(specimen(page,"ex-2").locator(".output")).toContainText("[1, 3, 6, 10]");
+  const wrong = correct.replace("append(total)","append(v)");
+  await specimen(page,"ex-2").getByRole("textbox").fill(wrong);
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","stale");
+  await runCell(page,"ex-2","failed");
+  await page.reload();
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","failed");
+  expect(await starter(page,"ex-2")).toEqual(wrong);
+  await runCell(page,"ex-2","not_attempted",'print("✅ Exercise 2: correct")');
+  await runCell(page,"ex-2","execution_error",'message = "___ is a placeholder"\n# ___\nraise ValueError("real error")');
+  await expect(specimen(page,"ex-2").locator(".stderr")).toContainText("ValueError: real error");
+  await runCell(page,"ex-2","passed",correct);
+  await page.reload();
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","passed");
+});
+
+test("SQLite setup, two valid implementations, and errors in an edited prerequisite", async ({page}) => {
+  await page.goto("/lesson/intermediate/notebooks/15_sqlite_and_transactions");
+  await runCell(page,"ch-1","ran");
+  const original = await starter(page,"ex-6");
+  for (const code of [
+    'return [title for title, in conn.execute("SELECT title FROM tasks ORDER BY id")]',
+    'return list(map(lambda row: row[0], conn.execute("SELECT title FROM tasks ORDER BY id")))',
+  ]) await runCell(page,"ex-6","passed",original.replace("raise NotImplementedError",code));
+  await runCell(page,"ex-6","failed",original.replace("raise NotImplementedError","return []"));
+  await specimen(page,"ch-1").getByRole("textbox").fill('raise ValueError("schema setup failed")');
+  await runCell(page,"ch-1-check","execution_error");
+  await expect(specimen(page,"ch-1-check").locator(".stderr")).toContainText("Setup failed in ch-1");
+});
+
+test("async batch starts every worker before waiting", async ({page}) => {
+  await page.goto("/lesson/advanced/notebooks/05_asyncio_event_loop");
+  const original = await starter(page,"ex-5");
+  await runCell(page,"ex-5","passed",original.replace("raise NotImplementedError","return await asyncio.gather(*(worker(x) for x in values))"));
+  await runCell(page,"ex-5","failed",original.replace("raise NotImplementedError","return [await worker(x) for x in values]"));
+});
+
+test("Advanced settings and durable idempotency are independently checked", async ({page}) => {
+  await page.goto("/lesson/advanced/notebooks/18_production_quality_ci_deployment");
+  const original = await starter(page,"ex-6");
+  await runCell(page,"ex-6","passed",original.replace("raise NotImplementedError", 'count = int(settings.get("APP_WORKERS", 4))\n    if count <= 0:\n        raise ValueError(count)\n    return count'));
+  const definition = `class IdempotencyStore:
+    def __init__(self, conn: sqlite3.Connection):
+        self.db = conn
+        self.db.execute("CREATE TABLE IF NOT EXISTS receipts(k TEXT PRIMARY KEY, value TEXT)")
+    def execute(self, key: str, action: Callable[[], object]):
+        found = self.db.execute("SELECT value FROM receipts WHERE k=?", (key,)).fetchone()
+        if found:
+            return json.loads(found[0])
+        value = action()
+        with self.db:
+            self.db.execute("INSERT INTO receipts VALUES(?,?)", (key,json.dumps(value)))
+        return value`;
+  await specimen(page,"ch-1").getByRole("textbox").fill(definition);
+  await runCell(page,"ch-1-check","passed");
+  await specimen(page,"ch-1").getByRole("textbox").fill("# missing definition");
+  await expect(specimen(page,"ch-1-check")).toHaveAttribute("data-validation","stale");
+  await runCell(page,"ch-1-check","failed");
+  await specimen(page,"build-work").getByRole("textbox").fill("# no migration submitted");
+  await runCell(page,"build-check","failed");
+});
+
+for (const [lesson, names] of [
+  ["basics/notebooks/13_file_handling", "Path, csv, tempfile"],
+  ["intermediate/notebooks/06_generators_and_lazy_pipelines","Iterable, Iterator"],
+]) test("fresh-session setup in " + lesson, async ({page}) => {
+  await page.goto("/lesson/" + lesson);
+  const original = await starter(page,"ch-1");
+  await runCell(page,"ch-1","ran",original + "\nprint(tuple(x.__name__ for x in (" + names + ")))");
 });
