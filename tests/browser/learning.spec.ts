@@ -5,16 +5,19 @@ const intro = "basics/notebooks/00_python_introduction";
 async function wholeLesson(page: Page) {
   await page.addInitScript(() => localStorage.setItem("swarmladderlab.view", "all"));
 }
-// Code cells use CodeMirror; read each editor's text line by line.
+// Code cells use CodeMirror; read each editor's text line by line. Resolve the match
+// to its stable cell id at once: a positional locator would drift when running a
+// cell reveals the lesson's setup editor above it.
 async function cell(page: Page, needle: string) {
   const edit = page.locator(".code-cell .cm-content");
   await edit.first().waitFor();
-  const i = await edit.evaluateAll(
-    (nodes, text) => nodes.findIndex((node) => [...node.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n").includes(text)),
+  const id = await edit.evaluateAll(
+    (nodes, text) => nodes.find((node) => [...node.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n").includes(text))
+      ?.closest("[data-cell-id]")?.getAttribute("data-cell-id") ?? null,
     needle,
   );
-  expect(i).toBeGreaterThanOrEqual(0);
-  return page.locator(".code-cell").nth(i);
+  expect(id, "no code cell contains " + needle).not.toBeNull();
+  return page.locator('[data-cell-id="' + id + '"] .code-cell');
 }
 const runtime = (page: Page) => page.locator(".runtime");
 // Teach-then-test Basics keeps challenges in the lessons ("pack:" entries); the
@@ -194,14 +197,212 @@ test("upper-level lessons run async exercises and grade their challenges in the 
 
   await page.goto("/lesson/intermediate/notebooks/09_functional_tools_and_itertools");
   await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
-  const fn = await cell(page, "def power");
-  await fn.getByRole("textbox").fill("def power(base, exponent):\n    return base ** exponent");
-  await fn.getByRole("textbox").press("Shift+Enter");
-  // power has no tests of its own: it is graded through make_square.
-  const square = await cell(page, "def make_square");
+  // Lesson 09 also teaches partial with an exercise that defines power (ex-7), so
+  // target the challenge cells by id. power has no tests of its own: it is graded
+  // through make_square, whose check runs setup, ch-2 and ch-3 from saved code.
+  const power = page.locator('[data-cell-id="ch-2"] .code-cell');
+  await power.getByRole("textbox").fill("def power(base, exponent):\n    return base ** exponent");
+  const square = page.locator('[data-cell-id="ch-3"] .code-cell');
+  const check = page.locator('[data-cell-id="ch-3-check"] .code-cell');
+  // A plausible wrong answer (cube instead of square) must fail...
+  await square.getByRole("textbox").fill("def make_square():\n    from functools import partial\n    return partial(power, exponent=3)");
+  await check.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(check.locator(".output")).toContainText("❌ make_square", { timeout: 120000 });
+  await expect(page.locator('[data-cell-id="ch-3-check"]')).toHaveAttribute("data-validation", "failed");
+  // ...and the correct one pass, without running the definition cells by hand.
   await square.getByRole("textbox").fill("def make_square():\n    from functools import partial\n    return partial(power, exponent=2)");
-  await square.getByRole("textbox").press("Shift+Enter");
-  const check = page.locator(".code-cell.kind-check", { hasText: "make_square" }).first();
   await check.getByRole("button", { name: "Check", exact: true }).click();
   await expect(check.locator(".output")).toContainText("✅ make_square", { timeout: 120000 });
+  await expect(page.locator('[data-cell-id="ch-3-check"]')).toHaveAttribute("data-validation", "passed");
+  // Package installation progress belongs in the status bar, not the check output.
+  await expect(check.locator(".output")).not.toContainText("Loading ");
+});
+
+const specimen = (page: Page, id: string) => page.locator('[data-cell-id="' + id + '"]');
+async function runCell(page: Page, id: string, status: string, source?: string) {
+  const item = specimen(page, id);
+  if (source !== undefined) await item.getByRole("textbox").fill(source);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation", status, {timeout:120000});
+}
+async function starter(page: Page, id: string) {
+  return specimen(page, id).locator(".cm-content").evaluate(el =>
+    Array.from(el.querySelectorAll(".cm-line"), line => line.textContent).join("\n"));
+}
+
+test("Running Totals tracks only current checked code after reload", async ({page}) => {
+  await page.goto("/lesson/basics/notebooks/16_basic_problem_solving");
+  await runCell(page, "ex-2","not_attempted");
+  const original = await starter(page,"ex-2");
+  const correct = original.replace("___","running.append(total)") + "\nprint(running)";
+  await runCell(page,"ex-2","passed",correct);
+  await expect(specimen(page,"ex-2").locator(".output")).toContainText("[1, 3, 6, 10]");
+  const wrong = correct.replace("append(total)","append(v)");
+  await specimen(page,"ex-2").getByRole("textbox").fill(wrong);
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","stale");
+  await runCell(page,"ex-2","failed");
+  await page.reload();
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","failed");
+  expect(await starter(page,"ex-2")).toEqual(wrong);
+  await runCell(page,"ex-2","not_attempted",'print("✅ Exercise 2: correct")');
+  await runCell(page,"ex-2","execution_error",'message = "___ is a placeholder"\n# ___\nraise ValueError("real error")');
+  await expect(specimen(page,"ex-2").locator(".stderr")).toContainText("ValueError: real error");
+  await runCell(page,"ex-2","passed",correct);
+  await page.reload();
+  await expect(specimen(page,"ex-2")).toHaveAttribute("data-validation","passed");
+});
+
+test("SQLite setup, two valid implementations, and errors in an edited prerequisite", async ({page}) => {
+  await page.goto("/lesson/intermediate/notebooks/15_sqlite_and_transactions");
+  await runCell(page,"ch-1","ran");
+  const original = await starter(page,"ex-6");
+  for (const code of [
+    'return [title for title, in conn.execute("SELECT title FROM tasks ORDER BY id")]',
+    'return list(map(lambda row: row[0], conn.execute("SELECT title FROM tasks ORDER BY id")))',
+  ]) await runCell(page,"ex-6","passed",original.replace("raise NotImplementedError",code));
+  await runCell(page,"ex-6","failed",original.replace("raise NotImplementedError","return []"));
+  await specimen(page,"ch-1").getByRole("textbox").fill('raise ValueError("schema setup failed")');
+  await runCell(page,"ch-1-check","execution_error");
+  await expect(specimen(page,"ch-1-check").locator(".stderr")).toContainText("Setup failed in ch-1");
+});
+
+test("async batch starts every worker before waiting", async ({page}) => {
+  await page.goto("/lesson/advanced/notebooks/05_asyncio_event_loop");
+  const original = await starter(page,"ex-5");
+  await runCell(page,"ex-5","passed",original.replace("raise NotImplementedError","return await asyncio.gather(*(worker(x) for x in values))"));
+  await runCell(page,"ex-5","failed",original.replace("raise NotImplementedError","return [await worker(x) for x in values]"));
+});
+
+test("Advanced settings and durable idempotency are independently checked", async ({page}) => {
+  await page.goto("/lesson/advanced/notebooks/18_production_quality_ci_deployment");
+  const original = await starter(page,"ex-6");
+  await runCell(page,"ex-6","passed",original.replace("raise NotImplementedError", 'count = int(settings.get("APP_WORKERS", 4))\n    if count <= 0:\n        raise ValueError(count)\n    return count'));
+  const definition = `class IdempotencyStore:
+    def __init__(self, conn: sqlite3.Connection):
+        self.db = conn
+        self.db.execute("CREATE TABLE IF NOT EXISTS receipts(k TEXT PRIMARY KEY, value TEXT)")
+    def execute(self, key: str, action: Callable[[], object]):
+        found = self.db.execute("SELECT value FROM receipts WHERE k=?", (key,)).fetchone()
+        if found:
+            return json.loads(found[0])
+        value = action()
+        with self.db:
+            self.db.execute("INSERT INTO receipts VALUES(?,?)", (key,json.dumps(value)))
+        return value`;
+  await specimen(page,"ch-1").getByRole("textbox").fill(definition);
+  await runCell(page,"ch-1-check","passed");
+  await specimen(page,"ch-1").getByRole("textbox").fill("# missing definition");
+  await expect(specimen(page,"ch-1-check")).toHaveAttribute("data-validation","stale");
+  await runCell(page,"ch-1-check","failed");
+  await specimen(page,"build-work").getByRole("textbox").fill("# no migration submitted");
+  await runCell(page,"build-check","failed");
+});
+
+for (const [lesson, names] of [
+  ["basics/notebooks/13_file_handling", "Path, csv, tempfile"],
+  ["intermediate/notebooks/06_generators_and_lazy_pipelines","Iterable, Iterator"],
+]) test("fresh-session setup in " + lesson, async ({page}) => {
+  await page.goto("/lesson/" + lesson);
+  const original = await starter(page,"ch-1");
+  await runCell(page,"ch-1","ran",original + "\nprint(tuple(x.__name__ for x in (" + names + ")))");
+});
+
+test("rapid edits, restart and reset discard in-flight grading", async ({page}) => {
+  await page.goto("/lesson/basics/notebooks/16_basic_problem_solving");
+  const item = specimen(page,"ex-2");
+  const original = await starter(page,"ex-2");
+  const correct = original.replace("___","running.append(total)");
+  await runCell(page,"ex-2","passed",correct);
+  const delayed = 'import asyncio\nawait asyncio.sleep(2)\n' + correct;
+  await item.getByRole("textbox").fill(delayed);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation","running");
+  await item.getByRole("textbox").fill("print('new edit')");
+  await expect(item).toHaveAttribute("data-validation","stale");
+  await item.getByRole("textbox").fill(delayed);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation","running");
+  await page.getByRole("button",{name:"Restart",exact:true}).click();
+  await expect(item).toHaveAttribute("data-validation","stale");
+  page.once("dialog",dialog => dialog.accept());
+  await item.getByRole("button",{name:"Reset",exact:true}).click();
+  await expect.poll(() => starter(page,"ex-2")).toEqual(original);
+  await runCell(page,"ex-2","not_attempted");
+});
+
+// Credit (the solved mark and the lesson score) follows the current submission,
+// not the history: wrong edits drop it at once, reloads cannot restore it, and
+// evidence from another curriculum revision or the old format is never current.
+test("credit follows current code across edits, reloads, revisions and old progress", async ({ page }) => {
+  const id = "basics/notebooks/16_basic_problem_solving";
+  await page.goto("/lesson/" + id);
+  const item = specimen(page, "ex-2");
+  const score = page.locator(".nb-score b");
+  const solved = () => expect(item).toHaveClass(/\bsolved\b/);
+  const unsolved = () => expect(item).not.toHaveClass(/\bsolved\b/);
+  await unsolved();
+  const start = Number(await score.textContent());
+  const original = await starter(page, "ex-2");
+  const correct = original.replace("___", "running.append(total)");
+  const wrong = original.replace("___", "running.append(v)");
+
+  await runCell(page, "ex-2", "passed", correct);
+  await solved();
+  await expect(score).toHaveText(String(start + 1));
+  await item.getByRole("textbox").fill(wrong);
+  await expect(item).toHaveAttribute("data-validation", "stale");
+  await unsolved();
+  await expect(score).toHaveText(String(start));
+  await runCell(page, "ex-2", "failed");
+  await page.reload();
+  await expect(item).toHaveAttribute("data-validation", "failed");
+  await unsolved();
+  await runCell(page, "ex-2", "passed", correct);
+  await page.reload();
+  await expect(item).toHaveAttribute("data-validation", "passed");
+  await solved();
+  await expect(score).toHaveText(String(start + 1));
+
+  // The same pass recorded against an older curriculum revision is stale; the
+  // history and a quiz answer in the same store survive.
+  await page.evaluate((nb) => {
+    const s = JSON.parse(localStorage.getItem("swarmladderlab.v1")!);
+    s.current[nb + "#ex2"].revision = "0000000000000000000000000000000000000000";
+    s.done[nb + "#q1"] = 1700000000000;
+    localStorage.setItem("swarmladderlab.v1", JSON.stringify(s));
+  }, id);
+  await page.reload();
+  await expect(item).toHaveAttribute("data-validation", "stale");
+  await unsolved();
+  const stored = await page.evaluate((nb) => JSON.parse(localStorage.getItem("swarmladderlab.v1")!).done, id);
+  expect(stored[id + "#ex2"]).toBeGreaterThan(0);
+  expect(stored[id + "#q1"]).toBe(1700000000000);
+
+  // Old-format progress (completions only) keeps its saved code and history but
+  // earns no current credit until the code is checked again.
+  await page.evaluate((nb) => localStorage.setItem("swarmladderlab.v1", JSON.stringify({
+    done: { [nb + "#ex2"]: 1600000000000 },
+    code: { [nb]: { "ex-2": "# my old attempt" } },
+  })), id);
+  await page.reload();
+  expect(await starter(page, "ex-2")).toEqual("# my old attempt");
+  await unsolved();
+  await runCell(page, "ex-2", "passed", correct);
+  await solved();
+  const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem("swarmladderlab.v1")!));
+  expect(migrated.version).toBe(2);
+  expect(migrated.done[id + "#ex2"]).toBe(1600000000000);
+});
+
+test("a failed pytest download is reported as an error, never as progress or a pass", async ({ page }) => {
+  // Block pytest's wheel; the rest of Python still loads.
+  await page.route(/\/pytest-[^/]*\.whl$/, (route) => route.abort());
+  await page.goto("/lesson/basics/notebooks/05_conditional_statements");
+  await expect(runtime(page)).toContainText("Python ready", { timeout: 180000 });
+  const fn = await cell(page, "def classify_temperature");
+  await fn.getByRole("textbox").fill('def classify_temperature(celsius):\n    return "freezing" if celsius <= 0 else "cold" if celsius < 15 else "comfortable" if celsius < 25 else "hot"');
+  const check = page.locator(".code-cell.kind-check", { hasText: "classify_temperature" }).first();
+  await check.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(check.locator(".output")).toContainText("Could not install pytest", { timeout: 120000 });
+  await expect(check.locator("xpath=ancestor::*[@data-cell-id][1]")).toHaveAttribute("data-validation", "execution_error");
 });

@@ -1,5 +1,10 @@
+import pythonRevision from "../../../build/python-revision.json" with { type: "json" };
 export const STORE = "swarmladderlab.v1";
+export type Validation = "not_attempted" | "passed" | "failed" | "execution_error" | "stale";
+export type Evidence = { status: Validation; cells: string[]; revision: string; independent?: boolean };
 type State = {
+  version?: number;
+  current?: Record<string, Evidence>;
   done?: Record<string, number>;
   code?: Record<string, Record<string, string>>;
   last?: string | null;
@@ -8,7 +13,9 @@ type State = {
 };
 export function read(): State {
   try {
-    return JSON.parse(localStorage.getItem(STORE) || "{}") || {};
+    const state: State = JSON.parse(localStorage.getItem(STORE) || "{}") || {};
+    return { ...state, version: 2 };
+
   } catch {
     return {};
   }
@@ -17,10 +24,24 @@ function write(state: State) {
   localStorage.setItem(STORE, JSON.stringify(state));
   if (typeof window !== "undefined") dispatchEvent(new Event("swl-progress"));
 }
-export const doneIn = (id: string) =>
-  Object.keys(read().done ?? {})
-    .filter((k) => k.startsWith(id + "#"))
-    .map((k) => k.slice(id.length + 1));
+// v1 timestamps remain historical. Code checks acquire current evidence on rerun.
+const pythonCheck = (id: string, key: string) =>
+  /^(basics|intermediate|advanced)\//.test(id) && /^(ex\d+$|wb:|mastery:)/.test(key);
+export function currentStatus(e?: Evidence) {
+  return e && (e.revision === pythonRevision ? e.status : "stale");
+}
+export function doneIn(id: string, s: Pick<State, "done" | "current"> = read()) {
+  return Object.keys(s.done ?? {}).filter(k => k.startsWith(id + "#"))
+    .map(k => k.slice(id.length + 1))
+    .filter(k => !pythonCheck(id, k) || currentStatus(s.current?.[id + "#" + k]) === "passed");
+}
+export function validate(id: string, key: string, evidence: Evidence) {
+  const s = read();
+  s.version = 2;
+  (s.current ??= {})[id + "#" + key] = evidence;
+  if (evidence.status === "passed") (s.done ??= {})[id + "#" + key] ??= Date.now();
+  write(s);
+}
 export function mark(id: string, keys: string[]) {
   const s = read();
   s.done ??= {};
@@ -29,6 +50,9 @@ export function mark(id: string, keys: string[]) {
 }
 export function save(id: string, cell: string, value?: string) {
   const s = read();
+  for (const [key, evidence] of Object.entries(s.current ?? {})) {
+    if (key.startsWith(id + "#") && evidence.cells.includes(cell)) evidence.status = "stale";
+  }
   s.code ??= {};
   s.code[id] ??= {};
   if (value === undefined) delete s.code[id][cell];
@@ -80,6 +104,10 @@ export function importData(text: string) {
   if (
     !record(data) ||
     data.format !== STORE ||
+    (data.current !== undefined && (!record(data.current) || data.version !== 2 ||
+      !Object.values(data.current).every(e => record(e) && typeof e.revision === "string" &&
+        ["passed","failed","execution_error","not_attempted","stale"].includes(String(e.status)) &&
+        Array.isArray(e.cells) && e.cells.every(c => typeof c === "string")))) ||
     (data.last != null && typeof data.last !== "string") ||
     (data.done !== undefined &&
       (!record(data.done) ||

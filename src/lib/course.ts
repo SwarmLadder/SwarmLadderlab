@@ -16,9 +16,12 @@ export type CodeCell = {
   type: "code";
   id: string;
   kind: string;
+  requires_cells?: string[];
+  assessment?: string | null;
   source: string;
 };
 export type Notebook = {
+  revision?: string;
   id: string;
   title: string;
   folder: string;

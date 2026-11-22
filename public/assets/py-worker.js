@@ -21,10 +21,11 @@ async function init(base) {
   py.setStdout({ batched: (text) => postMessage({ type: "stream", id: currentId, name: "stdout", text: text + "\n" }) });
   py.setStderr({ batched: (text) => postMessage({ type: "stream", id: currentId, name: "stderr", text: text + "\n" }) });
   status("Loading course files…");
-  await py.loadPackage(["sqlite3", "micropip"]);
+  await py.loadPackage("sqlite3");
   const files = await (await fetch(base + "data/course-files.json")).json();
   await Promise.all(files.map(async (relative) => {
     const response = await fetch(base + "course/" + relative);
+    if (!response.ok) throw Error("Missing course file: " + relative);
     const data = new Uint8Array(await response.arrayBuffer());
     const path = "/course/" + relative;
     py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));
@@ -72,7 +73,17 @@ def _swl_complete(ns, expr):
 async function ensurePytest() {
   if (pytestReady) return;
   status("Installing pytest for the checks (one time, a few seconds)…");
-  await py.runPythonAsync("import micropip\nawait micropip.install('pytest')");
+  // Report package progress in the status bar, not in the learner's output, and
+  // turn a failed download into a clear error instead of a lingering message.
+  const problems = [];
+  try {
+    await py.loadPackage("pytest", { messageCallback: () => {}, errorCallback: (text) => problems.push(text) });
+    if (problems.length) throw Error(problems.join("\n"));
+    py.runPython("import pytest");
+  } catch (error) {
+    status("");
+    throw Error("Could not install pytest for the checks: " + String(error.message || error) + "\nCheck your connection and run the check again.");
+  }
   pytestReady = true;
   status("");
 }
@@ -81,22 +92,55 @@ function friendlyError(message) {
   if (message.includes("can't start new thread")) {
     return "Browsers can't start threads, so this cell needs real Python. Open it in Jupyter, Codespaces or Colab (see the links at the top).";
   }
-  if (message.includes("BlankNotFilled") || message.includes("'___'") || message.includes("got ___")) {
-    return "✏️ Fill in every ___ blank in this cell, then run it again.";
-  }
   return null;
 }
 
-async function run(id, code, cwd) {
+async function run(id, code, cwd, fresh, assessment) {
   currentId = id;
   try {
+    if (fresh) {
+      namespace.destroy();
+      namespace = py.runPython('{"__name__": "__main__"}');
+    }
     if (/\bcheck\(\s*'/.test(code) || code.includes("check.summary") || code.includes("from check import")) {
       await ensurePytest();
     }
     py.globals.set("__swl_cwd", cwd);
     py.runPython("import os, sys\nos.makedirs(__swl_cwd, exist_ok=True)\nos.chdir(__swl_cwd)\nsys.path[:] = [p for p in sys.path if not p.startswith('/course/')]\nsys.path.insert(0, __swl_cwd)\n");
-    await py.runPythonAsync(code, { globals: namespace });
-    postMessage({ type: "done", id });
+    if (assessment) {
+      // Observe calls to the course checker itself. Its caller remains the learner's
+      // frame, which Exercises uses to locate the submitted implementation.
+      py.globals.set("_swl_ns", namespace);
+      py.globals.set("_swl_expected", assessment);
+      py.runPython(`
+import sys
+from lesson import Exercises as _Exercises
+_swl_checker = _swl_ns.get("check")
+_swl_result = "not_attempted"
+def _swl_grade(frame, event, arg):
+    global _swl_result
+    if event != "return" or frame.f_locals.get("self") is not _swl_checker:
+        return
+    if frame.f_code is _Exercises.__call__.__code__:
+        number = frame.f_locals["number"]
+        key = "wb:" + number if isinstance(number, str) else "ex" + str(number)
+    elif frame.f_code is _Exercises.assess.__code__:
+        key = "mastery:" + frame.f_locals["name"]
+    else:
+        return
+    if key == _swl_expected:
+        result = _swl_checker.last_result
+        _swl_result = "passed" if result is True else "failed" if result is False else "not_attempted"
+sys.setprofile(_swl_grade)
+`);
+    }
+    try {
+      const value = await py.runPythonAsync(code, { globals: namespace });
+      value?.destroy?.();
+    } finally {
+      if (assessment) py.runPython("sys.setprofile(None)");
+    }
+    postMessage({ type: "done", id, assessment: assessment ? py.globals.get("_swl_result") : undefined });
   } catch (error) {
     const message = String(error.message || error);
     // Keep the useful end of the Python traceback; hide Pyodide's own frames.
@@ -107,6 +151,11 @@ async function run(id, code, cwd) {
     // The last frame in the learner's own code ("<exec>") is the line to highlight.
     const frames = [...message.matchAll(/File "<exec>", line (\d+)/g)];
     const line = frames.length ? Number(frames[frames.length - 1][1]) : undefined;
+    if (["BlankNotFilled", "NotImplementedError"].includes(error.type) ||
+        (error.type === "NameError" && /NameError: name '___' is not defined\s*$/.test(message))) {
+      postMessage({ type: "done", id, assessment: "not_attempted", friendly: "Finish the implementation and run it again." });
+      return;
+    }
     postMessage({ type: "done", id, error: lines.join("\n").trim(), friendly: friendlyError(message), line });
   } finally {
     currentId = null;
@@ -119,7 +168,7 @@ onmessage = async (event) => {
     try { await init(message.base); }
     catch (error) { postMessage({ type: "fatal", text: String(error) }); }
   } else if (message.type === "run") {
-    await run(message.id, message.code, message.cwd);
+    await run(message.id, message.code, message.cwd, message.fresh, message.assessment);
   } else if (message.type === "lint") {
     let problems = [];
     try { problems = helpers.get("_swl_lint")(message.code).toJs({ dict_converter: Object.fromEntries }); } catch {}

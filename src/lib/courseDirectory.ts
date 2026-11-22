@@ -1,3 +1,4 @@
+import { doneIn, type Evidence } from "../features/progress/store.ts";
 import type { Catalog, Item } from "./course";
 import type { Course } from "./courses";
 
@@ -8,6 +9,7 @@ export type CourseOverview = {
   checks: number;
 };
 export type ProgressSnapshot = {
+  current?: Record<string, Evidence>;
   done?: Record<string, number>;
   finished?: Record<string, number>;
   last?: string | null;
@@ -23,10 +25,10 @@ export function summarizeCourse(course: Course, data?: Catalog): CourseOverview 
 
 // All courses share one progress format but their full activity IDs are distinct.
 export function courseCompletion(summary: CourseOverview, snapshot: ProgressSnapshot) {
-  const keys = Object.keys(snapshot.done ?? {});
+
   const completed = summary.items.reduce((n, item) => {
     if (!item.graded) return n + Number(Boolean(snapshot.finished?.[item.id]));
-    const marks = keys.filter((key) => key.startsWith(item.id + "#")).length;
+    const marks = doneIn(item.id, snapshot).length;
     return n + Number(marks >= item.graded);
   }, 0);
   const total = summary.items.length;

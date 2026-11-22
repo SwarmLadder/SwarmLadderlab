@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/python-notebook
+          ref: 81f768e8a5775e0eedd01350d47f96834d192477
           path: course
       - uses: actions/checkout@v4
         with:
@@ -69,6 +70,15 @@ jobs:
       - run: COURSE=course SQL_COURSE=sql-course GIT_COURSE=git-course RUST_COURSE=rust-course LINUX_COURSE=linux-course DSA_COURSE=dsa-course C_COURSE=c-course JAVA_COURSE=java-course python -m pytest tests -q
       - run: npm test
       - run: npm run build
+        env:
+          COURSE: course
+          SQL_COURSE: sql-course
+          GIT_COURSE: git-course
+          RUST_COURSE: rust-course
+          LINUX_COURSE: linux-course
+          DSA_COURSE: dsa-course
+          C_COURSE: c-course
+          JAVA_COURSE: java-course
       - run: npx playwright install --with-deps chromium
       - name: Verify Java browser flow independently
         run: npx playwright test tests/browser/java.spec.ts

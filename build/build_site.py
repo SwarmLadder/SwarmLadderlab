@@ -17,6 +17,7 @@ import ast
 import json
 import posixpath
 import re
+import subprocess
 import shutil
 import sys
 from pathlib import Path
@@ -68,6 +69,10 @@ def classify_code(cell: dict, text: str) -> str:
     cell_id = cell.get("id", "")
     if cell_id == "colab-setup":
         return "colab"
+    if cell_id == "build-check":
+        return "check"
+    if cell_id == "engineering-work":
+        return "engineering"
     if cell_id == "quiz-check":
         return "quiz"
     # Lesson exercises are recognised by content, so both layouts work: the older
@@ -88,6 +93,7 @@ def convert_notebook(path: Path, course: Path) -> dict:
     nb_id = notebook_id(path, course)
     md = markdown.Markdown(extensions=["fenced_code", "tables", "sane_lists"])
     cells = []
+    seen = set()
     title = None
     for index, cell in enumerate(nb["cells"]):
         text = cell_text(cell)
@@ -100,7 +106,24 @@ def convert_notebook(path: Path, course: Path) -> dict:
             kind = classify_code(cell, text)
             if kind == "colab":
                 continue  # the browser already has every course file
-            cells.append({"type": "code", "id": cell.get("id") or f"cell-{index}", "kind": kind, "source": text})
+            cell_id = cell["id"]
+            deps = cell.get("metadata", {}).get("requires_cells", [])
+            if not isinstance(deps, list) or any(d not in seen for d in deps):
+                raise ValueError(f"{path}:{cell_id} requires an earlier executable cell: {deps}")
+            if cell_id in seen:
+                raise ValueError(f"{path}: duplicate cell {cell_id}")
+            if (cell_id == "build-check" or re.fullmatch(r"ch-\d+-check", cell_id)) and not deps:
+                raise ValueError(f"{path}:{cell_id} has no declared submission")
+            seen.add(cell_id)
+            key = None
+            if kind == "exercise":
+                key = "ex" + re.search(r"\bcheck\((\d+),", text)[1]
+            elif kind == "check":
+                named = re.search(r"""\bcheck(\.assess)?\(\s*['"]([^'"]+)['"]""", text)
+                if named:
+                    key = ("mastery:" if named[1] else "wb:") + named[2]
+            cells.append({"type": "code", "id": cell_id, "kind": kind, "source": text,
+                          "requires_cells": deps, "assessment": key})
     return {"id": nb_id, "title": title or path.stem, "folder": posixpath.dirname(nb_id), "cells": cells}
 
 
@@ -116,6 +139,8 @@ def lesson_totals(nb: dict) -> dict:
         elif cell["kind"] == "quiz":
             match = re.search(r"Quiz\('[^']+', (\{.*?\})\)", cell["source"])
             keys += [f"q{n}" for n in sorted(ast.literal_eval(match.group(1)))]
+        elif cell.get("assessment", "") and cell["assessment"].startswith("mastery:"):
+            keys.append(cell["assessment"])
         elif cell["kind"] == "check":
             match = re.match(r"\s*check\('([^']+)'\)", cell["source"])
             if match:
@@ -184,14 +209,27 @@ def build(course: Path, out: Path) -> dict:
     if out.exists():
         shutil.rmtree(out)
     (out / "data" / "nb").mkdir(parents=True)
-    catalog = {"course": COURSE_REPO_URL, "levels": []}
+    revision = subprocess.check_output(["git", "-C", str(course), "rev-parse", "HEAD"], text=True).strip()
+    print(f"Python curriculum {revision}")
+    catalog = {"revision": revision, "course": COURSE_REPO_URL, "levels": []}
+    catalog["workbooks"] = workbook_modules(course)
+    assessed_challenges = {
+        (lesson, "wb:" + name)
+        for pack in catalog["workbooks"].values()
+        for name in pack["exercises"]
+        for lesson in [pack.get("lessons", {}).get(name)]
+        if lesson
+    }
     for level, label, medal in LEVELS:
         entry = {"id": level, "title": label, "medal": medal, "sections": [], "total": 0}
         for folder, section_title in SECTIONS:
             items = []
             for path in sorted((course / level / folder).glob("*.ipynb")):
                 nb = convert_notebook(path, course)
+                nb["revision"] = revision
                 keys = lesson_totals(nb)
+                if "/notebooks/" in nb["id"]:
+                    keys = [key for key in keys if not key.startswith("wb:") or (nb["id"], key) in assessed_challenges]
                 nb["graded"] = keys
                 out_file = out / "data" / "nb" / (nb["id"].replace("/", "__") + ".json")
                 out_file.write_text(json.dumps(nb, ensure_ascii=False), encoding="utf-8")
@@ -200,7 +238,6 @@ def build(course: Path, out: Path) -> dict:
             if items:
                 entry["sections"].append({"id": folder, "title": section_title, "items": items})
         catalog["levels"].append(entry)
-    catalog["workbooks"] = workbook_modules(course)
     (out / "data" / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding="utf-8")
 
     listed = []

@@ -13,6 +13,7 @@ const isExercisePrompt = (html: string) => /^\s*<p><strong>Exercise \d+\.<\/stro
 const isNextLink = (html: string) => /^\s*<p><strong>Next:<\/strong>/.test(html);
 
 export function keysFor(c: CodeCell): string[] {
+  if (c.assessment) return [c.assessment];
   if (c.kind === "quiz") return Array.from(c.source.matchAll(/quiz\.answer\((\d+),/g), (m) => "q" + m[1]);
   const m = c.kind === "exercise" ? c.source.match(/check\((\d+),/) : c.kind === "check" ? c.source.match(/check\('([^']+)'\)/) : null;
   return m ? [(c.kind === "exercise" ? "ex" : "wb:") + m[1]] : [];
