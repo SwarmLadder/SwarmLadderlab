@@ -13,7 +13,7 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await page.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.getByText("DSA · Basics")).toBeVisible();
+  await expect(page.getByRole("list", { name: "DSA Basics" })).toBeVisible();
 });
 
 test("DSA problem B01 preserves source, editable Python and public-case contract", async ({ page }) => {
@@ -58,7 +58,7 @@ test("DSA Python grader passes correct code and records course progress", async 
   await page.reload();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.getByText("DSA · Basics")).toBeVisible();
+  await expect(page.getByRole("list", { name: "DSA Basics" }).locator("li.done")).toHaveCount(1);
 });
 
 test("C17 local lab requires explicit learner confirmation, never browser execution", async ({ page }) => {
@@ -80,7 +80,7 @@ test("C17 local lab requires explicit learner confirmation, never browser execut
   await verified.click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.getByText("C17 · Basics")).toBeVisible();
+  await expect(page.getByRole("list", { name: "C Basics" })).toBeVisible();
 });
 
 test("C deep dives and detailed interviews are readable independently", async ({ page }) => {

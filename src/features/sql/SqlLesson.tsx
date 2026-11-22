@@ -25,6 +25,10 @@ type SqlPage = {
 };
 const SQL_REPO = "https://github.com/SwarmLadder/SQL";
 
+// SQLite runs inside the browser's Python runtime; name it for what the learner uses.
+const sqlStatus = (message: string) => message === "Python ready" || message === "" ? "SQLite ready"
+  : message.startsWith("Loading Python") ? "Loading the SQLite runtime (first visit downloads about 10 MB)…" : message;
+
 export function SqlLesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [lesson, setLesson] = useState<SqlPage>();
   const [error, setError] = useState("");
@@ -79,8 +83,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
   useEffect(() => {
     document.title = lesson.title + " · SwarmLadder Lab";
     if (lesson.runnable) {
-      const session = new Runner((message) =>
-        setStatus(message === "Python ready" || message === "" ? "SQLite ready" : message));
+      const session = new Runner((message) => setStatus(sqlStatus(message)));
       runner.current = session;
     }
     return () => {
@@ -104,8 +107,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
   function restart(clearOutput: boolean) {
     runner.current?.dispose();
     if (lesson.runnable) {
-      runner.current = new Runner((message) =>
-        setStatus(message === "Python ready" || message === "" ? "SQLite ready" : message));
+      runner.current = new Runner((message) => setStatus(sqlStatus(message)));
       setStatus("Starting SQLite…");
     }
     running.current = false;
@@ -167,6 +169,7 @@ function Workspace({ lesson, catalog }: { lesson: SqlPage; catalog: Catalog }) {
             <Link href="/learn/sql">SQL</Link>
             <span aria-hidden="true">/</span>
             <span>{here?.level.title ?? "Course"}</span>
+            <Link className="crumb-roadmap" href="/learn/sql/roadmap">Roadmap</Link>
           </nav>
           <span className={"runtime" + (/ready/i.test(status) ? " ready" : "")} role="status">
             <span className="runtime-dot" aria-hidden="true" />

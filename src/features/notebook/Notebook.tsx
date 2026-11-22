@@ -297,6 +297,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           <Link href={coursePath("python")}>Python</Link>
           <span aria-hidden="true">/</span>
           <span>{stop?.level.title}</span>
+          <Link className="crumb-roadmap" href="/learn/python/roadmap">Roadmap</Link>
         </nav>
         <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
           <Play size={14} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>

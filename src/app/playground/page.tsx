@@ -49,6 +49,10 @@ const EXAMPLES: Record<PlayLanguage, { label: string; code: string }[]> = { pyth
     { label: "Branches", code: "git switch -c feature\ngit branch\ngit status\n" },
   ],
 };
+// Where the code runs, shown beside the language and in the status bar.
+const MODE: Record<PlayLanguage, string> = {
+  python: "In browser", sql: "SQLite in browser", rust: "External runner", git: "Simulator", linux: "Simulator",
+};
 type Line = { name: string; text: string };
 type Meta = { ok: boolean; ms: number } | null;
 
@@ -263,6 +267,7 @@ export default function Playground() {
             <option value="git">Git & GitHub</option>
             <option value="linux">Linux & Bash (simulated)</option>
           </select>
+          <span className={"ide-mode" + (language === "rust" ? " external" : "")}>{MODE[language]}</span>
         </div>
         <div className="ide-actions">
           <div className="ide-menu">
@@ -292,29 +297,24 @@ export default function Playground() {
         </div>
       </div>
 
-      <div className="ide-mode-notice" role="note">
-        {language === "rust" ? (
-          <>
-            Rust compiles on the official external Rust Playground. Clicking Run Rust sends
-            your code to play.rust-lang.org — do not include secrets.{" "}
-            <a href={rustPlaygroundLink(source)} target="_blank" rel="noopener noreferrer">
-              Open code in Rust Playground
-            </a>
-          </>
-        ) : language === "linux" ? (
-          <>Linux teaching simulator: a virtual filesystem with a limited safe command set. It cannot execute real Bash, inspect your machine, or grade source-course scripts. Type <code>help</code> for supported commands.</>
-        ) : language === "git" ? (
-          <>
-            Safe, in-browser Git practice simulator: supports status, stage, commit, log,
-            branches and restore. It is not native Git and cannot grade course labs.
-            Type <code>help</code> to see the supported commands.
-          </>
-        ) : language === "sql" ? (
-          <>SQL runs on a fresh fictional SQLite database in your browser; changes reset each run.</>
-        ) : (
-          <>Python runs in an isolated browser worker with the existing interactive runtime.</>
-        )}
-      </div>
+      {/* Concise runtime context. Rust's privacy disclosure is always visible; simulator
+          limits are one line plus details on demand. Python and SQL need no banner. */}
+      {language === "rust" ? (
+        <div className="ide-context external" role="note">
+          <span>Clicking Run Rust sends your code to play.rust-lang.org, the official external Rust Playground. Don&apos;t include secrets.</span>
+          <a href={rustPlaygroundLink(source)} target="_blank" rel="noopener noreferrer">Open in Rust Playground ↗</a>
+        </div>
+      ) : language === "linux" || language === "git" ? (
+        <div className="ide-context" role="note">
+          <span>{language === "linux" ? "Teaching simulator with a safe subset of commands." : "Git practice simulator with the everyday commands."} Type <code>help</code> to list them.</span>
+          <details>
+            <summary>Limits</summary>
+            <p>{language === "linux"
+              ? "Linux teaching simulator: a virtual filesystem with a limited safe command set. It cannot execute real Bash, inspect your machine, or grade source-course scripts."
+              : "Safe, in-browser Git practice simulator: supports status, stage, commit, log, branches and restore. It is not native Git and cannot grade course labs."}</p>
+          </details>
+        </div>
+      ) : null}
       <div className="ide-body" ref={body} style={{ ["--split" as string]: split + "%" }}>
         <section className="ide-editor" aria-label={DISPLAY_FILE[language]}>
           <CodeEditor key={language} language={language} value={source} onChange={edit}
@@ -355,7 +355,7 @@ export default function Playground() {
         <span className={problems ? "problems has" : "problems"}>{problems ? t(problems === 1 ? "play.problems" : "play.problemsMany", { n: problems }) : t("play.noProblems")}</span>
         <span className="ide-status-right">
           <span>{t("play.cursor", { line: cursor.line, col: cursor.col })}</span>
-          <span>{language === "python" ? "Python 3.13" : language === "sql" ? "SQLite" : language === "rust" ? "Rust 2021" : "Git practice simulator"}</span>
+          <span>{language === "python" ? "Python 3.13" : language === "sql" ? "SQLite" : language === "rust" ? "Rust 2021 · play.rust-lang.org" : language === "git" ? "Git simulator" : "Bash simulator"}</span>
           <span>{t("play.spaces")}</span>
           <span className="ide-keys"><kbd>⇧</kbd><kbd>↵</kbd> {t("play.toRun")}</span>
         </span>

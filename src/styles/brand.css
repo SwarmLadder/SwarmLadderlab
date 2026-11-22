@@ -1,0 +1,30 @@
+/* Brand: the ladder mark, the wordmark and technology marks. Rules in docs/BRAND.md. */
+.mark-tile { fill: var(--mark-tile, #0c1729); }
+.mark-rail { stroke: #e6f2ef; fill: none; }
+.mark-rail.back { opacity: 0.55; }
+.mark-rung { stroke: #3fe0b0; fill: none; }
+.mark-node { fill: #3fe0b0; }
+/* On the dark theme the navy tile would vanish into the page; lift it one step. */
+:root[data-theme="dark"] { --mark-tile: #13233d; }
+.colophon { --mark-tile: #13233d; }
+
+/* Technology marks keep their own colours; monochrome marks follow the ink. */
+.tech-logo { flex: none; }
+.tech-python { color: #3776ab; }
+.tech-rust, .tech-linux, .tech-java { color: var(--ink); }
+.tech-git { color: #f03c2e; }
+.tech-c { color: #5a6d8c; }
+:root[data-theme="dark"] .tech-c { color: #a8b9cc; }
+:root[data-theme="dark"] .tech-python { color: #6da4d8; }
+.tech-javascript { color: #f7df1e; }
+.tech-sql { color: #a0571e; }
+:root[data-theme="dark"] .tech-sql { color: #f0a868; }
+.tech-dsa { color: #2f5f93; }
+:root[data-theme="dark"] .tech-dsa { color: #8ab6ea; }
+
+/* Small phones: the wordmark alone, so the menu and theme toggle stay on screen. */
+@media (max-width: 380px) {
+  .wordmark-lab { display: none; }
+  .wordmark { gap: 0.5rem; }
+  .wordmark-text { font-size: 1.12rem; }
+}

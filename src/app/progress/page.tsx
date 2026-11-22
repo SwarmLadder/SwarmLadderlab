@@ -13,6 +13,7 @@ export default function Page() {
         { id: "linux", catalog: catalog("linux") },
         { id: "dsa", catalog: catalog("dsa") },
         { id: "c", catalog: catalog("c") },
+        { id: "java", catalog: catalog("java") },
       ]} />
     </Personal>
   );

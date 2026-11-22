@@ -64,8 +64,9 @@ test("Rust guides are readable and completion is tracked separately from checked
   await expect(page.getByText("✓ Completed")).toBeVisible();
 
   await page.goto("/progress");
-  await expect(page.getByText("Git & GitHub · Basics")).toBeVisible();
-  await expect(page.getByText("Rust · Basics")).toBeVisible();
-  await expect(page.getByText("SQL · Basics")).toBeVisible();
-  await expect(page.getByText("Python · Basics")).toBeVisible();
+  // Every course appears with its levels; the completed Rust activity shows as done.
+  for (const name of ["Git & GitHub Basics", "Rust Basics", "SQL Basics", "Python Basics", "Java Practical Java & DSA"]) {
+    await expect(page.getByRole("list", { name })).toBeVisible();
+  }
+  await expect(page.getByRole("list", { name: "Rust Basics" }).locator("li.done")).toHaveCount(1);
 });

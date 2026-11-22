@@ -6,8 +6,10 @@ import { lessonPath, type Catalog } from "../../lib/course";
 import { coursePath } from "../../lib/courses";
 import { lessonNumber, route, type Route, type Stop } from "../../lib/journey";
 import { onProgress, read } from "../progress/store";
-import { Shelf } from "./Shelf";
 import { LadderMark } from "../../components/Brand";
+import { TechLogo } from "../../components/TechLogo";
+import { courses as allCourses } from "../../lib/courses";
+import type { Roadmap } from "../../lib/roadmap";
 import { t } from "../../i18n";
 
 function useRoute(catalog: Catalog): Route {
@@ -16,8 +18,10 @@ function useRoute(catalog: Catalog): Route {
   return r;
 }
 
-export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalog, dsaCatalog, cCatalog }: {
+export type HomeFacts = { courses: number; activities: number; projects: number; schools: number; stages: number };
+export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalog, dsaCatalog, cCatalog, roadmap, facts }: {
   catalog: Catalog; sqlCatalog: Catalog; gitCatalog: Catalog; rustCatalog: Catalog; linuxCatalog: Catalog; dsaCatalog: Catalog; cCatalog: Catalog;
+  roadmap: Roadmap; facts: HomeFacts;
 }) {
   const python = useRoute(catalog);
   const sql = useRoute(sqlCatalog);
@@ -36,13 +40,14 @@ export function Home({ catalog, sqlCatalog, gitCatalog, rustCatalog, linuxCatalo
       {returning && r.current ? (
         <>
           <Desk route={r} courseId={["sql", "git", "rust", "linux", "dsa", "c"].includes(id) ? id : "python"} />
-          <Shelf />
+          <CourseIndex />
         </>
       ) : (
         <>
           <Welcome route={r} />
-          <Shelf />
-          <Climb route={r} />
+          <Path facts={facts} />
+          <CourseIndex />
+          <RoadmapPreview roadmap={roadmap} />
           <Close route={r} />
         </>
       )}
@@ -66,7 +71,7 @@ function Welcome({ route: r }: { route: Route }) {
                 {t("home.begin")} <ArrowRight size={18} strokeWidth={1.8} />
               </Link>
             )}
-            <a className="button quiet large" href="#shelf">{t("home.browse")}</a>
+            <Link className="button quiet large" href="/schools">Explore the schools</Link>
           </div>
         </div>
         <Plate />
@@ -119,65 +124,75 @@ function Plate() {
   );
 }
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
-
-// The route as a ladder. Rungs light up as they scroll into view.
-function Climb({ route: r }: { route: Route }) {
-  const ref = useRef<HTMLOListElement>(null);
-  useEffect(() => {
-    const root = ref.current;
-    if (!root || !("IntersectionObserver" in window)) return root?.classList.add("all-seen");
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("seen"), io.unobserve(e.target))),
-      { rootMargin: "0px 0px -12% 0px" },
-    );
-    root.querySelectorAll(".rung-row").forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
+// The campus journey, each step a real place in the product with real numbers.
+function Path({ facts }: { facts: HomeFacts }) {
+  const steps: [string, string, string, string][] = [
+    ["Explore a discipline", `${facts.schools} schools group the courses by kind of engineering.`, "/schools", "Schools"],
+    ["Follow a roadmap", `The Python roadmap has ${facts.stages} stages, from first values to production.`, "/learn/python/roadmap", "Python roadmap"],
+    ["Learn and practise", `${facts.activities} activities across ${facts.courses} courses, checked as you write.`, "/learn", "Courses"],
+    ["Build real projects", `${facts.projects} engineering projects with briefs and acceptance criteria.`, "/studio", "Studio"],
+    ["Collaborate", "Ask, contribute and review code on GitHub, in the open.", "/community", "Community"],
+  ];
   return (
-    <section className="climb" id="climb" aria-labelledby="climb-title">
-      <div className="shell climb-grid">
-        <header className="climb-copy">
-          <p className="section-mark">§ 2</p>
-          <h2 id="climb-title">{t("home.climb.title")}</h2>
-          <p className="lede">{t("home.climb.lede")}</p>
-          <ol className="climb-method">
-            <li><span>i.</span>{t("home.climb.p1")}</li>
-            <li><span>ii.</span>{t("home.climb.p2")}</li>
-            <li><span>iii.</span>{t("home.climb.p3")}</li>
-          </ol>
-        </header>
-        <ol className="ladder" ref={ref}>
-          {r.levels.map((lr, i) => {
-            const lessons = lr.stops.filter((s) => s.kind === "lesson");
-            const shown = lessons.slice(0, 4);
-            return (
-              <li key={lr.level.id} className="ladder-chapter">
-                <div className="rung-row chapter-row">
-                  <span className="chapter-numeral">{ROMAN[i] ?? i + 1}</span>
-                  <div>
-                    <span className="eyebrow">{t("home.climb.rung", { n: i + 1 })} · {t("course.lessons", { n: lr.stops.length })}</span>
-                    <h3>{lr.level.title}</h3>
-                  </div>
-                </div>
-                {shown.map((s) => {
-                  const { number, name } = lessonNumber(s.item.title);
-                  return (
-                    <div key={s.item.id} className="rung-row">
-                      <span className="rung-bar" aria-hidden="true" />
-                      <span className="rung-num">{number}</span>
-                      <span className="rung-title">{name}</span>
-                    </div>
-                  );
-                })}
-                <div className="rung-row rung-more">
-                  <span className="rung-bar" aria-hidden="true" />
-                  <span className="rung-title">{t("home.climb.more", { n: lr.stops.length - shown.length })}</span>
-                </div>
-              </li>
-            );
-          })}
-          <li className="ladder-top rung-row">{t("home.climb.top")}</li>
+    <section className="path" aria-labelledby="path-title">
+      <div className="shell">
+        <h2 id="path-title" className="path-title">From first program to real engineering</h2>
+        <ol className="path-steps">
+          {steps.map(([title, text, href, label], i) => (
+            <li key={href}>
+              <span className="path-n">{String(i + 1).padStart(2, "0")}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <Link href={href}>{label} <ArrowRight size={14} /></Link>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function CourseIndex() {
+  const open = allCourses.filter((c) => c.status === "open");
+  return (
+    <section className="course-index" aria-labelledby="ci-title" id="courses">
+      <div className="shell">
+        <div className="course-index-head">
+          <h2 id="ci-title">Courses</h2>
+          <Link href="/learn">All courses <ArrowRight size={14} /></Link>
+        </div>
+        <ul className="course-index-grid">
+          {open.map((c) => (
+            <li key={c.id}>
+              <Link href={coursePath(c.id)}>
+                <TechLogo id={c.id} size={28} />
+                <span><b>{c.title}</b><small>{c.language}</small></span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// A real roadmap, not an illustration: the Python course's stages by level.
+function RoadmapPreview({ roadmap }: { roadmap: Roadmap }) {
+  return (
+    <section className="rm-preview" aria-labelledby="rmp-title">
+      <div className="shell rm-preview-grid">
+        <div>
+          <h2 id="rmp-title">See the whole climb before you start.</h2>
+          <p className="lede">Every course has a roadmap. Python&apos;s follows the curriculum&apos;s own concept map, so each stage shows what it builds on and how it is checked.</p>
+          <Link className="button quiet" href="/learn/python/roadmap">Open the Python roadmap <ArrowRight size={16} /></Link>
+        </div>
+        <ol className="rm-preview-levels">
+          {roadmap.levels.map((level) => (
+            <li key={level.id}>
+              <h3>{level.title}</h3>
+              <ol>{level.stages.map((s) => <li key={s.id}><span className="rm-dot" aria-hidden="true" />{s.title}</li>)}</ol>
+            </li>
+          ))}
         </ol>
       </div>
     </section>

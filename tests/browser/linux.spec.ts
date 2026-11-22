@@ -14,7 +14,7 @@ test("Linux course exposes guided lessons, labs and progress", async ({ page }) 
   await page.getByRole("button", { name: /Mark activity complete/ }).click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.getByText("Linux & Bash · Basics")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Linux & Bash Basics" })).toBeVisible();
 });
 
 test("Linux lab requires explicit local PASS attestation", async ({ page }) => {
@@ -29,6 +29,9 @@ test("Linux lab requires explicit local PASS attestation", async ({ page }) => {
 
 test("browser Linux simulator is honest and safely isolated", async ({ page }) => {
   await page.goto("/playground?language=linux");
+  // The simulator is named up front; its full limits are one click away.
+  await expect(page.getByRole("note")).toContainText("Teaching simulator");
+  await page.getByText("Limits", { exact: true }).click();
   await expect(page.getByText(/Linux teaching simulator: a virtual filesystem/)).toBeVisible();
   const editor = page.getByRole("textbox", { name: "Linux commands" });
   await editor.fill("pwd\nwc -l logs/app.log\ngrep -n ERROR logs/app.log");
