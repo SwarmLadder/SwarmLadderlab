@@ -14,7 +14,7 @@ test("Linux course exposes guided lessons, labs and progress", async ({ page }) 
   await page.getByRole("button", { name: /Mark activity complete/ }).click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.getByText("Linux & Bash · Basics")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Linux & Bash Basics" })).toBeVisible();
 });
 
 test("Linux lab requires explicit local PASS attestation", async ({ page }) => {

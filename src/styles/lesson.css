@@ -410,3 +410,8 @@ body:has(.nbook) .colophon { display: none; }
 .nb-next { margin-left: auto; color: var(--signal); }
 .nb-next + .nb-score { margin-left: 0.6rem; }
 @media (max-width: 900px) { .nb-next { font-size: 0.78rem; } }
+/* Laptop widths: keep the numeric score, drop its meter, never push the page sideways. */
+@media (max-width: 1200px) {
+  .nb-meter { display: none; }
+  .nb-bar { overflow-x: auto; }
+}

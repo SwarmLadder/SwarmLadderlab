@@ -21,3 +21,10 @@
 :root[data-theme="dark"] .tech-sql { color: #f0a868; }
 .tech-dsa { color: #2f5f93; }
 :root[data-theme="dark"] .tech-dsa { color: #8ab6ea; }
+
+/* Small phones: the wordmark alone, so the menu and theme toggle stay on screen. */
+@media (max-width: 380px) {
+  .wordmark-lab { display: none; }
+  .wordmark { gap: 0.5rem; }
+  .wordmark-text { font-size: 1.12rem; }
+}

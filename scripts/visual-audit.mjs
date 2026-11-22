@@ -4,7 +4,7 @@
 import { chromium } from "playwright";
 const [base, out, phase] = process.argv.slice(2);
 const routes = [
-  ["home", "/"], ["learn", "/learn"], ["course-python", "/learn/python"], ["course-sql", "/learn/sql"],
+  ["home", "/"], ["learn", "/learn"], ["roadmap-python", "/learn/python/roadmap"], ["studio-ticket", "/studio/transactional-event-processor"], ["course-python", "/learn/python"], ["course-sql", "/learn/sql"],
   ["schools", "/schools"], ["studio", "/studio"], ["community", "/community"], ["playground", "/playground"],
   ["lesson-python", "/lesson/basics/notebooks/05_conditional_statements"], ["lesson-sql", "/lesson/sql/basics/lessons/00_select"],
   ["lesson-dsa", "/lesson/dsa/basics/problems/B01"], ["lesson-c", "/lesson/c/basics/drills/whole_minutes"],

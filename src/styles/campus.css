@@ -80,6 +80,8 @@
 .ticket-key { font: 500 0.8rem/1.4 var(--mono); color: var(--muted); margin: 0 0 0.6rem; text-transform: capitalize; }
 .ticket-head h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 3rem); margin: 0 0 0.8rem; }
 .ticket-body { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: 3rem; margin-top: 2rem; align-items: start; }
+.ticket-main, .ticket-side { min-width: 0; }
+.ticket-main p code { overflow-wrap: anywhere; }
 .ticket-main section + section { margin-top: 2.2rem; }
 .ticket-main h2 { font-size: 1.25rem; margin-bottom: 0.7rem; }
 .ticket-main li { margin: 0.35rem 0; line-height: 1.55; }
