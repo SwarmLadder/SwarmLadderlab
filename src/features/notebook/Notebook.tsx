@@ -217,12 +217,14 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   useEffect(() => {
     if (complete) finish(nb.id);
   }, [complete, nb.id]);
+  // Projects are independent work: reaching the end of the page is not finishing it.
+  const project = /(^|\/)projects$/.test(nb.folder);
   useEffect(() => {
-    if (graded || !bottom.current || !("IntersectionObserver" in window)) return;
+    if (graded || project || !bottom.current || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver((e) => e[0]?.isIntersecting && finish(nb.id));
     io.observe(bottom.current);
     return () => io.disconnect();
-  }, [graded, nb.id]);
+  }, [graded, project, nb.id]);
 
   function jump(i: number) {
     requestAnimationFrame(() =>
@@ -276,6 +278,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               error={errors[c.id] ?? null}
               onChange={(v) => change(c, v)}
               onRun={() => execute([c])}
+              requires={isCheckCell(c) ? (c.requires_cells ?? []).map((id) => ({ id, name: cellName(nb, id) })) : []}
             />
           );
         })}
@@ -401,6 +404,14 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   );
 }
 
+// An assessment runs its declared earlier cells first; name them for the learner.
+const isCheckCell = (c: CodeCell) => c.kind === "check";
+function cellName(nb: Notebook, id: string) {
+  const cell = nb.cells.find((c): c is CodeCell => c.type === "code" && c.id === id);
+  if (!cell) return id;
+  return cell.source.match(/^(?:async\s+)?(?:def|class)\s+(\w+)/m)?.[1] ?? label(cell);
+}
+
 function label(cell: CodeCell) {
   if (cell.kind === "engineering") return "Engineering submission · human review";
   if (cell.assessment?.startsWith("mastery:")) return "Independent assessment";
@@ -418,10 +429,11 @@ function lineClass(line: string) {
   return "";
 }
 
-function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, validation, onChange, onRun, runner, error }: {
+function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, validation, onChange, onRun, runner, error, requires = [] }: {
   cell: CodeCell; prompt: string; tag?: string; value: string; busy: string | null; output?: Output[]; count?: number; solved: boolean;
   validation?: Outcome;
   onChange: (v?: string) => void; onRun: () => void; runner: { current: Runner | null }; error: RuntimeError;
+  requires?: { id: string; name: string }[];
 }) {
   const isCheck = cell.kind === "check";
   const isTask = cell.kind === "engineering" || cell.id === "build-work" || cell.kind === "exercise" || isCheck || /___/.test(cell.source);
@@ -434,7 +446,7 @@ function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, v
     validation === "stale" ? "Edited · run to validate" : validation === "not_attempted" ? "Not attempted" : "";
   const runLabel = isCheck ? t("lesson.check") : t("lesson.run");
   return (
-    <div data-cell-id={cell.id} data-validation={running ? "running" : validation} className={"nb-cell" + (isTask ? " is-task" : "") + (solved ? " solved" : "") + (outcome === "is-error" ? " failed" : "")}>
+    <div id={"cell-" + cell.id} data-cell-id={cell.id} data-validation={running ? "running" : validation} className={"nb-cell" + (isTask ? " is-task" : "") + (solved ? " solved" : "") + (outcome === "is-error" ? " failed" : "")}>
       <div className="nb-gutter">
         <button className={"nb-play" + (running ? " running" : "")} disabled={!!busy && !running} onClick={onRun} aria-label={runLabel + " · " + label(cell)} title={runLabel + " (Shift + Enter)"}>
           {running ? <span className="nb-spin" aria-hidden="true" /> : <Play size={12} fill="currentColor" strokeWidth={0} />}
@@ -448,6 +460,12 @@ function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, v
               {solved && <Check size={12} strokeWidth={2.8} />} {tag ?? label(cell)}
             </span>
             {prompt && <span className="cell-prompt">{prompt}</span>}
+            {requires.length > 0 && (
+              <span className="nb-requires">
+                Runs your saved code from{" "}
+                {requires.map((r, i) => <span key={r.id}>{i ? ", " : ""}<a href={"#cell-" + r.id}>{r.name}</a></span>)}
+              </span>
+            )}
             <span className="cell-actions">
               {!isCheck && (
                 <button

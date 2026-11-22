@@ -205,6 +205,85 @@ def pack_title(course: Path, module: str) -> str:
     return match.group(1).strip().rstrip(".") if match else module
 
 
+# The Engineering Studio lists the curriculum's real projects. Everything shown is
+# read from the project notebooks and READMEs; nothing is written by the Lab.
+STUDIO_ACCEPTANCE = re.compile(r"(rubric|checklist)", re.I)
+STUDIO_SCOPE = re.compile(r"^(deliverables|requirements|project requirements|you will learn)$", re.I)
+
+
+def _bullets(text: str) -> list[str]:
+    items = []
+    for line in text.splitlines():
+        match = re.match(r"\s*[-*]\s+(?:\[ \]\s+)?(.+)", line)
+        if match:
+            items.append(re.sub(r"\*\*|`", "", match[1]).strip())
+    return items
+
+
+def _readme_skills(course: Path) -> dict[str, str]:
+    """'Main skills' / 'Key skills' columns of the level project READMEs, by notebook path."""
+    skills = {}
+    for readme in course.glob("*/projects/README.md"):
+        for line in readme.read_text(encoding="utf-8").splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            link = re.search(r"\(([^)]+\.ipynb)\)", line)
+            if len(cells) >= 3 and link:
+                skills[f"{readme.parent.relative_to(course).as_posix()}/{link[1]}"] = cells[1]
+    return skills
+
+
+def _sentences(text: str) -> list[str]:
+    text = re.sub(r"\*\*|`", "", text).strip()
+    return [part.strip() for part in re.split(r"(?<=[.!?])\s+(?=[A-Z`])", text) if part.strip()]
+
+
+def studio_projects(course: Path) -> list[dict]:
+    skills = _readme_skills(course)
+    projects = []
+    for level, _, _ in LEVELS:
+        for path in sorted((course / level / "projects").glob("*.ipynb")):
+            nb = json.loads(path.read_text(encoding="utf-8"))
+            relative = path.relative_to(course).as_posix()
+            text = "\n\n".join(cell_text(c) for c in nb["cells"] if c["cell_type"] == "markdown")
+            code = [cell_text(c) for c in nb["cells"] if c["cell_type"] == "code"]
+            # Split the notebook's prose into its "## " sections; the text before the
+            # first one is the title, the brief and the level/prerequisite line.
+            parts = re.split(r"(?m)^## ", text)
+            intro = [p.strip() for p in parts[0].split("\n\n") if p.strip()]
+            sections = {chunk.split("\n", 1)[0].strip(): chunk.split("\n", 1)[1] if "\n" in chunk else "" for chunk in parts[1:]}
+            title = intro[0].lstrip("# ").strip()
+            brief = re.sub(r"\*\*Goal:\*\*\s*", "", intro[1]) if len(intro) > 1 else ""
+            meta = " ".join(intro[2:])
+            prerequisite = re.search(r"\*\*(?:Prerequisite|Requirements):\*\*\s*([^·*]+)", meta)
+            scope = next((_bullets(body) for head, body in sections.items() if STUDIO_SCOPE.match(head)), [])
+            acceptance = next((_bullets(body) for head, body in sections.items() if STUDIO_ACCEPTANCE.search(head)), [])
+            if not acceptance:
+                evidence = re.search(r"\*\*(?:Acceptance criteria|Review evidence)\.\*\*\s*(.+?)(?:\n\n|$)", text, re.S)
+                acceptance = _sentences(evidence[1]) if evidence else []
+            raw = path.read_text(encoding="utf-8")
+            package = next((p for p in sorted(path.parent.glob("*_package")) if (p / "tests").is_dir() and p.name in raw), None)
+            projects.append({
+                "id": notebook_id(path, course),
+                "level": level,
+                "title": title,
+                "brief": re.sub(r"\*\*|`", "", brief).strip(),
+                "skills": skills.get(relative, ""),
+                "prerequisite": prerequisite[1].strip().rstrip(".") if prerequisite else "",
+                "scope": scope,
+                "acceptance": acceptance,
+                # A notebook "Project check" cell grades the independent ticket; others are reviewed work.
+                "automaticCheck": any("Project check" in c for c in code),
+                "source": f"{COURSE_REPO_URL}/blob/main/{relative}",
+                "package": {
+                    "path": package.relative_to(course).as_posix(),
+                    "source": f"{COURSE_REPO_URL}/tree/main/{package.relative_to(course).as_posix()}",
+                    "install": "python -m pip install -e .",
+                    "test": "python -m unittest discover -s tests -v",
+                } if package else None,
+            })
+    return projects
+
+
 def build(course: Path, out: Path) -> dict:
     if out.exists():
         shutil.rmtree(out)
@@ -239,6 +318,7 @@ def build(course: Path, out: Path) -> dict:
                 entry["sections"].append({"id": folder, "title": section_title, "items": items})
         catalog["levels"].append(entry)
     (out / "data" / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out / "data" / "studio.json").write_text(json.dumps(studio_projects(course), ensure_ascii=False, indent=1), encoding="utf-8")
 
     listed = []
     for source in course_files(course):

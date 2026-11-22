@@ -7,6 +7,7 @@ import "../styles/lesson.css";
 import "../styles/native.css";
 import "../styles/pages.css";
 import "../styles/library.css";
+import "../styles/campus.css";
 import { labRepo, courseRepo } from "../lib/course";
 import { Wordmark } from "../components/Brand";
 import { dir, locale, t } from "../i18n";
@@ -54,7 +55,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <nav aria-label={t("footer.learn")}>
               <p>{t("footer.learn")}</p>
+              <a href="/schools">{t("nav.schools")}</a>
               <a href="/learn">{t("nav.courses")}</a>
+              <a href="/studio">{t("nav.studio")}</a>
+              <a href="/community">{t("nav.community")}</a>
               <a href="/playground">{t("nav.playground")}</a>
               <a href="/achievements">{t("nav.achievements")}</a>
               <a href="/progress">{t("nav.progress")}</a>
