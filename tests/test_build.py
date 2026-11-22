@@ -106,3 +106,8 @@ def test_export_preserves_dependencies_and_current_helper(dist):
                 assert exported[c["id"]]["source"] == "".join(c["source"])
     for helper in ["practice/notebook_check.py","practice/practice_loader.py","advanced/notebooks/lesson.py"]:
         assert (dist / "course" / helper).read_bytes() == (COURSE / helper).read_bytes()
+
+def test_jointly_graded_helper_does_not_block_completion(dist):
+    lesson = json.loads((dist / "data/nb/intermediate__notebooks__15_sqlite_and_transactions.json").read_text())
+    assert "wb:create_schema" not in lesson["graded"]
+    assert "wb:add_task" in lesson["graded"]

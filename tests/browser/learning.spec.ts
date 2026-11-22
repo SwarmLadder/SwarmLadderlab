@@ -294,3 +294,26 @@ for (const [lesson, names] of [
   const original = await starter(page,"ch-1");
   await runCell(page,"ch-1","ran",original + "\nprint(tuple(x.__name__ for x in (" + names + ")))");
 });
+
+test("rapid edits, restart and reset discard in-flight grading", async ({page}) => {
+  await page.goto("/lesson/basics/notebooks/16_basic_problem_solving");
+  const item = specimen(page,"ex-2");
+  const original = await starter(page,"ex-2");
+  const correct = original.replace("___","running.append(total)");
+  await runCell(page,"ex-2","passed",correct);
+  const delayed = 'import asyncio\nawait asyncio.sleep(2)\n' + correct;
+  await item.getByRole("textbox").fill(delayed);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation","running");
+  await item.getByRole("textbox").fill("print('new edit')");
+  await expect(item).toHaveAttribute("data-validation","stale");
+  await item.getByRole("textbox").fill(delayed);
+  await item.locator(".nb-play").click();
+  await expect(item).toHaveAttribute("data-validation","running");
+  await page.getByRole("button",{name:"Restart",exact:true}).click();
+  await expect(item).toHaveAttribute("data-validation","stale");
+  page.once("dialog",dialog => dialog.accept());
+  await item.getByRole("button",{name:"Reset",exact:true}).click();
+  await expect.poll(() => starter(page,"ex-2")).toEqual(original);
+  await runCell(page,"ex-2","not_attempted");
+});

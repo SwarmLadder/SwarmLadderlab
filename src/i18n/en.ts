@@ -141,7 +141,7 @@ export const en = {
   "lesson.tipHint": "A hint appears after a wrong try",
   "lesson.complete.read": "Lesson read.",
   "lesson.setupReady": "Setup ready",
-  "lesson.setupLoading": "Preparing this lesson…",
+  "lesson.setupLoading": "Setup runs with each exercise",
   "lesson.setup": "Setup · runs automatically",
   "lesson.quiz": "Quick quiz",
   "lesson.quizCorrect": "Correct.",

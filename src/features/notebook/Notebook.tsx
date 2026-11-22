@@ -63,7 +63,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [batch, setBatch] = useState(false);
   const runner = useRef<Runner | null>(null);
-  const running = useRef(false);
   const runCount = useRef(0);
   const editVersion = useRef(0);
   const [setupDone, setSetupDone] = useState(false);
@@ -110,7 +109,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     const active = () => session === runner.current && version === editVersion.current;
     const next = chain.current.then(async () => {
       if (!session || !active()) return;
-      running.current = true;
       setBatch(all);
       try {
         for (const target of cells) {
@@ -139,8 +137,9 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
             if (!active() || result.stopped) return;
             const latest = read().code?.[nb.id] ?? {};
             if (plan.some(item => source(item) !== (latest[item.id] ?? item.source))) return;
-            if (c.kind === "setup") setSetupDone(!result.error);
+            if (c.kind === "setup") setSetupDone(!result.error && !result.friendly);
             if (result.error || result.friendly) {
+              if (!direct) setSetupDone(false);
               const prefix = direct ? "" : "Setup failed in " + c.id + ": ";
               append(target.id, "stderr", prefix + [result.friendly, result.error].filter(Boolean).join("\n"));
               if (direct && result.line) setErrors(e => ({ ...e, [target.id]: {line: result.line!, message: result.error ?? ""} }));
@@ -155,7 +154,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       } finally {
         if (session === runner.current) {
           requested.current = null;
-          running.current = false;
           setBusy(null);
           setBatch(false);
         }
@@ -179,7 +177,6 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       setCounts({});
       runCount.current = 0;
     } else if (stoppedCell) append(stoppedCell, "stderr", t("lesson.stopped"));
-    running.current = false;
     setBusy(null);
     setBatch(false);
   }

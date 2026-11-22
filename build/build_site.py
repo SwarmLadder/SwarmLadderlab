@@ -212,6 +212,14 @@ def build(course: Path, out: Path) -> dict:
     revision = subprocess.check_output(["git", "-C", str(course), "rev-parse", "HEAD"], text=True).strip()
     print(f"Python curriculum {revision}")
     catalog = {"revision": revision, "course": COURSE_REPO_URL, "levels": []}
+    catalog["workbooks"] = workbook_modules(course)
+    assessed_challenges = {
+        (lesson, "wb:" + name)
+        for pack in catalog["workbooks"].values()
+        for name in pack["exercises"]
+        for lesson in [pack.get("lessons", {}).get(name)]
+        if lesson
+    }
     for level, label, medal in LEVELS:
         entry = {"id": level, "title": label, "medal": medal, "sections": [], "total": 0}
         for folder, section_title in SECTIONS:
@@ -220,6 +228,8 @@ def build(course: Path, out: Path) -> dict:
                 nb = convert_notebook(path, course)
                 nb["revision"] = revision
                 keys = lesson_totals(nb)
+                if "/notebooks/" in nb["id"]:
+                    keys = [key for key in keys if not key.startswith("wb:") or (nb["id"], key) in assessed_challenges]
                 nb["graded"] = keys
                 out_file = out / "data" / "nb" / (nb["id"].replace("/", "__") + ".json")
                 out_file.write_text(json.dumps(nb, ensure_ascii=False), encoding="utf-8")
@@ -228,7 +238,6 @@ def build(course: Path, out: Path) -> dict:
             if items:
                 entry["sections"].append({"id": folder, "title": section_title, "items": items})
         catalog["levels"].append(entry)
-    catalog["workbooks"] = workbook_modules(course)
     (out / "data" / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding="utf-8")
 
     listed = []

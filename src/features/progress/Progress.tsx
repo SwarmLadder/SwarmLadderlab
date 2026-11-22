@@ -74,7 +74,7 @@ export function Progress({ catalogs }: {
   }, [catalogs, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const titles = useMemo(() => new Map(r.all.map((s) => [s.item.id, s.item.title])), [r]);
   const a = useMemo(() => activity(state.done ?? {}, titles), [state.done, titles]); // eslint-disable-line react-hooks/exhaustive-deps
-  const checks = Object.keys(state.done ?? {}).length;
+  const checks = r.levels.reduce((n, level) => n + level.done, 0);
   const totalChecks = r.levels.reduce((n, l) => n + l.total, 0);
   const finished = r.all.filter((s) => s.state === "done").length;
   const pct = totalChecks ? Math.round((100 * r.levels.reduce((n, l) => n + l.done, 0)) / totalChecks) : 0;

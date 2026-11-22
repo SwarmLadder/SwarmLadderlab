@@ -21,7 +21,7 @@ async function init(base) {
   py.setStdout({ batched: (text) => postMessage({ type: "stream", id: currentId, name: "stdout", text: text + "\n" }) });
   py.setStderr({ batched: (text) => postMessage({ type: "stream", id: currentId, name: "stderr", text: text + "\n" }) });
   status("Loading course files…");
-  await py.loadPackage(["sqlite3", "micropip"]);
+  await py.loadPackage("sqlite3");
   const files = await (await fetch(base + "data/course-files.json")).json();
   await Promise.all(files.map(async (relative) => {
     const response = await fetch(base + "course/" + relative);
@@ -73,7 +73,7 @@ def _swl_complete(ns, expr):
 async function ensurePytest() {
   if (pytestReady) return;
   status("Installing pytest for the checks (one time, a few seconds)…");
-  await py.runPythonAsync("import micropip\nawait micropip.install('pytest')");
+  await py.loadPackage("pytest");
   pytestReady = true;
   status("");
 }
