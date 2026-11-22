@@ -73,7 +73,17 @@ def _swl_complete(ns, expr):
 async function ensurePytest() {
   if (pytestReady) return;
   status("Installing pytest for the checks (one time, a few seconds)…");
-  await py.loadPackage("pytest");
+  // Report package progress in the status bar, not in the learner's output, and
+  // turn a failed download into a clear error instead of a lingering message.
+  const problems = [];
+  try {
+    await py.loadPackage("pytest", { messageCallback: () => {}, errorCallback: (text) => problems.push(text) });
+    if (problems.length) throw Error(problems.join("\n"));
+    py.runPython("import pytest");
+  } catch (error) {
+    status("");
+    throw Error("Could not install pytest for the checks: " + String(error.message || error) + "\nCheck your connection and run the check again.");
+  }
   pytestReady = true;
   status("");
 }
