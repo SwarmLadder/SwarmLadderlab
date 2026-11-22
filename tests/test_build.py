@@ -111,3 +111,19 @@ def test_jointly_graded_helper_does_not_block_completion(dist):
     lesson = json.loads((dist / "data/nb/intermediate__notebooks__15_sqlite_and_transactions.json").read_text())
     assert "wb:create_schema" not in lesson["graded"]
     assert "wb:add_task" in lesson["graded"]
+
+
+def test_studio_lists_every_project_from_its_notebook(dist):
+    studio = json.loads((dist / "data" / "studio.json").read_text())
+    catalog = json.loads((dist / "data" / "catalog.json").read_text())
+    projects = [i["id"] for l in catalog["levels"] for s in l["sections"] for i in s["items"] if "/projects/" in i["id"]]
+    assert sorted(p["id"] for p in studio) == sorted(projects)
+    by_id = {p["id"]: p for p in studio}
+    calculator = by_id["basics/projects/01_calculator"]
+    assert calculator["automaticCheck"] and calculator["prerequisite"] == "lessons 00–14"
+    assert any("ZeroDivisionError" in a for a in calculator["acceptance"])
+    tasks = by_id["intermediate/projects/03_sqlite_task_manager_cli"]
+    assert tasks["package"]["path"] == "intermediate/projects/task_manager_package"
+    assert not tasks["automaticCheck"] and "Task operations use SQL placeholders." in tasks["acceptance"]
+    # A package belongs only to the project that names it.
+    assert by_id["intermediate/projects/01_library_lending_system"]["package"] is None
