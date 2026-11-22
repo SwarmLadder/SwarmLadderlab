@@ -1,0 +1,84 @@
+/* Swarm Campus: schools, Engineering Studio, research and community. */
+.campus-hero { margin-bottom: 2.5rem; }
+.campus-hero h1 { max-width: 16ch; }
+.campus-journey ol { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; margin: 1.6rem 0 0; padding: 0 !important; counter-reset: stage; }
+.campus-journey li { counter-increment: stage; }
+.campus-journey a { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border: 1px solid var(--rule-2); border-radius: 999px; color: var(--ink-2); font: 600 0.8rem/1.2 var(--sans); text-decoration: none; background: var(--sheet); }
+.campus-journey a::before { content: counter(stage); font: 600 0.7rem/1 var(--mono); color: var(--muted); }
+.campus-journey a:hover { border-color: var(--blue); color: var(--ink); }
+.campus-journey a[aria-current="page"] { border-color: var(--blue); color: var(--blue); }
+.campus-note { margin-top: 2.5rem; color: var(--muted); font-size: 0.86rem; max-width: 60rem; }
+.campus h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); }
+.campus h3 { font: 700 0.78rem/1.3 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 1.4rem 0 0.6rem; }
+.campus ul, .campus ol { padding-left: 1.2rem; }
+.campus li { margin: 0.3rem 0; line-height: 1.55; }
+
+/* Schools */
+.school { padding: 1.8rem; margin-bottom: 1.4rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; box-shadow: var(--shadow); }
+.school-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 1.2rem; }
+.school-head h2 { margin: 0 0 0.5rem; }
+.school-focus { margin: 0; color: var(--ink-2); max-width: 44rem; }
+.school-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin: 0; color: var(--muted); font-size: 0.85rem; }
+.school-facts b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.school-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; }
+.school-body .button { margin-top: 1rem; }
+.school-courses, .school-highlights { list-style: none; padding: 0 !important; margin: 0; }
+.school-courses li, .school-highlights li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); margin: 0; }
+.school-courses a, .school-highlights a { font-weight: 650; color: var(--ink); }
+.school-course-meta, .school-highlights span { grid-column: 1; color: var(--muted); font-size: 0.82rem; }
+.school-course-progress { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+
+/* Engineering Studio */
+.studio-how { padding: 1.4rem 1.6rem; margin-bottom: 1.8rem; border: 1px solid var(--rule); border-radius: 14px; background: var(--paper-2); }
+.studio-how h2 { margin-top: 0; font-size: 1.3rem; }
+.studio-how dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; margin: 0 0 0.8rem; }
+.studio-how dt { font-weight: 700; }
+.studio-how dd { margin: 0.25rem 0 0; color: var(--ink-2); font-size: 0.9rem; }
+.studio-how p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+.studio-grid, .research-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; }
+.studio-card, .research-card { display: flex; flex-direction: column; min-width: 0; padding: 1.4rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow); }
+.studio-card h3, .research-card h3 { font: 600 1.2rem/1.3 var(--serif); letter-spacing: normal; text-transform: none; color: var(--ink); margin: 0.2rem 0 0.6rem; }
+.studio-level { margin: 0; color: var(--muted); font: 650 0.72rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; }
+.studio-assess { align-self: flex-start; padding: 0.2rem 0.55rem; border-radius: 999px; font: 700 0.72rem/1.4 var(--sans); border: 1px solid currentColor; }
+.studio-assess.auto { color: var(--moss); }
+.studio-assess.review { color: var(--ink-2); }
+.studio-brief { color: var(--ink-2); font-size: 0.9rem; line-height: 1.6; }
+.studio-meta { margin: 0 0 0.6rem; font-size: 0.84rem; }
+.studio-meta div { margin-bottom: 0.35rem; }
+.studio-meta dt { display: inline; font-weight: 700; }
+.studio-meta dt::after { content: ": "; }
+.studio-meta dd { display: inline; margin: 0; color: var(--ink-2); }
+.studio-card details { margin: 0.4rem 0; font-size: 0.86rem; }
+.studio-card summary { cursor: pointer; font-weight: 650; color: var(--blue); }
+.studio-card pre { overflow-x: auto; padding: 0.6rem 0.7rem; border-radius: 8px; background: var(--paper-2); font-size: 0.78rem; }
+.studio-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; margin-top: auto; padding-top: 1rem; }
+.studio-source { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.84rem; }
+.button.small { padding: 0.5rem 0.8rem; font-size: 0.86rem; }
+.studio-submit { margin: 2.5rem 0; max-width: 52rem; }
+.research { margin-top: 3rem; }
+.research h2 { display: flex; align-items: center; gap: 0.5rem; }
+.lede.small { font-size: 1rem; }
+.research-card h3 { font-size: 1.05rem; }
+.research-card h4 { margin: 0.8rem 0 0.3rem; font: 700 0.75rem/1.3 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.research-card p, .research-card li { font-size: 0.88rem; color: var(--ink-2); }
+.research-source { margin-top: auto; padding-top: 0.8rem; }
+
+/* Community */
+.community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; }
+.community-grid section { padding: 1.4rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; }
+.community-grid h2 { margin-top: 0; font-size: 1.25rem; }
+.community-grid p, .community-grid li { font-size: 0.92rem; color: var(--ink-2); }
+.community-grid .community-wide { grid-column: span 2; }
+
+/* Lab: which earlier cells an assessment runs with */
+.nb-requires { margin: 0 0 0.4rem; color: var(--muted); font-size: 0.8rem; }
+.nb-requires a { color: var(--ink-2); }
+
+@media (max-width: 980px) {
+  .studio-grid, .research-grid, .community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .school { padding: 1.2rem; }
+  .school-body, .studio-how dl, .studio-grid, .research-grid, .community-grid { grid-template-columns: minmax(0, 1fr); }
+  .community-grid .community-wide { grid-column: auto; }
+}

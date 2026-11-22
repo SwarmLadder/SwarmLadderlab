@@ -6,10 +6,13 @@ import { Menu, Moon, Sun, X } from "lucide-react";
 import { Wordmark } from "../components/Brand";
 import { t } from "../i18n";
 const themeKey = "swarmladderlab.theme";
+// The campus journey: discover a school, learn, practise, build, contribute, advance.
 const links: [string, Parameters<typeof t>[0]][] = [
+  ["/schools", "nav.schools"],
   ["/learn", "nav.courses"],
   ["/playground", "nav.playground"],
-  ["/achievements", "nav.achievements"],
+  ["/studio", "nav.studio"],
+  ["/community", "nav.community"],
   ["/progress", "nav.progress"],
 ];
 export function Header() {
