@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Search } from "lucide-react";
+import { ArrowRight, Check, Map as MapIcon, Search } from "lucide-react";
+import { TechLogo } from "../../components/TechLogo";
 import { lessonPath, type Catalog } from "../../lib/course";
 import type { Course } from "../../lib/courses";
 import { topic, lessonNumber, route, visibleWindow, type LevelRoute, type Route, type Stop, type StopKind } from "../../lib/journey";
@@ -16,6 +17,18 @@ const KIND_LABEL: Record<StopKind, Parameters<typeof t>[0] | null> = {
   build: "course.build",
 };
 
+// Where each course's work runs and how it is checked: a short label, details on demand.
+const RUNTIME: Record<string, [string, string]> = {
+  python: ["Runs in your browser", "Lessons run Python in your browser, and checks grade your current code."],
+  sql: ["Runs in your browser", "Queries run on SQLite in your browser against sample datasets. PostgreSQL labs are read-only references."],
+  dsa: ["Runs in your browser", "48 Python problems run in your browser against six published cases each; theory opens after your attempt."],
+  git: ["Local labs · self-reported", "Native Git labs run on your computer with the offline course checker; you record the pass here."],
+  rust: ["Local Cargo tests · self-reported", "Rust exercises are drafts you test with Cargo locally. The Lab does not compile Rust in lessons."],
+  linux: ["Simulator + local labs", "Lessons use a limited command simulator. Bash labs and their grading run locally from the source course; completion is self-reported."],
+  c: ["Local compiler checks · self-reported", "81 C17 function drills and 12 mastery labs: edit the starters and run the native GCC/Clang checks locally. C does not run in the browser."],
+  java: ["Local JDK checks · self-reported", "Eight tasks checked by the native JDK 17 checker on your computer, comparing expected and actual output. Java does not run in the browser."],
+};
+
 export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Course }) {
   const [r, setR] = useState<Route>(() => route(catalog));
   useEffect(() => onProgress(() => setR(route(catalog))), [catalog]);
@@ -28,7 +41,9 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
   return (
     <div className="course shell">
       <header className="course-head">
-        <div>
+        <div className="course-ident">
+          <span className="course-logo"><TechLogo id={course.id} size={40} /></span>
+          <div>
           <p className="eyebrow">{course.language}</p>
           <h1 className="display">{course.title}</h1>
           <p className="course-stats">
@@ -36,6 +51,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
             <span>{t("course.checks", { n: total })}</span>
             <span>{t("course.levels", { n: r.levels.length })}</span>
           </p>
+          </div>
         </div>
         <div className="course-actions">
           {r.current && (
@@ -43,6 +59,7 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
               {started ? t("course.resume") : (course.id === "c" || course.id === "dsa" || course.id === "java" ? "Start coding" : t("course.start"))} <ArrowRight size={18} strokeWidth={1.8} />
             </Link>
           )}
+          <Link className="button quiet" href={`/learn/${course.id}/roadmap`}><MapIcon size={17} strokeWidth={1.8} /> Roadmap</Link>
           <div className="course-progress" aria-label={`${done} / ${total}`}>
             <span className="course-progress-n">{total ? Math.round((100 * done) / total) : 0}%</span>
             <span className="thin-bar"><span style={{ width: `${total ? (100 * done) / total : 0}%` }} /></span>
@@ -50,21 +67,11 @@ export function CourseRoute({ catalog, course }: { catalog: Catalog; course: Cou
         </div>
       </header>
 
-      {(course.id === "git" || course.id === "rust" || course.id === "linux" || course.id === "c" || course.id === "dsa" || course.id === "java") && (
-        <p className="native-catalog-note" role="note">
-          {course.id === "git"
-            ? "These Git activities include native CLI labs. Run the offline course checker on your computer, then record the pass here."
-            : course.id === "rust"
-              ? "Rust exercises include source drafts and local Cargo tests. Rust is not compiled inside the Lab browser."
-              : course.id === "c"
-                ? "C17 now begins with 81 function coding drills plus 12 mastery labs. Edit actual starters and run native GCC/Clang checks locally; no browser C execution is claimed."
-                : course.id === "dsa"
-                  ? "DSA begins with 48 Python challenges you can code and test immediately, just like the Python course. Each has six published cases and optional deep theory after your attempt."
-                  : course.id === "java"
-                  ? "Java begins with eight editable programming and DSA tasks. Run the native JDK 17 checker locally and compare expected/actual output; there is no browser Java execution."
-                  : "Linux lessons include a limited command simulator. Full Bash scripts and their two-fixture grading must run locally using the source course."}
-          {" "}Progress is saved on this device. Native Java, C, Git, Rust and Linux lab completion is self-reported; DSA problem checks run in the browser.
-        </p>
+      {RUNTIME[course.id] && (
+        <details className="course-runtime" role="note">
+          <summary><span className="course-runtime-label">{RUNTIME[course.id][0]}</span> How checking works</summary>
+          <p>{RUNTIME[course.id][1]} Progress is saved on this device.</p>
+        </details>
       )}
 
       <label className="finder">
@@ -178,7 +185,7 @@ function Rung({ stop, heading, showLevel }: { stop: Stop; heading?: string | nul
         : stop.total > 0 && stop.done > 0
           ? t("course.inProgress", { done: stop.done, total: stop.total })
           : stop.total > 0
-            ? t("course.checks", { n: stop.total })
+            ? stop.total === 1 ? t("course.check") : t("course.checks", { n: stop.total })
             : "";
   return (
     <>

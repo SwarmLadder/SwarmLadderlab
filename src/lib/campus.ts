@@ -8,6 +8,7 @@ export type School = {
   id: string;
   title: string;
   focus: string;
+  leadsTo: string;
   learn: string[];
   start: string;
   courses: CourseId[];
@@ -20,6 +21,7 @@ export const schools: School[] = [
     id: "software",
     title: "Software Engineering",
     focus: "Design programs that stay correct as they grow: language fluency, testing, algorithms and version control.",
+    leadsTo: "Building, testing and maintaining applications and services.",
     learn: [
       "Python from first variables to typed, tested, asynchronous services",
       "Data structures and algorithms with public test cases",
@@ -33,6 +35,7 @@ export const schools: School[] = [
     id: "systems",
     title: "Systems Engineering",
     focus: "Work close to the machine: memory, native compilation, ownership and the operating system.",
+    leadsTo: "Native programs, operating systems and the infrastructure software runs on.",
     learn: [
       "C17 with native compiler tests you run locally",
       "Rust ownership, error handling and Cargo projects",
@@ -45,6 +48,7 @@ export const schools: School[] = [
     id: "data",
     title: "Data Engineering",
     focus: "Model, move and protect data: SQL, pipelines, transactions and reproducible processing.",
+    leadsTo: "Databases, data pipelines and processing you can trust.",
     learn: [
       "SQL queries, schema design and backend data patterns",
       "JSON and CSV pipelines that reject bad records",
@@ -133,3 +137,7 @@ export const pathways = {
   labPulls: lab + "/pulls",
   reporting: "https://docs.github.com/en/communities/maintaining-your-safety-on-github/reporting-abuse-or-spam",
 };
+
+// Studio project URLs: /studio/<slug>, e.g. "advanced/projects/03_transactional_event_processor"
+// becomes "transactional-event-processor". Project names are unique across levels.
+export const studioSlug = (projectId: string) => projectId.split("/").pop()!.replace(/^\d+_/, "").replaceAll("_", "-");

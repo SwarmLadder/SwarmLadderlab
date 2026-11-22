@@ -1,0 +1,183 @@
+"use client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Check, CircleDot, RefreshCw } from "lucide-react";
+import { lessonPath } from "../../lib/course";
+import type { Roadmap as Data, RoadmapItem, Stage } from "../../lib/roadmap";
+import { TechLogo } from "../../components/TechLogo";
+import { studioSlug } from "../../lib/campus";
+import { currentStatus, doneIn, onProgress, read } from "../progress/store";
+
+type State = "completed" | "read" | "progress" | "stale" | "available" | "not-started";
+const LABEL: Record<State, string> = {
+  completed: "Completed", read: "Read", progress: "In progress", stale: "Needs re-check", available: "Available", "not-started": "Not started",
+};
+
+// A lesson is completed only when every graded check currently passes; reading a page
+// without checks marks it "Read", never "Completed".
+function itemState(item: RoadmapItem, snap: ReturnType<typeof read>, done: Set<string>): State {
+  const marks = doneIn(item.id, snap).length;
+  if (item.graded > 0 && marks >= item.graded) return "completed";
+  const stale = Object.entries(snap.current ?? {}).some(([k, e]) => k.startsWith(item.id + "#") && currentStatus(e) === "stale");
+  if (stale) return "stale";
+  if (item.graded === 0 && snap.finished?.[item.id]) return "read";
+  if (marks > 0 || snap.last === item.id) return "progress";
+  return item.prerequisites.every((p) => done.has(p)) ? "available" : "not-started";
+}
+function stageState(states: State[]): State {
+  if (states.length && states.every((s) => s === "completed" || s === "read")) return "completed";
+  if (states.includes("stale")) return "stale";
+  if (states.some((s) => s === "completed" || s === "read" || s === "progress")) return "progress";
+  return states.includes("available") ? "available" : "not-started";
+}
+function Node({ state }: { state: State }) {
+  return (
+    <span className={"rm-node " + state} aria-hidden="true">
+      {state === "completed" || state === "read" ? <Check size={12} strokeWidth={3} /> : state === "stale" ? <RefreshCw size={11} strokeWidth={2.6} /> : state === "progress" ? <CircleDot size={12} strokeWidth={2.6} /> : null}
+    </span>
+  );
+}
+
+export function Roadmap({ data, courseTitle, courseId }: { data: Data; courseTitle: string; courseId: string }) {
+  const [snap, setSnap] = useState<ReturnType<typeof read>>({});
+  useEffect(() => {
+    const sync = () => setSnap(read());
+    sync();
+    return onProgress(sync);
+  }, []);
+  const stages = useMemo(() => data.levels.flatMap((l) => l.stages.map((s) => ({ ...s, level: l.title }))), [data]);
+  const titles = useMemo(() => new Map(stages.flatMap((s) => s.items.map((i) => [i.id, i.title] as const))), [stages]);
+  // Two passes: completion first, then availability from completed prerequisites.
+  const states = useMemo(() => {
+    const done = new Set(stages.flatMap((s) => s.items).filter((i) => itemState(i, snap, new Set()) === "completed").map((i) => i.id));
+    const items = new Map(stages.flatMap((s) => s.items.map((i) => [i.id, itemState(i, snap, done)] as const)));
+    const byStage = new Map(stages.map((s) => [s.id, stageState(s.items.map((i) => items.get(i.id)!))]));
+    return { items, byStage };
+  }, [stages, snap]);
+  const firstOpen = stages.find((s) => states.byStage.get(s.id) === "progress" || states.byStage.get(s.id) === "stale")
+    ?? stages.find((s) => states.byStage.get(s.id) !== "completed") ?? stages[0];
+  const [selected, setSelected] = useState<string | null>(null);
+  const current = stages.find((s) => s.id === (selected ?? firstOpen?.id)) ?? stages[0];
+  const resume = stages.flatMap((s) => s.items).find((i) => ["progress", "stale"].includes(states.items.get(i.id)!))
+    ?? stages.flatMap((s) => s.items).find((i) => states.items.get(i.id) === "available");
+  const track = useRef<HTMLOListElement>(null);
+  const panel = useRef<HTMLElement>(null);
+
+  // Arrow keys move between stages; Home/End jump to the ends of the route.
+  function onKey(event: React.KeyboardEvent, index: number) {
+    const next = event.key === "ArrowDown" || event.key === "ArrowRight" ? index + 1
+      : event.key === "ArrowUp" || event.key === "ArrowLeft" ? index - 1
+      : event.key === "Home" ? 0 : event.key === "End" ? stages.length - 1 : null;
+    if (next === null || next < 0 || next >= stages.length) return;
+    event.preventDefault();
+    setSelected(stages[next].id);
+    track.current?.querySelectorAll<HTMLButtonElement>(".rm-stage")[next]?.focus();
+  }
+  const done = stages.filter((s) => states.byStage.get(s.id) === "completed").length;
+
+  return (
+    <div className="roadmap">
+      <header className="rm-head">
+        <div className="rm-title">
+          <span className="rm-logo"><TechLogo id={courseId} size={32} /></span>
+          <div>
+            <p className="eyebrow"><Link href={"/learn/" + courseId}>{courseTitle}</Link> · Roadmap</p>
+            <h1>{courseTitle} roadmap</h1>
+            <p className="rm-sub">{done} of {stages.length} stages completed · {data.graph ? "dependencies from the curriculum's concept map" : "suggested order from the course outline"}</p>
+          </div>
+        </div>
+        {resume && (
+          <Link className="button primary" href={lessonPath(resume.id)}>
+            {states.items.get(resume.id) === "available" && !done ? "Start" : "Resume"}: {resume.title.replace(/^\d+ — /, "")} <ArrowRight size={16} />
+          </Link>
+        )}
+      </header>
+      <ul className="rm-legend" aria-label="Legend">
+        {(["completed", "progress", "stale", "available", "not-started"] as State[]).map((s) => <li key={s}><Node state={s} /> {LABEL[s]}</li>)}
+      </ul>
+
+      <div className="rm-body">
+        <nav aria-label={courseTitle + " stages"}>
+          <ol className="rm-track" ref={track}>
+            {data.levels.map((level) => (
+              <li key={level.id} className="rm-level">
+                <h2>{level.title}</h2>
+                <ol>
+                  {level.stages.map((stage) => {
+                    const index = stages.findIndex((s) => s.id === stage.id);
+                    const state = states.byStage.get(stage.id)!;
+                    const finished = stage.items.filter((i) => ["completed", "read"].includes(states.items.get(i.id)!)).length;
+                    const active = current?.id === stage.id;
+                    return (
+                      <li key={stage.id}>
+                        <button type="button" className={"rm-stage " + state + (active ? " active" : "")} data-stage={stage.id}
+                          aria-current={active ? "step" : undefined} tabIndex={active ? 0 : -1}
+                          onClick={() => { setSelected(stage.id); if (matchMedia("(max-width: 900px)").matches) panel.current?.scrollIntoView({ block: "start" }); }}
+                          onKeyDown={(e) => onKey(e, index)}>
+                          <Node state={state} />
+                          <span className="rm-stage-name">{stage.title}</span>
+                          <span className="rm-stage-count">{finished}/{stage.items.length}<span className="sr-only"> done, {LABEL[state]}</span></span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        {current && <StagePanel ref={panel} stage={current} level={current.level} states={states.items} stageStates={states.byStage}
+          titles={titles} stages={stages} onSelect={setSelected} />}
+      </div>
+    </div>
+  );
+}
+
+function StagePanel({ ref, stage, level, states, stageStates, titles, stages, onSelect }: {
+  ref: React.Ref<HTMLElement>; stage: Stage; level: string; states: Map<string, State>; stageStates: Map<string, State>;
+  titles: Map<string, string>; stages: (Stage & { level: string })[]; onSelect: (id: string) => void;
+}) {
+  const state = stageStates.get(stage.id)!;
+  const checks = stage.items.reduce((n, i) => n + i.graded, 0);
+  return (
+    <section ref={ref} className="rm-panel" aria-labelledby="rm-panel-title" aria-live="polite">
+      <p className="rm-panel-level">{level} · <span className={"rm-state " + state}>{LABEL[state]}</span></p>
+      <h2 id="rm-panel-title">{stage.title}</h2>
+      {stage.summary && <p className="rm-summary">{stage.summary}</p>}
+      <p className="rm-facts">{stage.items.length} {stage.items.length === 1 ? "activity" : "activities"}{checks ? ` · ${checks} graded checks` : ""}</p>
+      {stage.dependsOn.length > 0 && (
+        <p className="rm-builds">Builds on {stage.dependsOn.map((id, i) => {
+          const dep = stages.find((s) => s.id === id);
+          return <span key={id}>{i ? ", " : ""}<button type="button" className="link-button" onClick={() => onSelect(id)}>{dep?.title ?? id}</button></span>;
+        })}</p>
+      )}
+      <ol className="rm-items">
+        {stage.items.map((item) => {
+          const s = states.get(item.id)!;
+          return (
+            <li key={item.id} className={"rm-item " + s}>
+              <Node state={s} />
+              <div>
+                <Link href={lessonPath(item.id)} className="rm-item-title">{item.title}</Link>
+                {item.skill && <p className="rm-skill">{item.skill}</p>}
+                <p className="rm-meta">
+                  <span>{LABEL[s]}</span>
+                  {item.graded > 0 && <span>{item.graded} checks</span>}
+                  {item.challenges.length > 0 && <span>Challenges: {item.challenges.join(", ")}</span>}
+                  {item.prerequisites.length > 0 && <span>After {item.prerequisites.map((p) => titles.get(p)?.replace(/^\d+ — /, "") ?? p).join(", ")}</span>}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      {stage.projects.length > 0 && (
+        <div className="rm-projects">
+          <h3>Apply it</h3>
+          <ul>{stage.projects.map((p) => <li key={p.id}><Link href={"/studio/" + studioSlug(p.id)}>{p.title}</Link></li>)}</ul>
+        </div>
+      )}
+    </section>
+  );
+}

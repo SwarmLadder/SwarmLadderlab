@@ -9,6 +9,7 @@ import "../styles/native.css";
 import "../styles/pages.css";
 import "../styles/library.css";
 import "../styles/campus.css";
+import "../styles/roadmap.css";
 import { labRepo, courseRepo } from "../lib/course";
 import { Wordmark } from "../components/Brand";
 import { dir, locale, t } from "../i18n";

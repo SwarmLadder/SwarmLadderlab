@@ -1,116 +1,71 @@
+"use client";
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ExternalLink, FlaskConical } from "lucide-react";
-import { lessonPath } from "../../lib/course";
-import { pathways, type Experiment } from "../../lib/campus";
-import { JourneyNav } from "./Schools";
+import { ArrowRight, FlaskConical } from "lucide-react";
+import { studioSlug, type Experiment } from "../../lib/campus";
+import { TechLogo } from "../../components/TechLogo";
+import { evaluation, levelName, projectName, type StudioProject } from "../../lib/studio";
 
-export type StudioProject = {
-  id: string;
-  level: "basics" | "intermediate" | "advanced";
-  title: string;
-  brief: string;
-  skills: string;
-  prerequisite: string;
-  scope: string[];
-  acceptance: string[];
-  automaticCheck: boolean;
-  source: string;
-  package: { path: string; source: string; install: string; test: string } | null;
-};
-
-const levelName = { basics: "Basics", intermediate: "Intermediate", advanced: "Advanced" } as const;
+export type { StudioProject };
 
 export function Studio({ projects, experiments }: { projects: StudioProject[]; experiments: (Experiment & { title: string })[] }) {
+  const [level, setLevel] = useState<"all" | StudioProject["level"]>("all");
+  const [kind, setKind] = useState<"all" | "auto" | "review">("all");
+  const shown = projects.filter((p) => (level === "all" || p.level === level) && (kind === "all" || (kind === "auto") === p.automaticCheck));
   return (
-    <div className="campus shell page-pad">
-      <header className="campus-hero">
-        <p className="eyebrow">Swarm Campus · Engineering Studio</p>
+    <div className="studio shell page-pad">
+      <header className="studio-head">
+        <p className="eyebrow">Engineering Studio</p>
         <h1 className="display small">Own a project <em>end to end.</em></h1>
-        <p className="lede">
-          These are the Python course&apos;s real projects. Each one gives you a brief and acceptance
-          criteria; the design, the code and the tests are yours to write.
-        </p>
-        <JourneyNav here="/studio" />
+        <p className="lede">Real projects from the Python course. You get a brief and acceptance criteria; the design, code and tests are yours.</p>
       </header>
 
-      <section aria-labelledby="studio-how" className="studio-how">
-        <h2 id="studio-how">How assessment works</h2>
-        <dl>
-          <div><dt>Automatic ticket check</dt><dd>The notebook has a project check that runs public acceptance cases on your ticket. Passing it confirms those cases only.</dd></div>
-          <div><dt>Review required</dt><dd>No automatic grade. Check your work against the acceptance criteria with your own tests, then ask others to review it.</dd></div>
-        </dl>
-        <p>The Lab has no submission or review service. Opening or reading a project never marks it complete.</p>
-      </section>
-
-      <section aria-labelledby="studio-projects">
-        <h2 id="studio-projects" className="sr-only">Projects</h2>
-        <div className="studio-grid">
-          {projects.map((p) => (
-            <article key={p.id} className="studio-card" data-project={p.id} aria-labelledby={"project-" + p.id}>
-              <p className="studio-level">{levelName[p.level]} project</p>
-              <h3 id={"project-" + p.id}>{p.title.replace(/^Project \d+ — /, "")}</h3>
-              <span className={"studio-assess " + (p.automaticCheck ? "auto" : "review")}>
-                {p.automaticCheck ? "Automatic ticket check" : "Review required"}
-              </span>
-              <p className="studio-brief">{p.brief}</p>
-              {(p.skills || p.prerequisite) && (
-                <dl className="studio-meta">
-                  {p.skills && <div><dt>Skills</dt><dd>{p.skills}</dd></div>}
-                  {p.prerequisite && <div><dt>Before you start</dt><dd>{p.prerequisite}</dd></div>}
-                </dl>
-              )}
-              {p.acceptance.length > 0 && (
-                <details>
-                  <summary>Acceptance criteria ({p.acceptance.length})</summary>
-                  <ul>{p.acceptance.map((a) => <li key={a}>{a}</li>)}</ul>
-                </details>
-              )}
-              {p.package && (
-                <details>
-                  <summary>Tests to run</summary>
-                  <p>In <code>{p.package.path}</code>:</p>
-                  <pre><code>{p.package.install + "\n" + p.package.test}</code></pre>
-                </details>
-              )}
-              <div className="studio-links">
-                <Link href={lessonPath(p.id)} className="button primary small">Open in the Lab <ArrowRight size={15} /></Link>
-                <a href={p.source} className="studio-source">Notebook source <ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> (GitHub)</span></a>
-                {p.package && <a href={p.package.source} className="studio-source">Package source <ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> (GitHub)</span></a>}
-              </div>
-            </article>
+      <div className="studio-toolbar">
+        <div role="group" aria-label="Filter by level" className="catalog-filters">
+          {(["all", "basics", "intermediate", "advanced"] as const).map((l) => (
+            <button key={l} type="button" className={"catalog-filter" + (level === l ? " active" : "")} aria-pressed={level === l} onClick={() => setLevel(l)}>
+              {l === "all" ? "All levels" : levelName[l]}
+            </button>
           ))}
         </div>
-      </section>
+        <div role="group" aria-label="Filter by evaluation" className="catalog-filters">
+          {([["all", "Any evaluation"], ["auto", "Automatic check"], ["review", "Review required"]] as const).map(([k, label]) => (
+            <button key={k} type="button" className={"catalog-filter" + (kind === k ? " active" : "")} aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <p className="library-results" role="status" aria-live="polite">{shown.length} project{shown.length === 1 ? "" : "s"}</p>
 
-      <section aria-labelledby="studio-submit" className="studio-submit">
-        <h2 id="studio-submit">Sharing your work</h2>
-        <ol>
-          <li>Build the project in your own copy: the notebook in the Lab, Jupyter or Colab, or a repository of your own.</li>
-          <li>Write the tests the acceptance criteria call for, and a short README with your design decisions.</li>
-          <li>Publish it in your own GitHub repository and ask peers to review it there. See the <Link href="/community">review guide</Link>.</li>
-          <li>Found a mistake in a project brief? Report it with the <a href={pathways.fix}>content fix template</a>.</li>
-        </ol>
-      </section>
+      <ol className="studio-list">
+        {shown.map((p) => (
+          <li key={p.id} className="studio-row" data-project={p.id}>
+            <span className={"studio-level " + p.level}>{levelName[p.level]}</span>
+            <div className="studio-row-main">
+              <h2><Link href={"/studio/" + studioSlug(p.id)}>{projectName(p)}</Link></h2>
+              <p>{p.skills || p.scope.slice(0, 3).join(" · ")}</p>
+            </div>
+            <span className="studio-tech"><TechLogo id="python" size={18} /> Python</span>
+            <span className={"studio-assess " + (p.automaticCheck ? "auto" : "review")}>{evaluation(p)}</span>
+            <Link className="studio-open" href={"/studio/" + studioSlug(p.id)} aria-label={"Open brief: " + projectName(p)}>Brief <ArrowRight size={15} /></Link>
+          </li>
+        ))}
+      </ol>
+      <p className="studio-note">Opening a project never marks it complete. Automatic checks confirm their public cases only; everything else needs your own tests and a reviewer.</p>
 
-      <section aria-labelledby="research-title" className="research" id="research">
-        <h2 id="research-title"><FlaskConical size={22} aria-hidden="true" /> Research experiments</h2>
-        <p className="lede small">
-          Questions you answer with measurements, using the code you wrote in an Advanced project.
-          These are open exercises, not published studies.
-        </p>
-        <div className="research-grid">
+      <section className="research" id="research" aria-labelledby="research-title">
+        <div className="research-head">
+          <h2 id="research-title"><FlaskConical size={22} aria-hidden="true" /> Research experiments</h2>
+          <p>Measurable questions answered with code you wrote in an Advanced project. Open exercises, not published studies.</p>
+        </div>
+        <ol className="research-list">
           {experiments.map((e) => (
-            <article key={e.id} className="research-card" aria-labelledby={"exp-" + e.id}>
-              <p className="studio-level">{e.theme}</p>
-              <h3 id={"exp-" + e.id}>{e.question}</h3>
-              <h4>Experiment</h4>
-              <ol>{e.method.map((m) => <li key={m}>{m}</li>)}</ol>
-              <h4>Evidence to report</h4>
-              <p>{e.evidence}</p>
-              <p className="research-source">Builds on <Link href={lessonPath(e.project)}>{e.title}</Link>, section “{e.section}”.</p>
-            </article>
+            <li key={e.id}>
+              <span className="research-theme">{e.theme}</span>
+              <Link href={"/studio/research/" + e.id}>{e.question}</Link>
+              <span className="research-source">Builds on {e.title}</span>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
     </div>
   );

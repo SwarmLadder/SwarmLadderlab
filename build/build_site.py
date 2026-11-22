@@ -284,6 +284,23 @@ def studio_projects(course: Path) -> list[dict]:
     return projects
 
 
+def python_concepts(course: Path) -> list[dict]:
+    """The curriculum's concept graph (curriculum/concepts.json), keyed by lesson id."""
+    path = course / "curriculum" / "concepts.json"
+    if not path.exists():
+        return []
+    concepts = json.loads(path.read_text(encoding="utf-8"))
+    by_concept = {c["concept_id"]: c["lesson"].removesuffix(".ipynb") for c in concepts}
+    return [{
+        "id": c["lesson"].removesuffix(".ipynb"),
+        "concept": c["concept_id"],
+        "skill": c["primary_skill"],
+        "difficulty": c.get("difficulty", ""),
+        "prerequisites": [by_concept[p] for p in c.get("prerequisites", []) if p in by_concept],
+        "evidence": c.get("independent_evidence", ""),
+    } for c in concepts]
+
+
 def build(course: Path, out: Path) -> dict:
     if out.exists():
         shutil.rmtree(out)
@@ -318,6 +335,7 @@ def build(course: Path, out: Path) -> dict:
                 entry["sections"].append({"id": folder, "title": section_title, "items": items})
         catalog["levels"].append(entry)
     (out / "data" / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out / "data" / "concepts.json").write_text(json.dumps(python_concepts(course), ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "data" / "studio.json").write_text(json.dumps(studio_projects(course), ensure_ascii=False, indent=1), encoding="utf-8")
 
     listed = []

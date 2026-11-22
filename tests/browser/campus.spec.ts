@@ -9,7 +9,7 @@ test("primary navigation reaches every campus stage, by keyboard too", async ({ 
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Primary" });
   for (const [name, path, heading] of [
-    ["Schools", "/schools", /Pick a discipline/],
+    ["Schools", "/schools", /Choose a discipline/],
     ["Studio", "/studio", /Own a project/],
     ["Community", "/community", /Learn in the open/],
   ] as const) {
@@ -52,16 +52,25 @@ test("studio lists every real project with honest assessment and no fake complet
   const projects = items(await (await request.get("/data/catalog.json")).json()).filter((i) => i.id.includes("/projects/"));
   expect(studio.map((p) => p.id).sort()).toEqual(projects.map((p) => p.id).sort());
   await page.goto("/studio");
-  await expect(page.locator(".studio-card")).toHaveCount(studio.length);
+  await expect(page.locator(".studio-row")).toHaveCount(studio.length);
   for (const p of studio) {
-    const card = page.locator(`[data-project="${p.id}"]`);
-    await expect(card.locator(".studio-assess")).toHaveText(p.automaticCheck ? "Automatic ticket check" : "Review required");
-    await card.getByText(/Acceptance criteria/).click();
-    await expect(card.locator("details li")).toHaveCount(p.acceptance.length);
-    expect((await request.get(await card.getByRole("link", { name: /Open in the Lab/ }).getAttribute("href") ?? "")).status()).toBe(200);
+    const row = page.locator(`[data-project="${p.id}"]`);
+    await expect(row.locator(".studio-assess")).toHaveText(p.automaticCheck ? "Automatic ticket check" : "Review required");
+    const brief = await row.getByRole("link", { name: /^Open brief/ }).getAttribute("href");
+    expect((await request.get(brief!)).status(), brief!).toBe(200);
   }
-  await expect(page.locator(".research-card")).toHaveCount(3);
+  // A project brief is a ticket: every acceptance criterion, an honest evaluation label, a working Lab link.
+  const sample = studio.find((p) => !p.automaticCheck)!;
+  await page.locator(`[data-project="${sample.id}"]`).getByRole("link", { name: /^Open brief/ }).click();
+  await expect(page.locator(".ticket-checklist li")).toHaveCount(sample.acceptance.length);
+  await expect(page.locator(".ticket-side .studio-assess")).toHaveText("Review required");
+  await expect(page.getByText("never records this project as complete")).toBeVisible();
+  expect((await request.get(await page.getByRole("link", { name: /Open in the Lab/ }).getAttribute("href") ?? "")).status()).toBe(200);
+  await page.goto("/studio");
+  await expect(page.locator(".research-list li")).toHaveCount(3);
   await expect(page.getByText(/not published studies/)).toBeVisible();
+  await page.locator(".research-list a").first().click();
+  await expect(page.getByText("Open experiment · not a published study")).toBeVisible();
   // Scrolling to the end finishes a reading page (control) but never a project.
   const finished = () => page.evaluate(() => JSON.parse(localStorage.getItem("swarmladderlab.v1") || "{}").finished ?? {});
   const readToEnd = async (id: string) => {
@@ -81,11 +90,12 @@ test("studio lists every real project with honest assessment and no fake complet
 
 test("community links only to real GitHub pathways and states what is not offered", async ({ page }) => {
   await page.goto("/community");
-  const hrefs = await page.locator(".community-grid a[href^='http']").evaluateAll((as) => as.map((a) => a.getAttribute("href")!));
+  const hrefs = await page.locator(".community a[href^='http']").evaluateAll((as) => as.map((a) => a.getAttribute("href")!));
   expect(hrefs.length).toBeGreaterThan(6);
   for (const href of hrefs) expect(href).toMatch(/^https:\/\/(github\.com\/SwarmLadder\/(python-notebook|SwarmLadderlab)\/|docs\.github\.com\/)/);
   await expect(page.getByRole("heading", { name: "Peer code review" })).toBeVisible();
-  await expect(page.getByText(/Not available yet: mentoring programmes/)).toBeVisible();
+  await expect(page.getByText(/Not available yet: mentoring/)).toBeVisible();
+  for (const action of ["Ask for help", "Contribute to a project", "Review someone's code"]) await expect(page.getByRole("heading", { name: action })).toBeVisible();
 });
 
 test("campus pages fit a phone screen", async ({ page }) => {
@@ -95,7 +105,11 @@ test("campus pages fit a phone screen", async ({ page }) => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await noSideScroll(page), path).toBeTruthy();
   }
-  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("button", { name: "Menu" });
+  await expect(async () => {
+    if ((await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
+    await expect(menu).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
+  }).toPass();
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Studio" })).toBeVisible();
 });
 

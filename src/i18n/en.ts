@@ -71,6 +71,7 @@ export const en = {
   "home.ladder": "Your climb in {level}",
 
   "course.lessons": "{n} lessons",
+  "course.check": "1 check",
   "course.checks": "{n} checks",
   "course.levels": "{n} levels",
   "course.resume": "Resume where you left off",
