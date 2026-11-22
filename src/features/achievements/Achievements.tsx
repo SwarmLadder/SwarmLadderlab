@@ -70,11 +70,11 @@ function Seal({ numeral, pct, earned, size = 120 }: { numeral: string; pct: numb
   );
 }
 
+// One restrained colour per level, readable on both themes (no gradients).
 const HUES = [
-  ["#45e3ae", "#2bb8a0"],
-  ["#4cc3ff", "#3b7bf6"],
-  ["#b68cff", "#7a5cf0"],
-  ["#ffb36b", "#f07a4a"],
+  ["#1a9a86", "#1a9a86"],
+  ["#4a7fc1", "#4a7fc1"],
+  ["#b0823e", "#b0823e"],
 ];
 
 export function Achievements({ catalog }: { catalog: Catalog }) {

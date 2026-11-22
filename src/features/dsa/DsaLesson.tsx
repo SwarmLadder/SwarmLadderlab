@@ -150,6 +150,7 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
         <nav className="crumbs" aria-label="Breadcrumb">
           <Link href="/learn/dsa">Data Structures & Algorithms</Link>
           <span aria-hidden="true">/</span><span>{level}</span>
+          <Link className="crumb-roadmap" href="/learn/dsa/roadmap">Roadmap</Link>
         </nav>
         <span className="runtime" role="status">
           <span className="runtime-dot" aria-hidden="true"/>

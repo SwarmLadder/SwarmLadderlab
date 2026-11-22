@@ -299,6 +299,7 @@ function Workspace({ lesson, catalog, courseId }: {
             <Link href={"/learn/" + courseId}>{upstream.name}</Link>
             <span aria-hidden="true">/</span>
             <span>{level}</span>
+            <Link className="crumb-roadmap" href={"/learn/" + courseId + "/roadmap"}>Roadmap</Link>
           </nav>
           <span className="runtime" role="status">
             <span className="runtime-dot" aria-hidden="true" />

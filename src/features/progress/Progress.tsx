@@ -2,12 +2,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, Upload, Trash2, ArrowRight } from "lucide-react";
-import { exportData, importData, onProgress, read, STORE } from "./store";
+import { currentStatus, exportData, importData, onProgress, read, STORE } from "./store";
+import { TechLogo } from "../../components/TechLogo";
 import { download, lessonPath, type Catalog } from "../../lib/course";
 import { lessonNumber, route, topic } from "../../lib/journey";
 import { t } from "../../i18n";
 
-const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust", linux: "Linux & Bash", dsa: "DSA", c: "C17" };
+const NAMES: Record<string, string> = { python: "Python", sql: "SQL", git: "Git & GitHub", rust: "Rust", linux: "Linux & Bash", dsa: "DSA", c: "C", java: "Java" };
 const DAY = 86_400_000;
 const WEEKS = 20;
 const dayKey = (ms: number) => new Date(ms).toDateString();
@@ -70,6 +71,7 @@ export function Progress({ catalogs }: {
       levels: routes.flatMap(({ value }) => value.levels),
       current: chosen?.value.current ?? routes[0]?.value.current ?? null,
       labels: routes.flatMap(({ id, value }) => value.levels.map(() => id)),
+      courses: routes,
     };
   }, [catalogs, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const titles = useMemo(() => new Map(r.all.map((s) => [s.item.id, s.item.title])), [r]);
@@ -77,6 +79,8 @@ export function Progress({ catalogs }: {
   const checks = r.levels.reduce((n, level) => n + level.done, 0);
   const totalChecks = r.levels.reduce((n, l) => n + l.total, 0);
   const finished = r.all.filter((s) => s.state === "done").length;
+  // Evidence that no longer matches the code or the curriculum revision.
+  const stale = Object.values(state.current ?? {}).filter((e) => currentStatus(e) === "stale").length;
   const pct = totalChecks ? Math.round((100 * r.levels.reduce((n, l) => n + l.done, 0)) / totalChecks) : 0;
   const ring = 2 * Math.PI * 54;
   return (
@@ -147,23 +151,33 @@ export function Progress({ catalogs }: {
 
         <section className="sheet">
           <h2>{t("progress.chapters")}</h2>
-          <ul className="chapter-strips">
-            {r.levels.map((lr, i) => (
-              <li key={i + "-" + lr.level.id}>
-                <div className="strip-head">
-                  <span className="strip-n">{["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][i] ?? i + 1}</span>
-                  <span className="strip-title">{NAMES[r.labels[i]] ?? "Course"} · {lr.level.title}</span>
-                  <span className="strip-count">{lr.stops.filter((s) => s.state === "done").length} / {lr.stops.length}</span>
-                </div>
-                <ol className="strip" aria-label={lr.level.title}>
-                  {lr.stops.map((s) => (
-                    <li key={s.item.id} className={s.state} title={s.item.title}>
-                      <span className="sr-only">{s.item.title}</span>
-                    </li>
+          {stale > 0 && <p className="prog-stale">{stale} {stale === 1 ? "check needs" : "checks need"} re-checking after an edit or a curriculum update.</p>}
+          <ul className="course-strips">
+            {r.courses.map(({ id, value }) => {
+              const doneStops = value.all.filter((s) => s.state === "done").length;
+              return (
+                <li key={id}>
+                  <div className="strip-head">
+                    <TechLogo id={id} size={20} />
+                    <Link className="strip-title" href={"/learn/" + id}>{NAMES[id] ?? id}</Link>
+                    <Link className="strip-roadmap" href={"/learn/" + id + "/roadmap"}>Roadmap</Link>
+                    <span className="strip-count">{doneStops} / {value.all.length}</span>
+                  </div>
+                  {value.levels.map((lr) => (
+                    <div key={lr.level.id} className="strip-level">
+                      <span>{lr.level.title}</span>
+                      <ol className="strip" aria-label={(NAMES[id] ?? id) + " " + lr.level.title}>
+                        {lr.stops.map((st) => (
+                          <li key={st.item.id} className={st.state} title={st.item.title}>
+                            <span className="sr-only">{st.item.title}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   ))}
-                </ol>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>
