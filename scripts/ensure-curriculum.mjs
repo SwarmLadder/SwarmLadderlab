@@ -14,7 +14,12 @@ const python = ["python3", "python"].find((p) => {
 });
 if (!python) throw new Error("Python 3 is required to prepare the curriculum.");
 
+// Every course is built at the revision pinned in build/upstream.json, so a
+// deployment matches what CI tested. Local checkouts may differ (with a warning).
+const pins = JSON.parse(readFileSync("build/upstream.json", "utf8"));
+const headOf = (dir) => execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], {encoding: "utf8"}).trim();
 function source(env, local, generated, defaultRepo, repoOverride) {
+  const pin = pins[defaultRepo.split("/").pop()];
   let course = process.env[env] || local;
   if (!existsSync(course)) {
     course = generated;
@@ -23,13 +28,19 @@ function source(env, local, generated, defaultRepo, repoOverride) {
       console.log("Fetching the course from " + repo);
       run("git", ["clone", "--depth", "1", repo, course]);
     }
+    if (pin && headOf(course) !== pin) {
+      run("git", ["-C", course, "fetch", "--depth=1", "origin", pin]);
+      run("git", ["-C", course, "checkout", "--detach", pin]);
+    }
+  } else if (pin && existsSync(course + "/.git") && headOf(course) !== pin) {
+    console.warn(`warning: ${course} is at ${headOf(course).slice(0, 7)}, not the pinned ${pin.slice(0, 7)} (build/upstream.json)`);
   }
   return course;
 }
 const course = source("COURSE", "../python-notebook", ".generated/python-notebook",
   "https://github.com/SwarmLadder/python-notebook", "COURSE_REPO");
 const revision = JSON.parse(readFileSync("build/python-revision.json", "utf8"));
-const head = () => execFileSync("git", ["-C", course, "rev-parse", "HEAD"], {encoding: "utf8"}).trim();
+const head = () => headOf(course);
 if (head() !== revision && course === ".generated/python-notebook") {
   run("git", ["-C", course, "fetch", "--depth=1", "origin", revision]);
   run("git", ["-C", course, "checkout", "--detach", revision]);
