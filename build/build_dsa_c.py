@@ -13,10 +13,10 @@ import shutil
 
 try:
     from .build_git_rust import LEVELS, first_code, heading, html_guide
-    from .dsa_notebooks import LessonBuilder
+    from .dsa_notebooks import LessonBuilder, dsa_concepts
 except ImportError:  # python build/prepare.py runs with build/ on sys.path
     from build_git_rust import LEVELS, first_code, heading, html_guide
-    from dsa_notebooks import LessonBuilder
+    from dsa_notebooks import LessonBuilder, dsa_concepts
 
 HERE = Path(__file__).resolve().parent
 
@@ -114,7 +114,7 @@ def build_dsa(course: Path, out: Path) -> dict:
         lessons = []
         folder = runtime / level / "lessons"
         folder.mkdir(parents=True, exist_ok=True)
-        for name in ("lesson.py", "quiz.py"):
+        for name in ("lesson.py", "quiz.py", "visual.py"):
             shutil.copy(HERE / "dsa_runtime" / name, folder / name)
         (folder / "drills.json").write_text(
             json.dumps(builder.runtime_drills(level), ensure_ascii=False), encoding="utf-8")
@@ -204,6 +204,10 @@ def build_dsa(course: Path, out: Path) -> dict:
     extra = [add("advanced", "resources", Path(path).stem.lower(), title,
                  path, read(course / path)) for path, title in extras]
     level["sections"].append({"id": "resources", "title": "Mastery resources", "items": extra})
+    # The concept map behind the DSA roadmap; build fails if an edge isn't supported by the lessons.
+    (out / "data" / "dsa").mkdir(parents=True, exist_ok=True)
+    (out / "data" / "dsa" / "concepts.json").write_text(
+        json.dumps(dsa_concepts(course), ensure_ascii=False, indent=1), encoding="utf-8")
     return output(out, "dsa", entries, catalog)
 
 

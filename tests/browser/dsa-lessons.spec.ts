@@ -181,3 +181,32 @@ test("a worked example runs its wrong attempt, fix and randomized test in the br
   await expect(page.locator('[data-cell-id="demo-3"] .output')).toContainText("2000 random cases: correct", { timeout: 60_000 });
   await expect(page.getByRole("link", { name: "DB13" })).toHaveAttribute("href", /\/lesson\/dsa\/basics\/lessons\/.*#cell-drill-DB13$/);
 });
+
+test("the visualizer steps through a real trace, supports prediction and traces edited code", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.goto("/lesson/dsa/basics/lessons/04_binary_search_prefixes_and_dp");
+  const viz = page.locator('[data-visual="visual-1"]');
+  await expect(viz.getByRole("heading", { name: /Binary search/ })).toBeVisible();
+  await expect(page.locator(".runtime")).toContainText("Python ready", { timeout: 180_000 });
+  await viz.getByRole("button", { name: "Run and trace" }).click();
+  await expect(viz.locator(".viz-where")).toContainText("Step 1 of 16", { timeout: 60_000 });
+  // Step to the first midpoint: lo=0, hi=6, mid=3 on [1, 3, 3, 5, 8, 13].
+  const next = viz.getByRole("button", { name: "Next step" });
+  for (let i = 0; i < 3; i++) await next.click();
+  await expect(viz.locator(".viz-p").nth(3)).toHaveText("mid");
+  await expect(viz.locator(".viz-lines li.now")).toContainText("if nums[mid] < target:");
+  // Predict mode shows the next line before revealing its effect.
+  await viz.getByLabel("Predict before each step").check();
+  await viz.getByRole("button", { name: "Next step" }).click();
+  await expect(viz.locator(".viz-prompt")).toContainText("runs next");
+  await expect(viz.locator(".viz-lines li.next")).toHaveCount(1);
+  await viz.getByRole("button", { name: "Reveal", exact: true }).click();
+  await expect(viz.locator(".viz-prompt")).toHaveCount(0);
+  await viz.getByRole("button", { name: "Last step" }).click();
+  await expect(viz.locator(".viz-result")).toContainText("Result: 3");
+  // A different call is traced for real.
+  await viz.getByLabel("Call to trace").fill("half_open_lower_bound([1, 3, 3, 5, 8, 13], 100)");
+  await viz.getByRole("button", { name: "Trace your version" }).click();
+  await viz.getByRole("button", { name: "Last step" }).click({ timeout: 60_000 });
+  await expect(viz.locator(".viz-result")).toContainText("Result: 6");
+});
