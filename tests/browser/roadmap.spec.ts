@@ -4,7 +4,7 @@ const stage = (page: import("@playwright/test").Page, id: string) => page.locato
 
 test("Python roadmap: stages, dependencies, keyboard and accurate progress", async ({ page }) => {
   await page.goto("/learn/python/roadmap");
-  await expect(page.getByRole("heading", { level: 1, name: "Python roadmap" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Python" })).toBeVisible();
   await expect(page.locator(".rm-stage")).toHaveCount(16);
   // A new learner starts at Fundamentals, which is available; later stages are not started.
   await expect(stage(page, "fundamentals")).toHaveClass(/available/);
@@ -29,7 +29,9 @@ test("Python roadmap: stages, dependencies, keyboard and accurate progress", asy
   await expect(page.locator("#rm-panel-title")).toHaveText("Control flow");
   await page.keyboard.press("End");
   await expect(page.locator("#rm-panel-title")).toHaveText("Production engineering");
-  await expect(page.locator(".rm-projects a")).toHaveCount(3);
+  // The level's worked example and projects close its last stage; projects open their Studio brief.
+  await expect(page.locator(".rm-group.kind-project a.rm-item-title")).toHaveCount(3);
+  await expect(page.locator(".rm-group.kind-project a.rm-item-title").first()).toHaveAttribute("href", /^\/studio\//);
 
   // Opening a lesson is not completion: it is "in progress"; stale evidence asks for a re-check.
   await page.evaluate(() => localStorage.setItem("swarmladderlab.v1", JSON.stringify({
@@ -65,4 +67,21 @@ test("the DSA roadmap shows checked dependencies and why each is needed", async 
   await expect(why).toContainText("Dijkstra needs a priority queue");
   await expect(why.getByRole("link", { name: /Heaps/ })).toHaveAttribute("href", /\/lesson\/dsa\/intermediate\/lessons\/08_heaps/);
   await expect(page.locator(".rm-builds")).toContainText("Priority and greed");
+});
+
+test("every course page is its roadmap, with every activity reachable", async ({ page, request }) => {
+  for (const id of ["python", "sql", "git", "rust", "linux", "dsa", "c", "java"]) {
+    await page.goto(`/learn/${id}`);
+    await expect(page.locator(".rm-stage").first()).toBeVisible();
+    await expect(page.locator(".rm-head .button.primary")).toBeVisible();
+    // The old ladder page is gone.
+    await expect(page.locator(".rung-link")).toHaveCount(0);
+    const catalog = await (await request.get(id === "python" ? "/data/catalog.json" : `/data/${id}/catalog.json`)).json();
+    const total = catalog.levels.reduce((n: number, l: { sections: { items: unknown[] }[] }) => n + l.sections.reduce((m, s) => m + s.items.length, 0), 0);
+    await expect(page.locator(".rm-facts-line")).toContainText(`${total} activities`);
+  }
+  // DSA: a lesson's interview problems sit with it in its stage.
+  await page.goto("/learn/dsa");
+  await page.locator(".rm-stage", { hasText: "Ordered state" }).click();
+  await expect(page.locator(".rm-group.kind-practice")).toContainText("B04");
 });

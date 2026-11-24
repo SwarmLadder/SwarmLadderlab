@@ -40,11 +40,11 @@ test("home, course route, mobile theme, data migration and achievement gating", 
   // New visitors go straight to the first lesson; the route lives at /learn/python.
   await expect(page.getByRole("link", { name: /Begin with Python/ }).first()).toHaveAttribute("href", /\/lesson\//);
   await page.goto("/learn/python");
-  // Progressive discovery: later chapters stay closed until opened.
-  await expect(page.getByRole("button", { name: "Peek inside" }).first()).toBeVisible();
-  await page.getByLabel("Find a lesson").fill("00_python_introduction");
-  await expect(page.getByRole("status")).toContainText("1 matching");
-  await page.getByLabel("Find a lesson").fill("");
+  // The course page is its roadmap; search finds any activity in the course.
+  await expect(page.getByRole("heading", { level: 1, name: "Python" })).toBeVisible();
+  await page.getByLabel("Search Python").fill("00_python_introduction");
+  await expect(page.getByRole("status")).toContainText("1 result");
+  await page.getByLabel("Search Python").fill("");
 
   await page.goto("/progress");
   await page.getByText("Backup and reset").click();
@@ -167,7 +167,6 @@ test("playground marks a runtime error on its line and suggests completions", as
 
 test("playground runs independent scratch code and restores edits", async ({ page }) => {
   await page.goto("/learn/python");
-  await page.getByRole("button", { name: "Peek inside" }).first().click();
   await expect(page.getByRole("heading", { name: "Intermediate", exact: true })).toBeVisible();
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Playground", exact: true }).click();
   const editor = page.getByRole("textbox", { name: "Python code" });

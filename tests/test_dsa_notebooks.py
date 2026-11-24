@@ -66,7 +66,8 @@ def test_every_lesson_is_an_interactive_notebook(built):
     assert len(quizzes) == 144
     for page in all_pages:
         kinds = [c.get("kind") for c in page["cells"] if c["type"] == "code"]
-        assert kinds.count("setup") == 1 and kinds.count("quiz") == 1 and kinds.count("check") == 4, page["id"]
+        assert kinds.count("setup") == 1 and kinds.count("quiz") == 1 and kinds.count("exercise") == 4, page["id"]
+        assert kinds.count("check") == 0, page["id"]  # code and check share one cell
         assert "code" in kinds, page["id"]  # runnable examples
         assert not any("<!-- output -->" in c.get("html", "") for c in page["cells"])
         lesson_items = {i["id"]: i for l in catalog["levels"] for s in l["sections"] for i in s["items"]}

@@ -73,9 +73,9 @@ test("no page scrolls sideways at phone, tablet and laptop widths", async ({ pag
   }
 });
 
-test("course rungs give unnumbered titles the full row (DSA lessons)", async ({ page }) => {
+test("course pages are roadmaps whose titles use the full row", async ({ page }) => {
   await page.goto("/learn/dsa");
-  const name = page.locator(".rung-name").first();
+  const name = page.locator(".rm-item-title").first();
   await expect(name).toContainText("Hash maps");
   // One line of text, not one word per line in the number column.
   const box = await name.boundingBox();

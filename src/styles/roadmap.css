@@ -43,9 +43,6 @@
 .rm-item-title:hover { color: var(--blue); text-decoration: underline; }
 .rm-skill { margin: 0.15rem 0 0.25rem; color: var(--ink-2); font-size: 0.9rem; }
 .rm-meta { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; margin: 0; font-size: 0.78rem; color: var(--muted); }
-.rm-projects { margin-top: 1.2rem; }
-.rm-projects h3 { font: 700 0.74rem/1.3 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.4rem; }
-.rm-projects ul { margin: 0; padding-left: 1.1rem; }
 
 @media (max-width: 900px) {
   .rm-body { grid-template-columns: 1fr; gap: 1.5rem; }
@@ -57,3 +54,20 @@
 .rm-why { margin: 0.35rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; font-size: 0.86rem; color: var(--ink-2); }
 .rm-why li::before { content: "↳ "; color: var(--muted); }
 .rm-why a { font-weight: 600; }
+
+/* The roadmap is each course's main page: course facts, progress, tools and grouped activities. */
+.rm-facts-line { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin: 0.35rem 0 0.15rem; font: 600 0.72rem/1.2 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.rm-actions { display: grid; justify-items: end; gap: 0.6rem; }
+.rm-actions .course-progress { width: 14rem; }
+.rm-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 0 0 1rem; }
+.rm-tools .course-runtime { margin: 0; }
+.rm-finder { margin: 0; max-width: 22rem; flex: 1 1 16rem; }
+.rm-results { margin: 0 0 1.4rem; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: var(--r-lg, 14px); background: var(--sheet); }
+.rm-group + .rm-group { margin-top: 1.1rem; }
+.rm-group h3 { margin: 0.4rem 0 0.2rem; font: 600 0.74rem/1.2 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 700px) {
+  .rm-actions { justify-items: stretch; width: 100%; }
+  .rm-actions .course-progress { width: 100%; }
+}
+.rm-head > .rm-title { flex: 1 1 32rem; min-width: 0; }
+.rm-actions { flex: 0 1 auto; }

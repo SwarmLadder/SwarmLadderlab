@@ -2,13 +2,15 @@ import { test, expect, type Page } from "@playwright/test";
 
 const lesson = "/lesson/dsa/basics/lessons/03_stacks_and_state";
 const drill = (page: Page, id: string) => page.locator(`[data-cell-id="drill-${id}"] .code-cell`);
-const checkCell = (page: Page, id: string) => page.locator(`[data-cell-id="drill-${id}-check"]`);
+// A drill is one exercise cell: the learner's code, then check('DB09').
+const checkCell = (page: Page, id: string) => page.locator(`[data-cell-id="drill-${id}"]`);
+const runDrill = (page: Page, id: string) => checkCell(page, id).locator(".nb-play").click();
 async function setCode(page: Page, id: string, code: string) {
   const editor = drill(page, id).locator(".cm-content");
   await editor.click();
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
-  await editor.fill(code);
+  await editor.fill(code + `\n\ncheck('${id}')\n`);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -29,18 +31,20 @@ test("a DSA lesson is a notebook: runnable examples, graded drills with hints, c
   await expect(crumbs.getByRole("link", { name: "Roadmap" })).toHaveAttribute("href", "/learn/dsa/roadmap");
   await expect(page.locator(".runtime")).toContainText("Python ready", { timeout: 180_000 });
 
-  // A worked example runs for real; the page shows no pre-baked output.
-  await page.locator('[data-cell-id="demo-2"] .nb-play').click();
-  await expect(page.locator('[data-cell-id="demo-2"] .output')).toContainText("'([)]' False", { timeout: 60_000 });
-  await expect(page.locator('[data-cell-id="demo-2"] .output')).toContainText("[4, 2, 4, -1, -1]");
+  // Examples run for real and print their results; the page shows no pre-baked output.
+  await page.getByRole("button", { name: "Run all" }).click();
+  const outputs = page.locator('[data-cell-id^="demo-"] .output');
+  await expect(outputs.filter({ hasText: "'([)]' False" }).first()).toBeVisible({ timeout: 60_000 });
+  await expect(outputs.filter({ hasText: "[4, 2, 4, -1, -1]" }).first()).toBeVisible();
+  await expect(page.locator('[data-cell-id^="drill-"][data-cell-id$="-check"]')).toHaveCount(0);
 
   // An untouched guided drill is "not attempted", never a failure.
-  await checkCell(page, "DB09").getByRole("button", { name: "Check", exact: true }).click();
+  await runDrill(page, "DB09");
   await expect(checkCell(page, "DB09").locator(".output")).toContainText("Not attempted", { timeout: 60_000 });
 
   // Wrong code fails on a named published case and unlocks the first hint.
   await setCode(page, "DB09", "def solve(s):\n    return True\n");
-  await checkCell(page, "DB09").getByRole("button", { name: "Check", exact: true }).click();
+  await runDrill(page, "DB09");
   const out = checkCell(page, "DB09").locator(".output");
   await expect(out).toContainText("❌ DB09:", { timeout: 60_000 });
   await expect(out).toContainText("expected");
@@ -60,7 +64,7 @@ test("a DSA lesson is a notebook: runnable examples, graded drills with hints, c
     "            depth -= 1",
     "    return depth == 0",
   ].join("\n"));
-  await checkCell(page, "DB09").getByRole("button", { name: "Check", exact: true }).click();
+  await runDrill(page, "DB09");
   await expect(out).toContainText("✅ DB09: all 6 checks passed", { timeout: 60_000 });
   await expect(checkCell(page, "DB09")).toHaveAttribute("data-validation", "passed");
   await expect(page.locator(".nb-score")).toContainText("1/8");
@@ -97,7 +101,7 @@ test("every DSA lesson opens as a notebook with four drills and a quiz", async (
   for (const item of [lessons[0], lessons[17], lessons[35]]) {
     expect(item.graded).toBe(8);
     await page.goto("/lesson/" + item.id);
-    await expect(page.locator('[data-cell-id$="-check"]')).toHaveCount(4);
+    await expect(page.locator('[data-cell-id^="drill-"]')).toHaveCount(4); // one cell per drill
     await expect(page.locator(".quiz-q")).toHaveCount(4);
     await expect(page.getByRole("button", { name: "Mark activity complete" })).toHaveCount(0);
   }
