@@ -349,3 +349,47 @@ class LessonBuilder:
         return {"type": "code", "id": f"visual-{number}", "kind": "visual", "source": source,
                 "driver": visual["driver"], "title": visual["title"], "watch": visual["watch"],
                 "views": visual["views"], "steps": len(run["steps"]), "requires_cells": [], "assessment": None}
+
+
+def dsa_concepts(course: Path) -> dict:
+    """The DSA concept map, with every prerequisite checked against the lessons themselves."""
+    spec = json.loads((Path(__file__).with_name("dsa_concepts.json")).read_text(encoding="utf-8"))
+    order = list(LEVEL_PREFIX)
+    paths = {f"{p.parent.name}/{p.stem[:2]}": p for level in order for p in (course / "lessons" / level).glob("[0-9][0-9]_*.md")}
+    lesson_id = lambda key: f"dsa/{key.split('/')[0]}/lessons/{paths[key].stem}"
+    rank = lambda key: (order.index(key.split("/")[0]), key.split("/")[1])
+
+    def taught(text: str) -> str:
+        # What a lesson explicitly teaches: its title, outcome and section headings.
+        heads = re.findall(r"(?m)^#{1,3} (.+)$", text) + re.findall(r"(?m)^\*\*Outcome:\*\*(.+)$", text)
+        return " ".join(heads).lower()
+
+    staged = [k for stage in spec["stages"] for k in (f"{stage[3]}/{n}" for n in stage[4])]
+    if sorted(staged) != sorted(paths) or len(staged) != len(set(staged)):
+        raise ValueError("every DSA lesson must belong to exactly one roadmap stage")
+    entries = []
+    for key in sorted(paths, key=rank):
+        text = paths[key].read_text(encoding="utf-8")
+        title = text.splitlines()[0].removeprefix("# ").strip()
+        outcome = re.search(r"(?m)^\*\*Outcome:\*\*\s*(.+)$", text)
+        prerequisites, why = [], {}
+        for prereq, reason, evidence in spec["lessons"].get(key, []):
+            if prereq not in paths or rank(prereq) >= rank(key):
+                raise ValueError(f"{key}: prerequisite {prereq} must be an earlier lesson")
+            other = paths[prereq].read_text(encoding="utf-8")
+            for term in evidence:
+                if term.lower() not in text.lower():
+                    raise ValueError(f"{key} does not use {term!r}, so it cannot depend on {prereq} for it")
+                if term.lower() not in taught(other):
+                    raise ValueError(f"{prereq} does not teach {term!r} in its title, outcome or headings")
+            prerequisites.append(lesson_id(prereq))
+            why[lesson_id(prereq)] = reason
+        stage = next(s[0] for s in spec["stages"] if s[3] == key.split("/")[0] and key.split("/")[1] in s[4])
+        # The outcome sentence only: some lessons continue the line with "**Time:** …".
+        skill = re.split(r"\s*\*\*", outcome.group(1))[0].strip() if outcome else ""
+        skill = skill[:1].upper() + skill[1:]
+        entries.append({"id": lesson_id(key), "concept": title, "skill": skill,
+                        "prerequisites": prerequisites, "why": why, "stage": stage})
+    stages = [{"id": s[0], "title": s[1], "summary": s[2], "level": s[3],
+               "lessons": [lesson_id(f"{s[3]}/{n}") for n in s[4]]} for s in spec["stages"]]
+    return {"stages": stages, "concepts": entries}

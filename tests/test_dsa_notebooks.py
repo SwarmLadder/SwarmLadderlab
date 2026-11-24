@@ -205,3 +205,29 @@ def test_visualizations_trace_real_lesson_code_for_every_structure(built):
         for chunk in body.split("\n\n\n"):
             assert chunk.strip() in lesson, (page["id"], chunk[:60])
         assert c["steps"] >= 5 and c["watch"] and c["driver"]
+
+
+def test_concept_map_edges_are_supported_by_the_lessons(built):
+    _, out = built
+    data = json.loads((out / "data/dsa/concepts.json").read_text())
+    assert len(data["concepts"]) == 36 and len(data["stages"]) == 14
+    ids = [c["id"] for c in data["concepts"]]
+    for c in data["concepts"]:
+        assert c["skill"] and "*" not in c["skill"]
+        assert set(c["why"]) == set(c["prerequisites"])
+        assert all(ids.index(p) < ids.index(c["id"]) for p in c["prerequisites"])
+    # The checker rejects an edge the lessons don't support.
+    import dsa_notebooks
+    original = dsa_notebooks.Path.read_text
+    spec = json.loads((HERE / "build/dsa_concepts.json").read_text())
+    spec["lessons"]["basics/02"] = [["basics/01", "invented", ["segment tree"]]]
+    def patched(self, *a, **k):
+        if self.name == "dsa_concepts.json":
+            return json.dumps(spec)
+        return original(self, *a, **k)
+    dsa_notebooks.Path.read_text = patched
+    try:
+        with pytest.raises(ValueError, match="segment tree"):
+            dsa_notebooks.dsa_concepts(COURSE)
+    finally:
+        dsa_notebooks.Path.read_text = original

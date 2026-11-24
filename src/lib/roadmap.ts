@@ -1,18 +1,24 @@
 // Learning roadmaps, built from real course data.
 // Python: lessons are grouped into stages in course order, and dependencies come only
-// from the curriculum's concept graph (curriculum/concepts.json). Other courses have no
+// from the curriculum's concept graph (curriculum/concepts.json). DSA: stages and
+// prerequisites come from build/dsa_concepts.json, where the build checks each edge
+// against the lessons' own text and every edge carries a reason. Other courses have no
 // prerequisite metadata, so their roadmap follows the course's own levels and sections
 // as a suggested order, with no invented dependencies.
 import type { Catalog } from "./course";
 
 export type Concept = { id: string; concept: string; skill: string; difficulty: string; prerequisites: string[]; evidence: string };
-export type RoadmapItem = { id: string; title: string; graded: number; skill?: string; prerequisites: string[]; challenges: string[] };
+export type RoadmapItem = { id: string; title: string; graded: number; skill?: string; prerequisites: string[]; why?: Record<string, string>; challenges: string[] };
+export type DsaConcepts = {
+  stages: { id: string; title: string; summary: string; level: string; lessons: string[] }[];
+  concepts: { id: string; concept: string; skill: string; prerequisites: string[]; why: Record<string, string>; stage: string }[];
+};
 export type Stage = {
   id: string;
   title: string;
   summary: string;
   items: RoadmapItem[];
-  projects: { id: string; title: string }[];
+  projects: { id: string; title: string; href?: string }[];
   dependsOn: string[]; // stage ids, from lesson prerequisites (Python only)
 };
 export type RoadmapLevel = { id: string; title: string; stages: Stage[] };
@@ -42,7 +48,7 @@ const PYTHON_STAGES: [string, string, string, string, number, number][] = [
 
 const lessonNumber = (id: string) => Number(id.split("/").pop()!.slice(0, 2));
 
-export function buildRoadmap(course: string, catalog: Catalog, concepts: Concept[] = []): Roadmap {
+export function buildRoadmap(course: string, catalog: Catalog, concepts: Concept[] = [], dsa?: DsaConcepts): Roadmap {
   // Which lesson holds each challenge, from the catalog's practice packs.
   const challenges = new Map<string, string[]>();
   for (const pack of Object.values(catalog.workbooks ?? {})) {
@@ -66,6 +72,31 @@ export function buildRoadmap(course: string, catalog: Catalog, concepts: Concept
         // A level's projects apply what the whole level taught, so they follow its last stage.
         return { id, title, summary, items, projects: index === defs.length - 1 ? projects.map(({ id, title }) => ({ id, title })) : [], dependsOn: [] as string[] };
       });
+      return { id: level.id, title: level.title, stages };
+    });
+    for (const stage of levels.flatMap((l) => l.stages)) {
+      const deps = new Set(stage.items.flatMap((i) => i.prerequisites.map((p) => stageOf.get(p))).filter((s): s is string => Boolean(s) && s !== stage.id));
+      stage.dependsOn = [...deps];
+    }
+    return { course, graph: true, levels };
+  }
+  if (course === "dsa" && dsa) {
+    const byId = new Map(dsa.concepts.map((c) => [c.id, c]));
+    const stageOf = new Map(dsa.concepts.map((c) => [c.id, c.stage]));
+    const levels: RoadmapLevel[] = catalog.levels.map((level) => {
+      const lessons = new Map((level.sections.find((s) => s.id === "notebooks")?.items ?? []).map((l) => [l.id, l]));
+      const builds = level.sections.find((s) => s.id === "projects")?.items ?? [];
+      const defs = dsa.stages.filter((s) => s.level === level.id);
+      const stages = defs.map((def, index) => ({
+        id: def.id, title: def.title, summary: def.summary,
+        items: def.lessons.filter((id) => lessons.has(id)).map((id) => {
+          const l = lessons.get(id)!, c = byId.get(id);
+          return { id, title: l.title, graded: l.graded, skill: c?.skill, prerequisites: c?.prerequisites ?? [], why: c?.why, challenges: [] };
+        }),
+        // A level's projects combine what the whole level taught, so they follow its last stage.
+        projects: index === defs.length - 1 ? builds.map(({ id, title }) => ({ id, title, href: "/lesson/" + id })) : [],
+        dependsOn: [] as string[],
+      }));
       return { id: level.id, title: level.title, stages };
     });
     for (const stage of levels.flatMap((l) => l.stages)) {
