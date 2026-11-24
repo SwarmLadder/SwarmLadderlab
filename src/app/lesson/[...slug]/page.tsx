@@ -20,6 +20,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string[
   if (id.startsWith("linux/")) return <NativeLesson key={id} id={id} catalog={catalog("linux")} />;
   if (id.startsWith("java/")) return <NativeLesson key={id} id={id} catalog={catalog("java")} />;
   if (id.startsWith("c/")) return <NativeLesson key={id} id={id} catalog={catalog("c")} />;
+  // DSA lessons are interactive notebooks; problems, projects and guides have their own pages.
+  if (/^dsa\/[^/]+\/lessons\//.test(id)) return <Lesson key={id} id={id} catalog={catalog("dsa")} />;
   if (id.startsWith("dsa/")) return <DsaLesson key={id} id={id} catalog={catalog("dsa")} />;
   return <Lesson key={id} id={id} catalog={catalog("python")} />;
 }

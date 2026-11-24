@@ -60,8 +60,9 @@ test("the chosen theme persists across pages and reloads", async ({ page }) => {
 
 test("no page scrolls sideways at phone, tablet and laptop widths", async ({ page }) => {
   const paths = ["/", "/learn", "/learn/python", "/learn/python/roadmap", "/schools", "/studio", "/studio/transactional-event-processor",
-    "/community", "/playground", "/progress", "/achievements", "/lesson/basics/notebooks/05_conditional_statements"];
-  for (const width of [320, 768, 1024]) {
+    "/community", "/playground", "/progress", "/achievements", "/lesson/basics/notebooks/05_conditional_statements",
+    "/lesson/dsa/advanced/lessons/09_fenwick_segment_trees_and_range_queries"];
+  for (const width of [320, 768, 1024, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     for (const path of paths) {
       await page.goto(path);

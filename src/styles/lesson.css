@@ -415,3 +415,11 @@ body:has(.nbook) .colophon { display: none; }
   .nb-meter { display: none; }
   .nb-bar { overflow-x: auto; }
 }
+/* Long course names and step titles (DSA drills) shrink instead of widening the page. */
+.nb-bar { min-width: 0; max-width: 100%; }
+@media (min-width: 901px) { .nb-bar .crumbs { display: flex; align-items: center; gap: 0.35rem; min-width: 0; flex-shrink: 1; } }
+.nb-bar .crumbs > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nb-bar .crumb-roadmap { flex-shrink: 0; }
+.nb-next { min-width: 0; max-width: 24rem; flex-shrink: 1; overflow: hidden; }
+.nb-next > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nb-score { flex-shrink: 0; }

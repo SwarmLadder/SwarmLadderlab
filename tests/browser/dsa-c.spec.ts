@@ -5,11 +5,15 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await expect(page.getByRole("link", { name: /Data Structures & Algorithms, Open now/ })).toBeVisible();
   await page.goto("/learn/dsa");
   await expect(page.getByRole("heading", { name: "Data Structures & Algorithms", exact: true })).toBeVisible();
-  await expect(page.getByText(/48 checks/).first()).toBeVisible();
+  await expect(page.getByText(/336 checks/).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /B01/i }).first()).toBeVisible();
+  // Lessons are graded notebooks now: no "mark complete" shortcut.
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
-  await expect(page.getByRole("heading", { name: /Hash maps/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mark activity complete" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Hash maps/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark activity complete" })).toHaveCount(0);
+  await expect(page.locator('[data-cell-id="drill-DB01-check"]')).toBeVisible();
+  // A reading page (the capstone brief) is still finished by reading it.
+  await page.goto("/lesson/dsa/basics/projects/01_log_signal_analyzer");
   await page.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(page.getByText("✓ Completed")).toBeVisible();
   await page.goto("/progress");

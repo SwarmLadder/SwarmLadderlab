@@ -22,6 +22,8 @@ export type CodeCell = {
 };
 export type Notebook = {
   revision?: string;
+  sourcePath?: string; // DSA lessons: the Markdown file in the DSA course
+  quizFeedback?: Record<string, { explain: string; section: string }>;
   id: string;
   title: string;
   folder: string;
@@ -35,9 +37,10 @@ async function json<T>(path: string, signal?: AbortSignal): Promise<T> {
   return response.json();
 }
 export const catalogData = () => json<Catalog>("/data/catalog.json");
+// Python notebooks live in /data/nb; DSA lessons are notebooks in /data/dsa/nb.
 export const notebookData = (id: string, signal?: AbortSignal) =>
   json<Notebook>(
-    "/data/nb/" + encodeURIComponent(id.replaceAll("/", "__")) + ".json",
+    (id.startsWith("dsa/") ? "/data/dsa/nb/" : "/data/nb/") + encodeURIComponent(id.replaceAll("/", "__")) + ".json",
     signal,
   );
 export function download(name: string, text: string, type: string) {

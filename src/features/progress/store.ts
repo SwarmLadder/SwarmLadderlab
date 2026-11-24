@@ -30,8 +30,8 @@ function write(state: State) {
 // v1 timestamps remain historical. Code checks acquire current evidence on rerun.
 const pythonCheck = (id: string, key: string) =>
   /^(basics|intermediate|advanced)\//.test(id) && /^(ex\d+$|wb:|mastery:)/.test(key);
-// Every DSA result except reading a page is a code or quiz check.
-const dsaCheck = (id: string, key: string) => id.startsWith("dsa/") && key !== "read";
+// DSA code results (problem suites, drills) must be current; quiz answers and reading are not code.
+const dsaCheck = (id: string, key: string) => id.startsWith("dsa/") && /^(case-suite$|wb:|ex\d+$|mastery:)/.test(key);
 export const isCheck = (id: string, key: string) => pythonCheck(id, key) || dsaCheck(id, key);
 // The revision a check's evidence must carry to count as current, by course.
 export const revisionFor = (key = "") => key.startsWith("dsa/") ? dsaRevision : pythonRevision;

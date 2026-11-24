@@ -102,7 +102,8 @@ async function run(id, code, cwd, fresh, assessment) {
       namespace.destroy();
       namespace = py.runPython('{"__name__": "__main__"}');
     }
-    if (/\bcheck\(\s*'/.test(code) || code.includes("check.summary") || code.includes("from check import")) {
+    // Python challenge checks run pytest; DSA drills are graded by their own lesson.py.
+    if (!cwd.startsWith("/course/dsa/") && (/\bcheck\(\s*'/.test(code) || code.includes("check.summary") || code.includes("from check import"))) {
       await ensurePytest();
     }
     py.globals.set("__swl_cwd", cwd);
@@ -152,7 +153,9 @@ sys.setprofile(_swl_grade)
     const frames = [...message.matchAll(/File "<exec>", line (\d+)/g)];
     const line = frames.length ? Number(frames[frames.length - 1][1]) : undefined;
     if (["BlankNotFilled", "NotImplementedError"].includes(error.type) ||
-        (error.type === "NameError" && /NameError: name '___' is not defined\s*$/.test(message))) {
+        (error.type === "NameError" && /NameError: name '___' is not defined\s*$/.test(message)) ||
+        // A ___ blank standing in for an operator or keyword cannot even be parsed.
+        (error.type === "SyntaxError" && /(^|[^\w])___([^\w]|$)/.test(code))) {
       postMessage({ type: "done", id, assessment: "not_attempted", friendly: "Finish the implementation and run it again." });
       return;
     }
