@@ -1,0 +1,88 @@
+/* DSA execution-trace visualizer. Every colour comes from the theme tokens. */
+.viz { margin: 1.4rem 0 1.8rem; border: 1px solid var(--rule); border-radius: var(--r-lg, 14px); background: var(--sheet); box-shadow: var(--raised-shadow, none); overflow: hidden; }
+.viz:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.viz-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.8rem; padding: 1rem 1.1rem 0.4rem; }
+.viz-head h3 { margin: 0.15rem 0 0; font: 500 1.2rem/1.25 var(--serif); }
+.viz-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.viz-predict { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; color: var(--ink-2); }
+.viz-watch { margin: 0.2rem 1.1rem 0.6rem; font-size: 0.92rem; color: var(--ink-2); }
+.viz-watch b { color: var(--ink); }
+.viz-driver { display: flex; align-items: center; gap: 0.5rem; margin: 0 1.1rem 0.8rem; font: 500 0.8rem/1 var(--sans); color: var(--muted); }
+.viz-driver { align-items: flex-start; }
+.viz-driver > span { padding-top: 0.5rem; }
+.viz-driver input, .viz-driver textarea { flex: 1; resize: vertical; white-space: pre; min-width: 0; padding: 0.42rem 0.6rem; border: 1px solid var(--rule-2); border-radius: var(--r-sm, 6px); background: var(--paper); color: var(--ink); font: 0.84rem/1.3 var(--mono); }
+.viz-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); border-top: 1px solid var(--rule); }
+.viz-code { min-width: 0; border-right: 1px solid var(--rule); background: var(--code-bg, var(--paper)); overflow: auto; max-height: 34rem; }
+.viz-lines { margin: 0; padding: 0.6rem 0; list-style: none; font: 0.82rem/1.55 var(--mono); font-variant-ligatures: none; }
+.viz-lines li { display: grid; grid-template-columns: 2.6rem 1fr; padding-right: 0.8rem; color: var(--code-text, var(--ink)); }
+.viz-lines li::before { content: attr(value); text-align: right; padding-right: 0.8rem; color: var(--muted); }
+.viz-lines li code { white-space: pre; background: none; padding: 0; font: inherit; color: inherit; }
+.viz-lines li.now { background: color-mix(in srgb, var(--signal) 18%, transparent); box-shadow: inset 3px 0 var(--signal); }
+.viz-lines li.next { background: color-mix(in srgb, var(--warning, #c58a00) 16%, transparent); box-shadow: inset 3px 0 var(--warning, #c58a00); }
+.viz-state { min-width: 0; padding: 0.8rem 1rem 1rem; overflow-x: auto; max-height: 34rem; overflow-y: auto; }
+.viz-empty, .viz-none { color: var(--muted); font-size: 0.88rem; margin: 0.2rem 0; }
+.viz-where { margin: 0 0 0.5rem; font-size: 0.84rem; color: var(--ink-2); }
+.viz-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 0.6rem; padding: 0.5rem 0.7rem; border-radius: var(--r-sm, 6px); background: var(--warning-soft, var(--paper-2)); font-size: 0.86rem; }
+.viz-calls { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0 0 0.7rem; padding: 0; list-style: none; font: 0.74rem/1 var(--mono); }
+.viz-calls li { padding: 0.25rem 0.45rem; border: 1px solid var(--rule); border-radius: 999px; color: var(--muted); }
+.viz-calls li + li::before { content: "→ "; }
+.viz-calls li.top { border-color: var(--signal); color: var(--ink); }
+.viz-view { margin: 0 0 0.85rem; }
+.viz-view figcaption { margin-bottom: 0.3rem; font: 600 0.72rem/1.2 var(--sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.viz-array { display: flex; flex-wrap: wrap; gap: 3px; }
+.viz-cell { display: grid; grid-template-rows: auto auto auto; justify-items: center; min-width: 2.3rem; }
+.viz-i { font: 0.66rem/1.2 var(--mono); color: var(--muted); }
+.viz-v { font-variant-ligatures: none; min-width: 2.2rem; padding: 0.38rem 0.35rem; border: 1px solid var(--rule-2); border-radius: var(--r-sm, 6px); background: var(--paper); text-align: center; font: 0.84rem/1.1 var(--mono); }
+.viz-cell.in .viz-v { background: color-mix(in srgb, var(--signal) 14%, var(--paper)); border-color: color-mix(in srgb, var(--signal) 45%, var(--rule-2)); }
+.viz-cell.changed .viz-v { box-shadow: 0 0 0 2px var(--warning, #c58a00); }
+.viz-cell.focus .viz-v { border-color: var(--signal); border-width: 2px; }
+.viz-cell.past .viz-v { border-style: dashed; background: transparent; }
+.viz-p { min-height: 1rem; font: 600 0.68rem/1.3 var(--mono); color: var(--signal); }
+.viz-vars { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
+.viz-vars div { display: flex; gap: 0.35rem; padding: 0.3rem 0.55rem; border: 1px solid var(--rule); border-radius: var(--r-sm, 6px); font: 0.8rem/1.2 var(--mono); }
+.viz-vars dt { color: var(--muted); }
+.viz-vars dd { margin: 0; color: var(--ink); }
+.viz-vars .changed, .viz-map .changed td, .viz-map .added td { box-shadow: inset 0 0 0 2px var(--warning, #c58a00); }
+.viz-map { border-collapse: collapse; font: 0.8rem/1.3 var(--mono); }
+.viz-map th, .viz-map td { padding: 0.22rem 0.55rem; border: 1px solid var(--rule); text-align: left; }
+.viz-map th { color: var(--ink-2); font-weight: 500; background: var(--paper); }
+ol.viz-stack, ol.viz-queue { display: flex; gap: 3px; margin: 0; padding: 0; list-style: none; font: 0.8rem/1.2 var(--mono); align-items: center; }
+ol.viz-stack { flex-direction: column; align-items: flex-start; }
+ol.viz-stack li, ol.viz-queue li { padding: 0.3rem 0.55rem; border: 1px solid var(--rule-2); border-radius: var(--r-sm, 6px); background: var(--paper); color: var(--ink); }
+ol.viz-stack li + li::before, ol.viz-queue li + li::before { content: none; }
+ol.viz-stack li.end, ol.viz-queue li.end { border-color: var(--signal); }
+.viz-end-label { font-size: 0.72rem; color: var(--muted); }
+.viz-linked { display: grid; gap: 0.3rem; }
+.viz-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin: 0; font: 0.82rem/1.2 var(--mono); }
+.viz-node { padding: 0.3rem 0.55rem; border: 1px solid var(--rule-2); border-radius: var(--r-sm, 6px); background: var(--paper); }
+.viz-node::after { content: " →"; color: var(--muted); }
+.viz-null { color: var(--muted); }
+.viz-tree, .viz-graph { display: block; max-width: 100%; height: auto; }
+.viz-tree line, .viz-graph .ge line { stroke: var(--rule-2); stroke-width: 1.6; }
+.viz-tree .tn circle, .viz-graph .gn circle { fill: var(--paper); stroke: var(--rule-2); stroke-width: 1.6; }
+.viz-tree text, .viz-graph text { fill: var(--ink); font: 12px var(--mono); }
+.viz-tree .tn.now circle, .viz-graph .gn.now circle { fill: color-mix(in srgb, var(--signal) 22%, var(--paper)); stroke: var(--signal); stroke-width: 2.4; }
+.viz-tree .tn.held circle, .viz-graph .gn.seen circle { stroke: var(--ink-2); }
+.viz-tree .tn.root circle { stroke: var(--ink); stroke-width: 2.2; }
+.viz-graph .gn.focus circle { stroke: var(--warning, #c58a00); stroke-width: 2.4; }
+.viz-graph .ge.hot line { stroke: var(--signal); stroke-width: 2.6; }
+.viz-graph marker path { fill: var(--rule-2); }
+.viz-graph .ge text { font-size: 11px; fill: var(--muted); }
+.viz-graph .gl { font-size: 11px; fill: var(--signal); font-weight: 600; }
+.viz-table { border-collapse: collapse; font: 0.78rem/1.2 var(--mono); }
+.viz-table th, .viz-table td { min-width: 1.7rem; padding: 0.24rem 0.3rem; border: 1px solid var(--rule); text-align: center; }
+.viz-table th { color: var(--muted); font-weight: 500; }
+.viz-table th.on { color: var(--signal); }
+.viz-table td.now { background: color-mix(in srgb, var(--signal) 24%, transparent); outline: 2px solid var(--signal); }
+.viz-table td.changed { box-shadow: inset 0 0 0 2px var(--warning, #c58a00); }
+.viz-result { margin: 0.4rem 0 0; font-size: 0.88rem; }
+.viz-error { margin: 0.5rem 0 0; color: var(--danger, #b42318); font-size: 0.86rem; }
+.viz-controls { display: flex; align-items: center; gap: 0.3rem; padding: 0.6rem 1rem; border-top: 1px solid var(--rule); background: var(--paper); }
+.viz-controls button { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--rule-2); border-radius: var(--r-sm, 6px); background: var(--sheet); color: var(--ink); cursor: pointer; }
+.viz-controls button:disabled { opacity: 0.4; cursor: default; }
+.viz-controls input[type="range"] { flex: 1; min-width: 4rem; accent-color: var(--signal); }
+@media (max-width: 900px) {
+  .viz-body { grid-template-columns: minmax(0, 1fr); }
+  .viz-code { border-right: 0; border-bottom: 1px solid var(--rule); max-height: 18rem; }
+}
+@media (prefers-reduced-motion: reduce) { .viz * { transition: none !important; animation: none !important; } }

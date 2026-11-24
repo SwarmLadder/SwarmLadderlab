@@ -1,0 +1,163 @@
+[
+  {
+    "lesson": "basics/01_hashing_and_frequency", "functions": ["pair_indices"],
+    "driver": "pair_indices([3, 8, 11, 4, 7], 11)",
+    "title": "Hash map pair search",
+    "watch": "Before index right is inserted, the map holds only values at indexes smaller than right. The answer appears when target - value is already a key.",
+    "views": [
+      {"kind": "array", "of": "values", "pointers": ["right", "left"]},
+      {"kind": "map", "of": "previous", "label": "previous: value → index"},
+      {"kind": "vars", "of": ["value", "target"]}
+    ]
+  },
+  {
+    "lesson": "basics/02_two_pointers_and_invariants", "functions": ["pair_in_sorted"],
+    "driver": "pair_in_sorted([1, 3, 4, 6, 8, 11], 10)",
+    "title": "Two pointers on a sorted array",
+    "watch": "Every pair outside [left, right] has been ruled out: a total below target moves left up, a total above target moves right down.",
+    "views": [
+      {"kind": "array", "of": "nums", "pointers": ["left", "right"], "range": ["left", "right", "closed"]},
+      {"kind": "vars", "of": ["total", "target"]}
+    ]
+  },
+  {
+    "lesson": "basics/03_stacks_and_state", "functions": ["next_greater"],
+    "driver": "next_greater([2, 1, 2, 4, 3])",
+    "title": "Monotonic stack: next greater value",
+    "watch": "The stack holds indexes still waiting for a greater value; their values never increase from bottom to top. Each index is pushed once and popped at most once.",
+    "views": [
+      {"kind": "array", "of": "values", "pointers": ["i"]},
+      {"kind": "stack", "of": "stack", "indexInto": "values", "label": "stack (indexes waiting)"},
+      {"kind": "array", "of": "answer", "label": "answer"}
+    ]
+  },
+  {
+    "lesson": "basics/04_binary_search_prefixes_and_dp", "functions": ["half_open_lower_bound"],
+    "driver": "half_open_lower_bound([1, 3, 3, 5, 8, 13], 5)",
+    "title": "Binary search: first index with nums[i] ≥ target",
+    "watch": "The answer always stays in [lo, hi]. Everything left of lo is below target; everything from hi on is at least target. Each step halves the range.",
+    "views": [
+      {"kind": "array", "of": "nums", "pointers": ["lo", "mid", "hi"], "range": ["lo", "hi", "half-open"]},
+      {"kind": "vars", "of": ["target"]}
+    ]
+  },
+  {
+    "lesson": "basics/04_binary_search_prefixes_and_dp", "functions": ["max_subarray"],
+    "driver": "max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4])",
+    "title": "One-dimensional DP: best subarray ending here",
+    "watch": "running is the best sum of a subarray that ends at x; best is the best sum seen anywhere so far. A negative running sum is dropped by restarting at x.",
+    "views": [
+      {"kind": "array", "of": "nums"},
+      {"kind": "vars", "of": ["x", "running", "best"]}
+    ]
+  },
+  {
+    "lesson": "basics/08_linked_lists_and_pointer_mutation", "functions": ["ListNode", "build", "reverse_links", "to_list"],
+    "driver": "to_list(reverse_links(build([1, 2, 3, 4])))",
+    "title": "Reversing a linked list in place",
+    "watch": "previous is the already-reversed part and head is the rest. One assignment turns head's link around and advances both pointers, so no node is lost.",
+    "views": [
+      {"kind": "linked", "of": ["previous", "head"], "next": "next", "value": "value"},
+      {"kind": "array", "of": "out", "label": "out"}
+    ]
+  },
+  {
+    "lesson": "basics/09_queues_deques_and_bfs_frontiers", "functions": ["shortest_unweighted"],
+    "driver": "shortest_unweighted({'A': ['B', 'C'], 'B': ['D'], 'C': ['D', 'E'], 'D': ['F'], 'E': ['F'], 'F': []}, 'A')",
+    "title": "Breadth-first search frontier",
+    "watch": "The queue holds the frontier in order of distance. A node gets its distance the first time it is discovered, and that distance is final.",
+    "views": [
+      {"kind": "graph", "of": "graph", "directed": true, "current": "node", "focus": "neighbor", "labels": "distance"},
+      {"kind": "queue", "of": "queue", "label": "queue (frontier)"},
+      {"kind": "map", "of": "distance", "label": "distance"}
+    ]
+  },
+  {
+    "lesson": "basics/10_sorting_stability_and_correctness", "functions": ["merge_sort"],
+    "driver": "merge_sort([5, 2, 4, 6, 1, 3])",
+    "title": "Merge sort: split, recurse, merge",
+    "watch": "Each call sorts its own slice. While merging, out holds the smallest items of left and right in order; ties take the left item first, which keeps the sort stable.",
+    "views": [
+      {"kind": "array", "of": "values", "label": "values (this call)"},
+      {"kind": "array", "of": "left", "pointers": ["i"]},
+      {"kind": "array", "of": "right", "pointers": ["j"]},
+      {"kind": "array", "of": "out"}
+    ]
+  },
+  {
+    "lesson": "intermediate/01_sliding_windows", "functions": ["longest_distinct"],
+    "driver": "longest_distinct('abcabcbb')",
+    "title": "Sliding window without repeats",
+    "watch": "text[left:right + 1] never contains a repeated character. When character was seen inside the window, left jumps just past its last position; it never moves back.",
+    "views": [
+      {"kind": "array", "of": "text", "pointers": ["left", "right"], "range": ["left", "right", "closed"]},
+      {"kind": "map", "of": "last", "label": "last: character → index"},
+      {"kind": "vars", "of": ["best"]}
+    ]
+  },
+  {
+    "lesson": "intermediate/07_tree_traversals_and_subtree_information", "functions": ["inorder_iterative"],
+    "driver": "inorder_iterative([4, [2, [1, None, None], [3, None, None]], [6, [5, None, None], None]])",
+    "title": "In-order traversal with an explicit stack",
+    "watch": "The stack holds the ancestors whose left subtree is being visited. A node is output after its whole left subtree and before its right one.",
+    "views": [
+      {"kind": "tree", "of": "tree", "format": "list", "current": "node", "stack": "stack"},
+      {"kind": "stack", "of": "stack", "show": "first", "label": "stack (node values)"},
+      {"kind": "array", "of": "out"}
+    ]
+  },
+  {
+    "lesson": "intermediate/08_heaps_selection_and_top_k", "functions": ["k_largest"],
+    "driver": "k_largest([5, 1, 9, 3, 7, 6], 3)",
+    "title": "Min-heap of the k largest",
+    "watch": "The heap never holds more than k values and its root is the smallest of them. A new value that beats the root survives; the root is dropped.",
+    "views": [
+      {"kind": "array", "of": "nums", "focus": "x"},
+      {"kind": "heap", "of": "heap"},
+      {"kind": "vars", "of": ["x", "k"]}
+    ]
+  },
+  {
+    "lesson": "advanced/01_graph_traversals_and_dependencies", "functions": ["topo_order"],
+    "driver": "topo_order({'lint': ['test'], 'compile': ['test', 'package'], 'test': ['package'], 'package': []})",
+    "title": "Topological order by in-degree (Kahn)",
+    "watch": "A task enters ready only when every task it depends on is already in order. If tasks remain but ready is empty, the graph has a cycle.",
+    "views": [
+      {"kind": "graph", "of": "graph", "directed": true, "current": "v", "focus": "w", "labels": "indegree"},
+      {"kind": "heap", "of": "ready", "label": "ready (min-heap)"},
+      {"kind": "array", "of": "order"}
+    ]
+  },
+  {
+    "lesson": "advanced/05_shortest_paths_and_weight_assumptions", "functions": ["dijkstra"],
+    "driver": "dijkstra(5, [(0, 1, 4), (0, 2, 1), (2, 1, 2), (1, 3, 1), (2, 3, 5), (3, 4, 3)], 0)",
+    "title": "Dijkstra with a priority queue",
+    "watch": "With nonnegative weights, the smallest cost popped for u is final. Older, larger entries for u are skipped. Each relaxation lowers dist[v] and pushes the new cost.",
+    "views": [
+      {"kind": "graph", "of": "graph", "format": "weighted-list", "directed": true, "current": "u", "focus": "v", "labels": "dist"},
+      {"kind": "heap", "of": "heap", "label": "heap of (cost, vertex)"},
+      {"kind": "array", "of": "dist", "label": "dist"}
+    ]
+  },
+  {
+    "lesson": "advanced/03_dynamic_programming", "functions": ["lcs"],
+    "driver": "lcs('ABCBDAB', 'BDCABA')",
+    "title": "Two-dimensional DP: longest common subsequence",
+    "watch": "dp[i][j] is the LCS length of a[:i] and b[:j]. It extends dp[i-1][j-1] on a match, and otherwise takes the better of dropping one character.",
+    "views": [
+      {"kind": "table", "of": "dp", "cell": ["i", "j"], "rows": "a", "cols": "b"},
+      {"kind": "vars", "of": ["i", "j"]}
+    ]
+  },
+  {
+    "lesson": "advanced/10_amortized_analysis_dsu_and_rollback", "functions": ["DSU"],
+    "driver": "d = DSU(6)\nfor a, b in [(0, 1), (2, 3), (1, 3), (4, 5)]:\n    d.union(a, b)\nresult = [d.find(x) for x in range(6)]",
+    "title": "Union–find: union by size with path halving",
+    "watch": "Each set is a tree and its root is the representative. Union hangs the smaller tree under the larger root; find shortens the path as it climbs.",
+    "views": [
+      {"kind": "dsu", "of": "self.parent", "focus": "x"},
+      {"kind": "array", "of": "self.size", "label": "size (meaningful at roots)"},
+      {"kind": "vars", "of": ["a", "b", "x", "self.components"]}
+    ]
+  }
+]

@@ -190,3 +190,18 @@ def test_dsa_sections_are_unique_and_ordered_for_learning(built):
         ids = [s["id"] for s in level["sections"]]
         assert len(ids) == len(set(ids)), ids
         assert ids[:5] == ["notebooks", "exercises", "worked_examples", "projects", "interview"]
+
+
+def test_visualizations_trace_real_lesson_code_for_every_structure(built):
+    _, out = built
+    visuals = [(page, c) for page in pages(out) for c in page["cells"] if c.get("kind") == "visual"]
+    assert len(visuals) == 15
+    kinds = {view["kind"] for _, c in visuals for view in c["views"]}
+    assert kinds >= {"array", "map", "stack", "queue", "linked", "tree", "heap", "graph", "table", "dsu", "vars"}
+    for page, c in visuals:
+        # The traced function is the lesson's own code, verbatim.
+        lesson = (COURSE / page["sourcePath"]).read_text()
+        body = c["source"].split("\n\n", 1)[1]
+        for chunk in body.split("\n\n\n"):
+            assert chunk.strip() in lesson, (page["id"], chunk[:60])
+        assert c["steps"] >= 5 and c["watch"] and c["driver"]
