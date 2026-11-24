@@ -7,7 +7,7 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await expect(page.getByRole("heading", { name: "Data Structures & Algorithms", exact: true })).toBeVisible();
   await expect(page.getByText(/342 checks/).first()).toBeVisible();
   // Lessons come first now (taught, then practised); the first rung is the first lesson.
-  await expect(page.locator(".rung-link").first()).toContainText("Hash maps");
+  await expect(page.locator(".rm-item-title").first()).toContainText("Hash maps");
   // Lessons are graded notebooks now: no "mark complete" shortcut.
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
   await expect(page.getByRole("heading", { level: 1, name: /Hash maps/i })).toBeVisible();
@@ -90,7 +90,7 @@ test("C17 local lab requires explicit learner confirmation, never browser execut
   await page.goto("/learn/c");
   await expect(page.getByRole("heading", { name: "C", exact: true })).toBeVisible();
   await expect(page.getByText(/93 checks/).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: /Code whole_minutes/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Code whole_minutes/i }).first()).toBeVisible();
   await page.goto("/lesson/c/basics/labs/01-checked_add");
   await expect(page.getByRole("heading", { level: 1, name: /Checked signed addition/i })).toBeVisible();
   await expect(page.getByText("make mastery-check TASK=checked_add").first()).toBeVisible();

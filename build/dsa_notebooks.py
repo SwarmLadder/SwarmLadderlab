@@ -392,4 +392,25 @@ def dsa_concepts(course: Path) -> dict:
                         "prerequisites": prerequisites, "why": why, "stage": stage})
     stages = [{"id": s[0], "title": s[1], "summary": s[2], "level": s[3],
                "lessons": [lesson_id(f"{s[3]}/{n}") for n in s[4]]} for s in spec["stages"]]
-    return {"stages": stages, "concepts": entries}
+    # Where practice belongs on the roadmap, as the course itself says: each lesson names its
+    # interview problems, and each worked example names the drills (in a lesson) to practise next.
+    level_of = {v: k for k, v in LEVEL_PREFIX.items()}
+    practice: dict[str, list[str]] = {}
+    for key in sorted(paths, key=rank):
+        found = re.search(r"\*\*Interview problems for this lesson:\*\*(.*)", paths[key].read_text(encoding="utf-8"))
+        for ident in re.findall(r"`([BIA]\d{2})`", found.group(1) if found else ""):
+            problem = f"dsa/{level_of[ident[0]]}/problems/{ident}"
+            if not any(problem in listed for listed in practice.values()):  # first lesson that names it
+                practice.setdefault(lesson_id(key), []).append(problem)
+    drill_lesson = {}
+    for level in order:
+        for drill in json.loads((course / "drills" / f"{level}.json").read_text(encoding="utf-8")):
+            drill_lesson[drill["id"]] = drill["lesson"]
+    for level in order:
+        for path in sorted((course / "worked_examples" / level).glob("[0-9][0-9]_*.md")):
+            first = re.search(r"\*\*Practise next:\*\* drills `(D[BIA]\d{2})`", path.read_text(encoding="utf-8"))
+            if first:
+                home = drill_lesson[first.group(1)]
+                key = f"{home.split('/')[1]}/{Path(home).stem[:2]}"
+                practice.setdefault(lesson_id(key), []).append(f"dsa/{level}/worked/{path.stem}")
+    return {"stages": stages, "concepts": entries, "practice": practice}

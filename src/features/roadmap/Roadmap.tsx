@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CircleDot, RefreshCw } from "lucide-react";
+import { ArrowRight, Check, CircleDot, RefreshCw, Search } from "lucide-react";
 import { lessonPath } from "../../lib/course";
-import type { Roadmap as Data, RoadmapItem, Stage } from "../../lib/roadmap";
-import { TechLogo } from "../../components/TechLogo";
+import type { ItemKind, Roadmap as Data, RoadmapItem, Stage } from "../../lib/roadmap";
+import { RUNTIME } from "../../lib/runtime";
 import { studioSlug } from "../../lib/campus";
+import { TechLogo } from "../../components/TechLogo";
 import { currentStatus, doneIn, onProgress, read } from "../progress/store";
 
 type State = "completed" | "read" | "progress" | "stale" | "available" | "not-started";
@@ -38,7 +39,12 @@ function Node({ state }: { state: State }) {
   );
 }
 
-export function Roadmap({ data, courseTitle, courseId }: { data: Data; courseTitle: string; courseId: string }) {
+const GROUPS: [ItemKind, string][] = [["lesson", "Lessons"], ["practice", "Practice"], ["example", "Worked examples and guides"], ["project", "Projects"]];
+// Python projects open their Studio brief; everything else opens its Lab page.
+const hrefOf = (item: RoadmapItem) => item.href ?? (item.kind === "project" && /^(basics|intermediate|advanced)\//.test(item.id) ? "/studio/" + studioSlug(item.id) : lessonPath(item.id));
+
+// A course's main page: its header, then every activity of the course arranged as a roadmap.
+export function Roadmap({ data, courseTitle, courseId, language }: { data: Data; courseTitle: string; courseId: string; language?: string }) {
   const [snap, setSnap] = useState<ReturnType<typeof read>>({});
   useEffect(() => {
     const sync = () => setSnap(read());
@@ -74,24 +80,58 @@ export function Roadmap({ data, courseTitle, courseId }: { data: Data; courseTit
     track.current?.querySelectorAll<HTMLButtonElement>(".rm-stage")[next]?.focus();
   }
   const done = stages.filter((s) => states.byStage.get(s.id) === "completed").length;
+  const items = stages.flatMap((s) => s.items);
+  const checks = items.reduce((n, i) => n + i.graded, 0);
+  const passed = items.reduce((n, i) => n + Math.min(i.graded, doneIn(i.id, snap).length), 0);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const hits = q ? items.filter((i) => (i.title + " " + i.id + " " + (i.skill ?? "")).toLowerCase().includes(q)) : [];
+  const runtime = RUNTIME[courseId];
 
   return (
     <div className="roadmap">
       <header className="rm-head">
         <div className="rm-title">
-          <span className="rm-logo"><TechLogo id={courseId} size={32} /></span>
+          <span className="rm-logo"><TechLogo id={courseId} size={36} /></span>
           <div>
-            <p className="eyebrow"><Link href={"/learn/" + courseId}>{courseTitle}</Link> · Roadmap</p>
-            <h1>{courseTitle} roadmap</h1>
+            {language && <p className="eyebrow">{language}</p>}
+            <h1>{courseTitle}</h1>
+            <p className="rm-facts-line">
+              <span>{items.length} activities</span><span>{checks} checks</span><span>{data.levels.length} levels</span><span>{stages.length} stages</span>
+            </p>
             <p className="rm-sub">{done} of {stages.length} stages completed · {data.graph ? (data.course === "dsa" ? "dependencies from the DSA concept map, each with its reason" : "dependencies from the curriculum's concept map") : "suggested order from the course outline"}</p>
           </div>
         </div>
-        {resume && (
-          <Link className="button primary" href={lessonPath(resume.id)}>
-            {states.items.get(resume.id) === "available" && !done ? "Start" : "Resume"}: {resume.title.replace(/^\d+ — /, "")} <ArrowRight size={16} />
-          </Link>
-        )}
+        <div className="rm-actions">
+          {resume && (
+            <Link className="button primary" href={hrefOf(resume)}>
+              {states.items.get(resume.id) === "available" && !done && !passed ? "Start" : "Continue"}: {resume.title.replace(/^\d+ — /, "")} <ArrowRight size={16} />
+            </Link>
+          )}
+          <div className="course-progress" aria-label={`${passed} of ${checks} checks passing`}>
+            <span className="course-progress-n">{checks ? Math.round((100 * passed) / checks) : 0}%</span>
+            <span className="thin-bar"><span style={{ width: `${checks ? (100 * passed) / checks : 0}%` }} /></span>
+          </div>
+        </div>
       </header>
+      <div className="rm-tools">
+        {runtime && (
+          <details className="course-runtime" role="note">
+            <summary><span className="course-runtime-label">{runtime[0]}</span> How checking works</summary>
+            <p>{runtime[1]} Progress is saved on this device.</p>
+          </details>
+        )}
+        <label className="finder rm-finder">
+          <Search size={16} strokeWidth={1.7} aria-hidden="true" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this course" aria-label={"Search " + courseTitle} />
+        </label>
+      </div>
+      {q && (
+        <section className="rm-results" aria-live="polite" aria-label="Search results">
+          <p className="rm-facts" role="status">{hits.length} {hits.length === 1 ? "result" : "results"}</p>
+          <ol className="rm-items">{hits.map((item) => <ItemRow key={item.id} item={item} state={states.items.get(item.id)!} titles={titles} />)}</ol>
+        </section>
+      )}
       <ul className="rm-legend" aria-label="Legend">
         {(["completed", "progress", "stale", "available", "not-started"] as State[]).map((s) => <li key={s}><Node state={s} /> {LABEL[s]}</li>)}
       </ul>
@@ -152,39 +192,39 @@ function StagePanel({ ref, stage, level, states, stageStates, titles, stages, on
           return <span key={id}>{i ? ", " : ""}<button type="button" className="link-button" onClick={() => onSelect(id)}>{dep?.title ?? id}</button></span>;
         })}</p>
       )}
-      <ol className="rm-items">
-        {stage.items.map((item) => {
-          const s = states.get(item.id)!;
-          return (
-            <li key={item.id} className={"rm-item " + s}>
-              <Node state={s} />
-              <div>
-                <Link href={lessonPath(item.id)} className="rm-item-title">{item.title}</Link>
-                {item.skill && <p className="rm-skill">{item.skill}</p>}
-                <p className="rm-meta">
-                  <span>{LABEL[s]}</span>
-                  {item.graded > 0 && <span>{item.graded} checks</span>}
-                  {item.challenges.length > 0 && <span>Challenges: {item.challenges.join(", ")}</span>}
-                  {item.prerequisites.length > 0 && !item.why && <span>After {item.prerequisites.map((p) => titles.get(p)?.replace(/^\d+ — /, "") ?? p).join(", ")}</span>}
-                </p>
-                {item.why && item.prerequisites.length > 0 && (
-                  <ul className="rm-why" aria-label={"Why " + item.title + " comes after its prerequisites"}>
-                    {item.prerequisites.map((p) => (
-                      <li key={p}><Link href={lessonPath(p)}>{titles.get(p) ?? p}</Link>: {item.why![p]}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-      {stage.projects.length > 0 && (
-        <div className="rm-projects">
-          <h3>Apply it</h3>
-          <ul>{stage.projects.map((p) => <li key={p.id}><Link href={p.href ?? "/studio/" + studioSlug(p.id)}>{p.title}</Link></li>)}</ul>
-        </div>
-      )}
+      {GROUPS.map(([kind, label]) => {
+        const group = stage.items.filter((i) => i.kind === kind);
+        if (!group.length) return null;
+        return (
+          <div key={kind} className={"rm-group kind-" + kind}>
+            {stage.items.some((i) => i.kind !== kind) && <h3>{label}</h3>}
+            <ol className="rm-items">{group.map((item) => <ItemRow key={item.id} item={item} state={states.get(item.id)!} titles={titles} />)}</ol>
+          </div>
+        );
+      })}
     </section>
+  );
+}
+
+function ItemRow({ item, state: s, titles }: { item: RoadmapItem; state: State; titles: Map<string, string> }) {
+  return (
+    <li className={"rm-item " + s}>
+      <Node state={s} />
+      <div>
+        <Link href={hrefOf(item)} className="rm-item-title">{item.title}</Link>
+        {item.skill && <p className="rm-skill">{item.skill}</p>}
+        <p className="rm-meta">
+          <span>{LABEL[s]}</span>
+          {item.graded > 0 && <span>{item.graded} {item.graded === 1 ? "check" : "checks"}</span>}
+          {item.challenges.length > 0 && <span>Challenges: {item.challenges.join(", ")}</span>}
+          {item.prerequisites.length > 0 && !item.why && <span>After {item.prerequisites.map((p) => titles.get(p)?.replace(/^\d+ — /, "") ?? p).join(", ")}</span>}
+        </p>
+        {item.why && item.prerequisites.length > 0 && (
+          <ul className="rm-why" aria-label={"Why " + item.title + " comes after its prerequisites"}>
+            {item.prerequisites.map((p) => <li key={p}><Link href={lessonPath(p)}>{titles.get(p) ?? p}</Link>: {item.why![p]}</li>)}
+          </ul>
+        )}
+      </div>
+    </li>
   );
 }

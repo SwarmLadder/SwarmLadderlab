@@ -9,7 +9,7 @@ const concepts: Concept[] = json("public/data/concepts.json");
 
 test("every Python lesson sits in exactly one roadmap stage, in course order", () => {
   const map = buildRoadmap("python", python, concepts);
-  const placed = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.map((i) => i.id)));
+  const placed = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.filter((i) => i.kind === "lesson").map((i) => i.id)));
   const lessons = python.levels.flatMap((l: any) => l.sections.filter((s: any) => s.id === "notebooks").flatMap((s: any) => s.items.map((i: any) => i.id)));
   assert.deepEqual(placed, lessons);
   assert.equal(new Set(placed).size, placed.length);
@@ -24,9 +24,10 @@ test("Python dependencies come only from the curriculum's concept graph", () => 
   }
   const control = map.levels[0].stages.find((s) => s.id === "control-flow")!;
   assert.ok(control.dependsOn.includes("fundamentals"));
-  // Each level's projects follow its last stage only.
-  const projects = map.levels.flatMap((l) => l.stages.flatMap((s) => s.projects.map((p) => p.id)));
+  // Each level's projects close its last stage only.
+  const projects = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.filter((i) => i.kind === "project")));
   assert.equal(projects.length, 9);
+  for (const level of map.levels) assert.ok(level.stages.slice(0, -1).every((s) => s.items.every((i) => i.kind !== "project")));
 });
 
 test("other courses follow their own outline with no invented dependencies", () => {
@@ -45,7 +46,7 @@ test("DSA stages and prerequisites come from the checked concept map, with reaso
   const concepts = json("public/data/dsa/concepts.json");
   const map = buildRoadmap("dsa", data, [], concepts);
   assert.equal(map.graph, true);
-  const items = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items));
+  const items = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.filter((i) => i.kind === "lesson")));
   const lessons = data.levels.flatMap((l: any) => l.sections.filter((s: any) => s.id === "notebooks").flatMap((s: any) => s.items));
   assert.deepEqual(items.map((i) => i.id).sort(), lessons.map((l: any) => l.id).sort()); // every lesson, once
   const find = (part: string) => items.find((i) => i.id.includes(part))!;
@@ -61,8 +62,24 @@ test("DSA stages and prerequisites come from the checked concept map, with reaso
   assert.ok(items.every((i) => i.prerequisites.every((p) => rank(p) < rank(i.id))));
   const graphs = map.levels[2].stages.find((s) => s.id === "dp")!;
   assert.ok(graphs.dependsOn.length > 0);
-  // Each level's tested projects open in the Lab.
-  const projects = map.levels.flatMap((l) => l.stages.flatMap((s) => s.projects));
-  assert.equal(projects.length, 9);
-  assert.ok(projects.every((p) => p.href?.startsWith("/lesson/dsa/")));
+  // Each lesson's interview problems and worked examples follow it in the same stage.
+  const stack = map.levels[0].stages.find((s) => s.items.some((i) => i.id.includes("03_stacks")))!;
+  const at = stack.items.findIndex((i) => i.id.includes("03_stacks"));
+  assert.ok(stack.items.slice(at).some((i) => i.id === "dsa/basics/problems/B04" && i.kind === "practice"));
+  const projects = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.filter((i) => i.kind === "project")));
+  assert.equal(projects.length, 9); // 6 tested projects + 3 capstones
+});
+
+test("every course's roadmap holds every activity exactly once, so it can be the course page", () => {
+  const dsa = json("public/data/dsa/concepts.json");
+  const python = json("public/data/concepts.json");
+  for (const id of ["python", "sql", "git", "rust", "linux", "dsa", "c", "java"]) {
+    const data = json(id === "python" ? "public/data/catalog.json" : `public/data/${id}/catalog.json`);
+    const map = buildRoadmap(id, data, id === "python" ? python : [], dsa);
+    const ids = map.levels.flatMap((l) => l.stages.flatMap((s) => s.items.map((i) => i.id)));
+    const expected = data.levels.flatMap((l: any) => l.sections.flatMap((s: any) => s.items.map((i: any) => i.id)));
+    assert.deepEqual([...ids].sort(), [...expected].sort(), id);
+    const stageIds = map.levels.flatMap((l) => l.stages.map((s) => s.id));
+    assert.equal(new Set(stageIds).size, stageIds.length, id + " stage ids are unique");
+  }
 });
