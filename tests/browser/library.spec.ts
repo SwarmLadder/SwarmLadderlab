@@ -39,7 +39,7 @@ test("SQL progress resumes SQL only, and mobile directory fits", async ({ page }
   })));
   await page.reload();
   const sql = page.locator(".library-card").filter({ has: page.getByRole("heading", { name: "SQL", exact: true }) });
-  await expect(sql.getByText("1 of 105 completed")).toBeVisible();
+  await expect(sql.getByText("1 of 108 completed")).toBeVisible();
   await expect(sql.getByRole("link", { name: "SQL, Continue learning" }))
     .toHaveAttribute("href", "/lesson/sql/basics/lessons/00_select");
   const python = page.locator(".library-card").filter({ has: page.getByRole("heading", { name: "Python", exact: true }) });

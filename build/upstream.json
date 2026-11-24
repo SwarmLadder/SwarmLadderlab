@@ -1,0 +1,11 @@
+{
+  "_comment": "Course revisions the Lab is built and tested against. Bump one deliberately (and update its tests) when a course changes; the nightly run builds against every course's latest main to report drift early.",
+  "python-notebook": "81f768e8a5775e0eedd01350d47f96834d192477",
+  "SQL": "0e5c9dc207d43afcef9815cb1232853ab530a2c6",
+  "git-github-course": "b92f2af80c35fa951bb64c982edf5a695a94ded6",
+  "RUST": "f75c6209cf6f26cad5f48636a6acfd01640b5fb4",
+  "linux-course": "8419cbe5472003a59b23b369182514eac71b303d",
+  "Data-Structures-Algorithms": "09e4caa30890c43c8b3285aabedec2f6a02ec00e",
+  "C": "7615d7f0827de90630ec59c1b64395e3eb140324",
+  "Java": "79c5737bc386f80480b5b9c291a6c0ba572d8143"
+}

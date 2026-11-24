@@ -12,7 +12,7 @@ test("SQL shelf, interactive SQLite lesson, two-dataset grading and progress", a
   await expect(page.locator(".runtime")).toContainText("SQLite ready", { timeout: 120000 });
   await page.getByRole("button", { name: "Run SQL" }).click();
   await expect(page.getByLabel("SQL output")).toContainText("Statement 1", { timeout: 30000 });
-  await expect(page.getByLabel("SQL output")).toContainText("customer_id");
+  await expect(page.getByLabel("SQL output")).toContainText("full_name");
 
   await page.goto("/lesson/sql/basics/interview/B01");
   const editor = page.getByRole("textbox", { name: "SQL code" });

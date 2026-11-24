@@ -127,3 +127,16 @@ def test_studio_lists_every_project_from_its_notebook(dist):
     assert not tasks["automaticCheck"] and "Task operations use SQL placeholders." in tasks["acceptance"]
     # A package belongs only to the project that names it.
     assert by_id["intermediate/projects/01_library_lending_system"]["package"] is None
+
+
+def test_upstream_pins_cover_every_course_and_match_python_revision():
+    import re
+    root = Path(__file__).resolve().parents[1]
+    pins = json.loads((root / "build/upstream.json").read_text())
+    workflow = (root / ".github/workflows/test.yml").read_text()
+    repos = set(re.findall(r"repository: SwarmLadder/([\w-]+)", workflow))
+    assert repos == {k for k in pins if not k.startswith("_")}
+    assert all(re.fullmatch(r"[0-9a-f]{40}", v) for k, v in pins.items() if not k.startswith("_"))
+    assert pins["python-notebook"] == json.loads((root / "build/python-revision.json").read_text())
+    for repo in repos:
+        assert f"steps.pins.outputs.{repo.replace('-', '_')}" in workflow

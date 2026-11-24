@@ -19,38 +19,61 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      # Pull requests and pushes build against the course revisions pinned in
+      # build/upstream.json, so an upstream change can't break unrelated PRs.
+      # The nightly run uses every course's latest main to report drift early.
+      - name: Resolve course revisions
+        id: pins
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          pins = json.load(open("build/upstream.json"))
+          latest = os.environ["EVENT"] == "schedule"
+          for repo, sha in pins.items():
+              if not repo.startswith("_"):
+                  print(f"{repo.replace('-', '_')}={'' if latest else sha}")
+          PY
+        env:
+          EVENT: ${{ github.event_name }}
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/python-notebook
-          ref: 81f768e8a5775e0eedd01350d47f96834d192477
+          ref: ${{ steps.pins.outputs.python_notebook }}
           path: course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/SQL
+          ref: ${{ steps.pins.outputs.SQL }}
           path: sql-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/git-github-course
+          ref: ${{ steps.pins.outputs.git_github_course }}
           path: git-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/RUST
+          ref: ${{ steps.pins.outputs.RUST }}
           path: rust-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/linux-course
+          ref: ${{ steps.pins.outputs.linux_course }}
           path: linux-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/Data-Structures-Algorithms
+          ref: ${{ steps.pins.outputs.Data_Structures_Algorithms }}
           path: dsa-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/C
+          ref: ${{ steps.pins.outputs.C }}
           path: c-course
       - uses: actions/checkout@v4
         with:
           repository: SwarmLadder/Java
+          ref: ${{ steps.pins.outputs.Java }}
           path: java-course
       - uses: actions/setup-java@v4
         with:
