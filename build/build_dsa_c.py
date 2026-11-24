@@ -114,7 +114,7 @@ def build_dsa(course: Path, out: Path) -> dict:
         lessons = []
         folder = runtime / level / "lessons"
         folder.mkdir(parents=True, exist_ok=True)
-        for name in ("lesson.py", "quiz.py"):
+        for name in ("lesson.py", "quiz.py", "visual.py"):
             shutil.copy(HERE / "dsa_runtime" / name, folder / name)
         (folder / "drills.json").write_text(
             json.dumps(builder.runtime_drills(level), ensure_ascii=False), encoding="utf-8")

@@ -8,8 +8,10 @@ come from the DSA repository.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import html
+import sys
 import json
 import posixpath
 import re
@@ -68,6 +70,23 @@ def between(text: str, tag: str) -> tuple[str, str, str]:
     return head, body, tail
 
 
+VISUAL_PRELUDE = "import heapq\nfrom collections import deque, defaultdict\n"
+
+
+def resolve(frames: list[dict], name: str, objects: dict):
+    """A view's variable (or dotted path through objects) in the innermost frame that has it."""
+    head, *rest = name.split(".")
+    for frame in reversed(frames):
+        if head in frame["locals"]:
+            value = frame["locals"][head]
+            for part in rest:
+                if not (isinstance(value, dict) and "$ref" in value):
+                    return None
+                value = objects[value["$ref"]]["fields"].get(part)
+            return value
+    return None
+
+
 class LessonBuilder:
     def __init__(self, course: Path, repo: str, routes: dict[str, str], revision: str):
         self.course = course
@@ -80,6 +99,9 @@ class LessonBuilder:
                 bank[drill["id"]] = drill
         self.drills = bank
         self.cases = json.loads((course / "drills/cases.json").read_text(encoding="utf-8"))
+        self.visuals: dict[str, list[dict]] = {}
+        for visual in json.loads((Path(__file__).with_name("dsa_visuals.json")).read_text(encoding="utf-8")):
+            self.visuals.setdefault(visual["lesson"], []).append(visual)
         self.quizzes: dict[str, dict] = {}
         for level in LEVEL_PREFIX:
             self.quizzes.update(json.loads((course / "quizzes" / f"{level}.json").read_text(encoding="utf-8")))
@@ -112,6 +134,13 @@ class LessonBuilder:
         graded: list[str] = []
         counter = {"demo": 0}
         self.prose(before_drills, cells, counter, source_path)
+        visuals = self.visuals.get(f"{level}/{path.stem}", [])
+        if visuals:
+            cells.append({"type": "md", "html": "<h2>See it run</h2><p>Step through a real run of this lesson's code: "
+                          "every state below is what Python executed, line by line. Predict the next state before you step. "
+                          "Edit the code or the input and trace again to test your own idea.</p>"})
+            for n, visual in enumerate(visuals, 1):
+                cells.append(self.visual_cell(path, visual, n))
         # Setup goes before the first runnable cell, as in Python notebooks.
         setup = {"type": "code", "id": "lesson-setup", "kind": "setup",
                  "source": f"from lesson import Exercises, ___\n\ncheck = Exercises({lesson_id!r})",
@@ -282,3 +311,41 @@ class LessonBuilder:
         page = {"id": f"dsa/{level}/builds/{folder.name}", "title": title, "folder": f"dsa/{level}/builds",
                 "cells": cells, "revision": self.revision, "graded": ["wb:project"], "sourcePath": source_path}
         return page, browser_tests
+
+    def visual_cell(self, path: Path, visual: dict, number: int) -> dict:
+        """The lesson's own functions plus a driver call, verified by tracing them now."""
+        text = re.sub(r"(?s)<!-- output -->.*?<!-- /output -->", "", path.read_text(encoding="utf-8"))
+        blocks = [m.group(2) for m in FENCE.finditer(text) if m.group(1) in ("python", "py")]
+        parts = []
+        for name in visual["functions"]:
+            for block in blocks:
+                try:
+                    tree = ast.parse(block)
+                except SyntaxError:
+                    continue
+                node = next((n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name == name), None)
+                if node is not None:
+                    parts.append(ast.get_source_segment(block, node))
+                    break
+            else:
+                raise ValueError(f"{path.name}: no definition of {name} for the visualizer")
+        source = VISUAL_PRELUDE + "\n\n" + "\n\n\n".join(parts) + "\n"
+        sys.path.insert(0, str(Path(__file__).with_name("dsa_runtime")))
+        try:
+            from visual import trace
+        finally:
+            sys.path.pop(0)
+        run = trace(source, visual["driver"])
+        if run["error"] or run["truncated"] or len(run["steps"]) < 5:
+            raise ValueError(f"{path.name}: visual {visual['title']!r} did not trace cleanly: {run['error']}")
+        for view in visual["views"]:
+            names = view["of"] if isinstance(view["of"], list) else [view["of"]]
+            names += [n for key in ("pointers",) for n in view.get(key, [])]
+            names += [view[k] for k in ("current", "focus", "labels", "indexInto", "stack", "rows", "cols") if isinstance(view.get(k), str)]
+            names += [n for n in view.get("range", [])[:2]] + list(view.get("cell", []))
+            for name in names:
+                if not any(resolve(step["frames"], name, step["objects"]) is not None for step in run["steps"]):
+                    raise ValueError(f"{path.name}: visual {visual['title']!r} never sees {name!r}")
+        return {"type": "code", "id": f"visual-{number}", "kind": "visual", "source": source,
+                "driver": visual["driver"], "title": visual["title"], "watch": visual["watch"],
+                "views": visual["views"], "steps": len(run["steps"]), "requires_cells": [], "assessment": None}
