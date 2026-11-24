@@ -198,7 +198,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const stepStatus = (s: Step): "ok" | "no" | "todo" =>
     s.keys.length && s.keys.every((k) => done.includes(k))
       ? "ok"
-      : s.cells.some((c) => c.type === "code" && ["failed", "execution_error"].includes(outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment]) ?? ""))
+      : s.cells.some((c) => c.type === "code" && ["failed", "execution_error"].includes(outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment], nb.id + "#" + c.assessment) ?? ""))
         ? "no"
         : "todo";
   const practice = steps.map((s, i) => ({ s, i })).filter(({ s }) => isPractice(s));
@@ -270,7 +270,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               tag={c === fnCell ? t("lesson.challenge", { name: challenge ?? "" }) : undefined}
               value={edits[c.id] ?? c.source}
               busy={busy}
-              validation={outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment])}
+              validation={outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment], nb.id + "#" + c.assessment)}
               output={outputs[c.id]}
               count={counts[c.id]}
               solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}

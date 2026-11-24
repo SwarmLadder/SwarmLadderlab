@@ -18,7 +18,7 @@ const LABEL: Record<State, string> = {
 function itemState(item: RoadmapItem, snap: ReturnType<typeof read>, done: Set<string>): State {
   const marks = doneIn(item.id, snap).length;
   if (item.graded > 0 && marks >= item.graded) return "completed";
-  const stale = Object.entries(snap.current ?? {}).some(([k, e]) => k.startsWith(item.id + "#") && currentStatus(e) === "stale");
+  const stale = Object.entries(snap.current ?? {}).some(([k, e]) => k.startsWith(item.id + "#") && currentStatus(e, k) === "stale");
   if (stale) return "stale";
   if (item.graded === 0 && snap.finished?.[item.id]) return "read";
   if (marks > 0 || snap.last === item.id) return "progress";

@@ -36,7 +36,7 @@ test("DSA problem B01 preserves source, editable Python and public-case contract
 });
 
 test("DSA Python grader passes correct code and records course progress", async ({ page }) => {
-  test.setTimeout(125_000);
+  test.setTimeout(300_000);
   await page.goto("/lesson/dsa/basics/problems/B01");
   const editor = page.getByRole("textbox", { name: "DSA Python solution" });
   await editor.fill([
@@ -56,7 +56,25 @@ test("DSA Python grader passes correct code and records course progress", async 
   await expect(page.getByLabel("Short algorithm explanation")).toContainText("Approach:");
   await expect(page.getByLabel("Short algorithm explanation")).toContainText("Complexity:");
   await page.reload();
-  await expect(page.getByText("✓ Completed")).toBeVisible();
+  await expect(page.getByText("✓ Passing with your current code")).toBeVisible();
+  // Editing the solution withdraws credit until the cases run again, across reloads too.
+  await editor.fill("def solve(nums, target):\n    return [0, 1]\n");
+  await expect(page.getByText("Needs re-check: code changed since the last pass")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Your last pass was for different code. Run all cases again.")).toBeVisible();
+  await page.getByRole("button", { name: "Run code · check 6 cases" }).click();
+  await expect(page.getByText(/Passed \d of 6 published cases/)).toBeVisible({ timeout: 100_000 });
+  await expect(page.getByText("Run every public case to earn completion")).toBeVisible();
+  await editor.fill([
+    "def solve(nums, target):",
+    "    seen = {}",
+    "    for j, value in enumerate(nums):",
+    "        if target - value in seen:",
+    "            return [seen[target - value], j]",
+    "        seen[value] = j",
+  ].join("\n"));
+  await page.getByRole("button", { name: "Run code · check 6 cases" }).click();
+  await expect(page.getByText("✓ Your current code passes every published case")).toBeVisible({ timeout: 100_000 });
   await page.goto("/progress");
   await expect(page.getByRole("list", { name: "DSA Basics" }).locator("li.done")).toHaveCount(1);
 });

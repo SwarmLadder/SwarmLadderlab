@@ -75,3 +75,25 @@ test("legacy Python passes are history; dependent edits revoke current evidence 
   validate(id, key, {...evidence, revision:"old", status:"passed"});
   assert.deepEqual(doneIn(id), ["q1"]);
 });
+
+test("DSA case suites count only while the current draft passes at the pinned revision", async () => {
+  const { dsaRevision } = await import("../src/features/progress/store.ts");
+  const id = "dsa/basics/problems/B04";
+  // A legacy completion with no evidence is historical, not current.
+  mark(id, ["case-suite"]);
+  assert.deepEqual(doneIn(id), []);
+  validate(id, "case-suite", { status: "passed", cells: ["draft"], revision: dsaRevision });
+  assert.deepEqual(doneIn(id), ["case-suite"]);
+  // Editing the draft makes the pass stale until the cases run again.
+  save(id, "draft", "def solve(text):\n    return True\n");
+  assert.deepEqual(doneIn(id), []);
+  assert.equal(read().current?.[id + "#case-suite"].status, "stale");
+  validate(id, "case-suite", { status: "failed", cells: ["draft"], revision: dsaRevision });
+  assert.deepEqual(doneIn(id), []);
+  // Evidence from another curriculum revision does not count.
+  validate(id, "case-suite", { status: "passed", cells: ["draft"], revision: "old" });
+  assert.deepEqual(doneIn(id), []);
+  // Reading pages are unaffected.
+  mark("dsa/basics/lessons/01", ["read"]);
+  assert.deepEqual(doneIn("dsa/basics/lessons/01"), ["read"]);
+});
