@@ -140,12 +140,18 @@ class LessonBuilder:
                 "quizFeedback": questions["feedback"]}
 
     def link_problems(self, text: str) -> str:
-        """`B04` in a lesson's practice notes opens that interview problem in the Lab."""
+        """`B04` opens that interview problem in the Lab; `DB09` opens the drill in its lesson."""
         def link(match: re.Match) -> str:
             ident = match.group(1)
             level = {v: k for k, v in LEVEL_PREFIX.items()}[ident[0]]
             return f"[`{ident}`](/lesson/dsa/{level}/problems/{ident})"
-        text = re.sub(r"`([BIA]\d{2})`", link, text)
+
+        def drill(match: re.Match) -> str:
+            ident = match.group(1)
+            lesson = self.drills[ident]["lesson"]
+            return f"[`{ident}`]({self.routes[lesson]}#cell-drill-{ident})"
+        text = re.sub(r"(?<!\[)`([BIA]\d{2})`", link, text)
+        text = re.sub(r"(?<!\[)`(D[BIA]\d{2})`", drill, text)
         return re.sub(r"\. Read one with `python -m tools\.practice show [^`]+`\.", ".", text)
 
     def prose(self, md: str, cells: list[dict], counter: dict, source_path: str) -> None:
@@ -220,3 +226,59 @@ class LessonBuilder:
                  "requires_cells": [], "assessment": None},
             ],
         }
+
+    def worked_example(self, level: str, path: Path) -> dict:
+        """Plan, tempting attempt, fix and randomized test: every code block runs in the browser."""
+        source_path = path.relative_to(self.course).as_posix()
+        text = path.read_text(encoding="utf-8")
+        text = re.sub(r"(?s)<!-- output -->.*?<!-- /output -->\s*", "", text)
+        text = self.link_problems(text)
+        cells: list[dict] = []
+        self.prose(text, cells, {"demo": 0}, source_path)
+        if sum(c["type"] == "code" for c in cells) < 3:
+            raise ValueError(f"{source_path}: a worked example needs its attempt, fix and test")
+        title = text.splitlines()[0].removeprefix("# ").strip()
+        title = re.sub(r"^Worked example \w+ · ", "", title)
+        return {"id": f"dsa/{level}/worked/{path.stem}", "title": title, "folder": f"dsa/{level}/worked",
+                "cells": cells, "revision": self.revision, "graded": [], "sourcePath": source_path}
+
+    def project(self, level: str, folder: Path) -> tuple[dict, str]:
+        """A tested project: the brief, the starter module, the course's own unittest suite."""
+        source_path = (folder / "README.md").relative_to(self.course).as_posix()
+        brief = self.link_problems((folder / "README.md").read_text(encoding="utf-8"))
+        starter = (folder / "starter.py").read_text(encoding="utf-8")
+        tests = (folder / "test_project.py").read_text(encoding="utf-8")
+        header = re.compile(
+            r'(?m)^_path = Path\(os\.environ\.get\("DSA_PROJECT_IMPL".*\n'
+            r'_spec = importlib\.util\.spec_from_file_location\("project_impl", _path\)\n'
+            r'impl = importlib\.util\.module_from_spec\(_spec\)\n'
+            r'_spec\.loader\.exec_module\(impl\)\n')
+        if len(header.findall(tests)) != 1:
+            raise ValueError(f"{folder}: unexpected test header; cannot run its suite in the browser")
+        browser_tests = header.sub("impl = __project_impl__  # the Lab passes in your code\n", tests)
+        if "NotImplementedError" not in starter:
+            raise ValueError(f"{folder}: the starter must leave the work to the learner")
+        cells: list[dict] = []
+        intro, _, rest = brief.partition("## Deliverables")
+        self.text(intro, cells, source_path)
+        cells.insert(next(i for i, c in enumerate(cells) if c["type"] == "md") + 1, {
+            "type": "code", "id": "lesson-setup", "kind": "setup",
+            "source": f"from lesson import Exercises\n\ncheck = Exercises('dsa/{level}/builds/{folder.name}')",
+            "requires_cells": [], "assessment": None})
+        cells.append({"type": "md", "html": "<h2>Your implementation</h2><p>Implement every ticket in this module. "
+                      "The check runs the project's own test suite from the DSA course, including its randomized "
+                      "tests against an independent oracle. Passing it is evidence for these tests, not a proof.</p>"})
+        cells.append({"type": "code", "id": "build-work", "kind": "code", "source": starter.rstrip() + "\n",
+                      "requires_cells": [], "assessment": None})
+        cells.append({"type": "code", "id": "build-check", "kind": "check", "source": "check('project')",
+                      "requires_cells": ["build-work"], "assessment": "wb:project"})
+        if rest.strip():
+            self.text("## Deliverables" + rest, cells, source_path)
+        cells.append({"type": "code", "id": "engineering-work", "kind": "engineering",
+                      "source": "# Complexity of each function, and one extra test of your own:\n",
+                      "requires_cells": [], "assessment": None})
+        title = brief.splitlines()[0].removeprefix("# ").strip()
+        title = re.sub(r"^Project \w+ · ", "", title)
+        page = {"id": f"dsa/{level}/builds/{folder.name}", "title": title, "folder": f"dsa/{level}/builds",
+                "cells": cells, "revision": self.revision, "graded": ["wb:project"], "sourcePath": source_path}
+        return page, browser_tests

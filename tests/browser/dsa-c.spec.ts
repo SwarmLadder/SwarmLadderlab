@@ -5,8 +5,9 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await expect(page.getByRole("link", { name: /Data Structures & Algorithms, Open now/ })).toBeVisible();
   await page.goto("/learn/dsa");
   await expect(page.getByRole("heading", { name: "Data Structures & Algorithms", exact: true })).toBeVisible();
-  await expect(page.getByText(/336 checks/).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: /B01/i }).first()).toBeVisible();
+  await expect(page.getByText(/342 checks/).first()).toBeVisible();
+  // Lessons come first now (taught, then practised); the first rung is the first lesson.
+  await expect(page.locator(".rung-link").first()).toContainText("Hash maps");
   // Lessons are graded notebooks now: no "mark complete" shortcut.
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
   await expect(page.getByRole("heading", { level: 1, name: /Hash maps/i })).toBeVisible();

@@ -78,7 +78,8 @@ def _uses_blank(fn) -> bool:
 
 
 def drills() -> dict:
-    return json.loads((_HERE / "drills.json").read_text(encoding="utf-8"))
+    path = _HERE / "drills.json"  # lesson folders have drills; project folders do not
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
 class Exercises:
@@ -90,6 +91,9 @@ class Exercises:
     def __call__(self, number, value=None) -> None:
         """check("DB09") grades the drill's solve() on its six published cases."""
         self.last_result = None
+        if number == "project":
+            self.last_result = self._project(sys._getframe(1).f_globals)
+            return
         drill = self._drills.get(str(number))
         if drill is None:
             print(f"There is no drill {number!r} in this lesson.")
@@ -103,6 +107,44 @@ class Exercises:
             print(f"✏️  {number}: Not attempted — fill in every ___ blank, then run the check.")
             return
         self.last_result = self._grade(number, drill, solve)
+
+    def _project(self, namespace: dict) -> bool | None:
+        """Run the project's own unittest suite (from the DSA course) on the code above."""
+        import io
+        import types
+        import unittest
+
+        slug = self.lesson_id.rsplit("/", 1)[1]
+        path = _HERE / "tests" / f"{slug}.py"
+        if not path.is_file():
+            print("There is no project test suite for this page.")
+            return None
+        impl = types.ModuleType("project_impl")
+        impl.__dict__.update({k: v for k, v in namespace.items() if not k.startswith("__")})
+        tests = types.ModuleType("project_tests")
+        tests.__dict__["__project_impl__"] = impl
+        exec(compile(path.read_text(encoding="utf-8"), f"test_{slug}.py", "exec"), tests.__dict__)
+        suite = unittest.defaultTestLoader.loadTestsFromModule(tests)
+        listed = list(_tests(suite))  # unittest empties the suite as it runs
+        result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
+        problems = {id(t): (t, text) for t, text in result.failures + result.errors}
+        unfinished = [t for t, text in result.errors if "NotImplementedError" in text]
+        if unfinished and len(unfinished) == len(problems):
+            names = ", ".join(sorted({_test_name(t) for t in unfinished}))
+            print(f"✏️  project: Not attempted yet — implement the functions these tests need ({names}), then run the check.")
+            return None
+        total = result.testsRun
+        for test in listed:
+            mark = "❌" if id(test) in problems else "✅"
+            print(f"{mark} {_test_name(test)}")
+            if id(test) in problems:
+                last = problems[id(test)][1].strip().splitlines()[-1]
+                print(f"   {last[:300]}")
+        if result.wasSuccessful():
+            print(f"✅ project: all {total} checks passed — the course's published tests, including its random oracle tests.")
+            return True
+        print(f"❌ project: {total - len(problems)}/{total} tests passed. Fix the first failing test, then run the check again.")
+        return False
 
     def assess(self, name, cases):
         """Part of the Lab's grader interface (independent builds); DSA lessons have none."""
@@ -141,3 +183,15 @@ class Exercises:
             shown = min(attempt, len(hints))
             print(f"   hint {shown}/{len(hints)}: {hints[shown - 1]}")
         return False
+
+
+def _tests(suite):
+    for item in suite or ():
+        if hasattr(item, "_testMethodName"):
+            yield item
+        else:
+            yield from _tests(item)
+
+
+def _test_name(test) -> str:
+    return test._testMethodName.removeprefix("test_").replace("_", " ")

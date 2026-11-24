@@ -127,3 +127,66 @@ def test_grader_matches_the_lab_worker_interface(built):
     module = grader(out, "basics")
     assert callable(module.Exercises.__call__) and callable(module.Exercises.assess)
     assert "number" in module.Exercises.__call__.__code__.co_varnames
+
+
+def test_worked_examples_run_top_to_bottom(built):
+    # Every code cell of every worked example runs, in order, in one namespace (as "Run all" does).
+    _, out = built
+    examples = sorted((out / "data/dsa/nb").glob("dsa__*__worked__*.json"))
+    assert len(examples) == 18
+    for path in examples:
+        page = json.loads(path.read_text())
+        assert page["graded"] == [] and page["sourcePath"].startswith("worked_examples/")
+        namespace = {"__name__": "__main__"}
+        with contextlib.redirect_stdout(io.StringIO()):
+            for c in page["cells"]:
+                if c["type"] == "code":
+                    exec(c["source"], namespace)
+        assert "<!-- output -->" not in json.dumps(page)
+
+
+def run_project(out, level, slug, code):
+    module = grader(out, level)
+    spec = importlib.util.spec_from_file_location(f"dsa_build_{level}", out / "course/dsa" / level / "builds/lesson.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    namespace = {"__name__": "__main__", "check": module.Exercises(f"dsa/{level}/builds/{slug}")}
+    exec(code, namespace)
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        exec("check('project')", namespace)
+    return namespace["check"].last_result, buffer.getvalue()
+
+
+def test_projects_run_the_course_test_suites(built):
+    catalog, out = built
+    builds = sorted((out / "data/dsa/nb").glob("dsa__*__builds__*.json"))
+    assert len(builds) == 6
+    for path in builds:
+        page = json.loads(path.read_text())
+        level, slug = page["id"].split("/")[1], page["id"].split("/")[3]
+        folder = COURSE / "projects" / level / slug
+        assert page["graded"] == ["wb:project"]
+        work = next(c for c in page["cells"] if c.get("id") == "build-work")
+        assert work["source"].strip() == (folder / "starter.py").read_text().strip()
+        ok, text = run_project(out, level, slug, (folder / "reference.py").read_text())
+        assert ok is True, (slug, text)
+        assert "✅ project: all" in text and "random" in text.lower()
+        ok, text = run_project(out, level, slug, work["source"])
+        assert ok is None and "Not attempted" in text, (slug, text)
+        # Break one function of the reference: the suite must catch it.
+        reference = (folder / "reference.py").read_text()
+        kind, name = re.search(r"(?m)^(def|class) (\w+)", reference).groups()
+        dummy = ("def {0}(*args, **kwargs):\n    return None\n" if kind == "def"
+                 else "class {0}:\n    def __init__(self, *args, **kwargs):\n        pass\n").format(name)
+        broken = reference + "\n\n" + dummy
+        ok, text = run_project(out, level, slug, broken)
+        assert ok is False and "❌" in text, (slug, text)
+
+
+def test_dsa_sections_are_unique_and_ordered_for_learning(built):
+    catalog, _ = built
+    for level in catalog["levels"]:
+        ids = [s["id"] for s in level["sections"]]
+        assert len(ids) == len(set(ids)), ids
+        assert ids[:5] == ["notebooks", "exercises", "worked_examples", "projects", "interview"]

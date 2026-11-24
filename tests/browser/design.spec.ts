@@ -73,6 +73,16 @@ test("no page scrolls sideways at phone, tablet and laptop widths", async ({ pag
   }
 });
 
+test("course rungs give unnumbered titles the full row (DSA lessons)", async ({ page }) => {
+  await page.goto("/learn/dsa");
+  const name = page.locator(".rung-name").first();
+  await expect(name).toContainText("Hash maps");
+  // One line of text, not one word per line in the number column.
+  const box = await name.boundingBox();
+  expect(box!.width).toBeGreaterThan(250);
+  expect(box!.height).toBeLessThan(60);
+});
+
 test("the header collapses into a menu below laptop width and keeps the theme toggle visible", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 800 });
   await page.goto("/schools");

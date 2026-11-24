@@ -102,3 +102,82 @@ test("every DSA lesson opens as a notebook with four drills and a quiz", async (
     await expect(page.getByRole("button", { name: "Mark activity complete" })).toHaveCount(0);
   }
 });
+
+const editor = (clearRedo: boolean) => [
+  "class Editor:",
+  "    def __init__(self):",
+  "        self.text, self.cursor, self.past, self.future = '', 0, [], []",
+  "    def _save(self):",
+  "        self.past.append((self.text, self.cursor))",
+  clearRedo ? "        self.future.clear()" : "        pass",
+  "    def type(self, s):",
+  "        if s:",
+  "            self._save()",
+  "            self.text = self.text[:self.cursor] + s + self.text[self.cursor:]",
+  "            self.cursor += len(s)",
+  "    def backspace(self, n=1):",
+  "        n = min(n, self.cursor)",
+  "        if n:",
+  "            self._save()",
+  "            self.text = self.text[:self.cursor - n] + self.text[self.cursor:]",
+  "            self.cursor -= n",
+  "    def move(self, k):",
+  "        self.cursor = max(0, min(len(self.text), self.cursor + k))",
+  "    def undo(self):",
+  "        if not self.past:",
+  "            return False",
+  "        self.future.append((self.text, self.cursor))",
+  "        self.text, self.cursor = self.past.pop()",
+  "        return True",
+  "    def redo(self):",
+  "        if not self.future:",
+  "            return False",
+  "        self.past.append((self.text, self.cursor))",
+  "        self.text, self.cursor = self.future.pop()",
+  "        return True",
+].join("\n");
+
+test("a tested project runs the course's own test suite, including its random oracle", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.goto("/lesson/dsa/basics/builds/02_undo_editor");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("undo and redo");
+  await expect(page.getByRole("heading", { name: "Ticket 3 · Editor.undo() / Editor.redo()" })).toBeVisible();
+  await expect(page.locator(".runtime")).toContainText("Python ready", { timeout: 180_000 });
+  const check = page.locator('[data-cell-id="build-check"]');
+  const run = () => check.getByRole("button", { name: "Check", exact: true }).click();
+  await run();
+  await expect(check.locator(".output")).toContainText("Not attempted", { timeout: 60_000 });
+
+  // Forgetting to clear redo history after a new change is caught by the suite.
+  const work = page.locator('[data-cell-id="build-work"] .cm-content');
+  await work.click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.press("Delete");
+  await work.fill(editor(false));
+  await run();
+  await expect(check.locator(".output")).toContainText("❌ project:", { timeout: 60_000 });
+  await expect(check).toHaveAttribute("data-validation", "failed");
+
+  await work.click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.press("Delete");
+  await work.fill(editor(true));
+  await run();
+  await expect(check.locator(".output")).toContainText("✅ project: all 5 checks passed", { timeout: 60_000 });
+  await expect(check.locator(".output")).toContainText("random against history oracle");
+  await expect(page.locator(".nb-score")).toContainText("1/1");
+  // Complexity notes and an extra test go to a human-review cell, not the automatic check.
+  await expect(page.locator('[data-cell-id="engineering-work"]')).toBeVisible();
+});
+
+test("a worked example runs its wrong attempt, fix and randomized test in the browser", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.goto("/lesson/dsa/basics/worked/03_first_bad_version");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("first bad build");
+  await expect(page.locator(".runtime")).toContainText("Python ready", { timeout: 180_000 });
+  await page.getByRole("button", { name: "Run all" }).click();
+  await expect(page.locator('[data-cell-id="demo-1"] .output')).toContainText("9", { timeout: 60_000 });
+  await expect(page.locator('[data-cell-id="demo-2"] .output')).toContainText("1000000 123456 123456 calls: 20", { timeout: 60_000 });
+  await expect(page.locator('[data-cell-id="demo-3"] .output')).toContainText("2000 random cases: correct", { timeout: 60_000 });
+  await expect(page.getByRole("link", { name: "DB13" })).toHaveAttribute("href", /\/lesson\/dsa\/basics\/lessons\/.*#cell-drill-DB13$/);
+});

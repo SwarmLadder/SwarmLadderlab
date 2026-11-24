@@ -67,6 +67,10 @@ def dsa_routes(course: Path) -> dict[str, str]:
     for level, _, _ in LEVELS:
         for path in (course / "lessons" / level).glob("[0-9][0-9]_*.md"):
             routes[path.relative_to(course).as_posix()] = f"/lesson/dsa/{level}/lessons/{path.stem}"
+        for path in (course / "worked_examples" / level).glob("[0-9][0-9]_*.md"):
+            routes[path.relative_to(course).as_posix()] = f"/lesson/dsa/{level}/worked/{path.stem}"
+        for folder in (course / "projects" / level).glob("[0-9][0-9]_*"):
+            routes[(folder / "README.md").relative_to(course).as_posix()] = f"/lesson/dsa/{level}/builds/{folder.name}"
         prefix = {"basics": "B", "intermediate": "I", "advanced": "A"}[level]
         for n in range(1, 17):
             routes[f"problems/{prefix}{n:02}.md"] = f"/lesson/dsa/{level}/problems/{prefix}{n:02}"
@@ -161,13 +165,33 @@ def build_dsa(course: Path, out: Path) -> dict:
                       f"Mock interview {number} — " + found.group(1).splitlines()[0],
                       "interview/MOCK_INTERVIEWS.md",
                       "# Round " + str(number) + " — " + found.group(1).strip())]
+        worked = []
+        for path in sorted((course / "worked_examples" / level).glob("[0-9][0-9]_*.md")):
+            page = builder.worked_example(level, path)
+            entries[page["id"]] = page
+            worked.append({"id": page["id"], "title": page["title"], "graded": 0})
+        if len(worked) != 6:
+            raise ValueError(f"Expected 6 DSA worked examples for {level}, got {len(worked)}")
+        builds = []
+        tests_dir = runtime / level / "builds" / "tests"
+        tests_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(HERE / "dsa_runtime" / "lesson.py", runtime / level / "builds" / "lesson.py")
+        for folder in sorted(p for p in (course / "projects" / level).glob("[0-9][0-9]_*") if p.is_dir()):
+            page, tests = builder.project(level, folder)
+            entries[page["id"]] = page
+            (tests_dir / f"{folder.name}.py").write_text(tests, encoding="utf-8")
+            builds.append({"id": page["id"], "title": page["title"], "graded": 1})
+        if len(builds) != 2:
+            raise ValueError(f"Expected 2 tested DSA projects for {level}, got {len(builds)}")
+        # Section ids are unique per level: the roadmap and route key stages by them.
         catalog["levels"].append({
             "id": level, "title": label, "medal": medal, "total": len(activities),
             "sections": [
-                {"id": "notebooks", "title": "Deep DSA lessons", "items": lessons},
-                {"id": "exercises", "title": "Browser-graded Python interview problems", "items": activities},
-                {"id": "projects", "title": "Algorithm capstone", "items": projects},
-                {"id": "worked_examples", "title": "Timed mock interview", "items": rounds},
+                {"id": "notebooks", "title": "Lessons", "items": lessons},
+                {"id": "exercises", "title": "Interview problems", "items": activities},
+                {"id": "worked_examples", "title": "Worked examples", "items": worked},
+                {"id": "projects", "title": "Projects", "items": builds + projects},
+                {"id": "interview", "title": "Timed mock interview", "items": rounds},
             ]})
 
     extras = [
@@ -179,7 +203,7 @@ def build_dsa(course: Path, out: Path) -> dict:
     level = catalog["levels"][2]
     extra = [add("advanced", "resources", Path(path).stem.lower(), title,
                  path, read(course / path)) for path, title in extras]
-    level["sections"].append({"id": "worked_examples", "title": "Mastery resources", "items": extra})
+    level["sections"].append({"id": "resources", "title": "Mastery resources", "items": extra})
     return output(out, "dsa", entries, catalog)
 
 
