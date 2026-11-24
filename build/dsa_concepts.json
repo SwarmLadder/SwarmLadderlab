@@ -1,0 +1,544 @@
+{
+ "_about": "DSA concept map. Each lesson's prerequisites name an earlier lesson, why it is needed, and evidence terms. The build checks that every evidence term appears in the dependent lesson's text and in the prerequisite's title, outcome or headings, so an edge cannot claim a dependency the lessons don't show.",
+ "stages": [
+  [
+   "lookup-scan",
+   "Lookups and scans",
+   "Hash maps, two pointers and index invariants over arrays and strings.",
+   "basics",
+   [
+    "01",
+    "02",
+    "06"
+   ]
+  ],
+  [
+   "ordered-state",
+   "Ordered state",
+   "Stacks and queues: what to process next, and why.",
+   "basics",
+   [
+    "03",
+    "09"
+   ]
+  ],
+  [
+   "search-cost",
+   "Search and cost",
+   "Binary search, prefix computation, complexity and bit arithmetic.",
+   "basics",
+   [
+    "04",
+    "05",
+    "11"
+   ]
+  ],
+  [
+   "recursion-pointers",
+   "Recursion and pointers",
+   "Call stacks, base cases and linked structure.",
+   "basics",
+   [
+    "07",
+    "08"
+   ]
+  ],
+  [
+   "sort-verify",
+   "Sorting and verification",
+   "Stable sorting and testing against oracles.",
+   "basics",
+   [
+    "10",
+    "12"
+   ]
+  ],
+  [
+   "ranges",
+   "Ranges",
+   "Sliding windows and prefix counts over contiguous data.",
+   "intermediate",
+   [
+    "01",
+    "02"
+   ]
+  ],
+  [
+   "monotonic",
+   "Monotonic reasoning",
+   "Monotonic stacks and binary search on the answer.",
+   "intermediate",
+   [
+    "05",
+    "06"
+   ]
+  ],
+  [
+   "trees",
+   "Trees and indexes",
+   "Search trees, traversals and tries.",
+   "intermediate",
+   [
+    "04",
+    "07",
+    "10"
+   ]
+  ],
+  [
+   "priority",
+   "Priority and greed",
+   "Scheduling, heaps and greedy choices.",
+   "intermediate",
+   [
+    "03",
+    "08",
+    "09"
+   ]
+  ],
+  [
+   "search-selection",
+   "Search and selection",
+   "Backtracking and choosing a technique under constraints.",
+   "intermediate",
+   [
+    "11",
+    "12"
+   ]
+  ],
+  [
+   "graphs",
+   "Graphs",
+   "Traversal, weighted shortest paths, topological order and components.",
+   "advanced",
+   [
+    "01",
+    "02",
+    "05",
+    "06"
+   ]
+  ],
+  [
+   "dp",
+   "Dynamic programming",
+   "States, transitions, multidimensional tables and optimization.",
+   "advanced",
+   [
+    "03",
+    "07",
+    "08"
+   ]
+  ],
+  [
+   "structures",
+   "Advanced structures and search",
+   "Partition search, range-query trees and amortized union–find.",
+   "advanced",
+   [
+    "04",
+    "09",
+    "10"
+   ]
+  ],
+  [
+   "engineering",
+   "Proof and design",
+   "Correctness arguments, property tests and the capstone.",
+   "advanced",
+   [
+    "11",
+    "12"
+   ]
+  ]
+ ],
+ "lessons": {
+  "basics/02": [
+   [
+    "basics/01",
+    "Pair search on sorted input replaces the hash map's lookups with two indexes that move inward.",
+    [
+     "hash"
+    ]
+   ]
+  ],
+  "basics/04": [
+   [
+    "basics/02",
+    "Binary search keeps a shrinking range with a stated invariant, as two pointers do.",
+    [
+     "invariant"
+    ]
+   ]
+  ],
+  "basics/05": [
+   [
+    "basics/01",
+    "Hash-map lookups are the standard example of expected O(1) work.",
+    [
+     "hash"
+    ]
+   ],
+   [
+    "basics/04",
+    "Halving a search range is where logarithmic cost comes from.",
+    [
+     "binary search"
+    ]
+   ]
+  ],
+  "basics/06": [
+   [
+    "basics/02",
+    "Index invariants generalize the pointer-movement argument of two pointers to in-place transforms.",
+    [
+     "pointer"
+    ]
+   ]
+  ],
+  "basics/07": [
+   [
+    "basics/03",
+    "Recursion runs on the call stack: each call is a pushed frame.",
+    [
+     "stack"
+    ]
+   ]
+  ],
+  "basics/08": [
+   [
+    "basics/07",
+    "Recursive list algorithms and their base cases.",
+    [
+     "recursion"
+    ]
+   ]
+  ],
+  "basics/09": [
+   [
+    "basics/03",
+    "A queue serves the oldest item first, where a stack serves the newest.",
+    [
+     "stack"
+    ]
+   ]
+  ],
+  "basics/10": [
+   [
+    "basics/05",
+    "Comparing sorts means comparing their costs, such as O(n log n) against O(n²).",
+    [
+     "log"
+    ]
+   ]
+  ],
+  "basics/12": [
+   [
+    "basics/05",
+    "Testing an algorithm includes checking its cost, not only its answers.",
+    [
+     "complexity"
+    ]
+   ]
+  ],
+  "intermediate/01": [
+   [
+    "basics/02",
+    "A sliding window is a pair of pointers that bound a valid region.",
+    [
+     "pointer"
+    ]
+   ],
+   [
+    "basics/01",
+    "Windows over text remember the last position of each character in a map.",
+    [
+     "hash"
+    ]
+   ]
+  ],
+  "intermediate/02": [
+   [
+    "basics/04",
+    "Range sums come from prefix computation.",
+    [
+     "prefix"
+    ]
+   ],
+   [
+    "basics/01",
+    "Counting ranges looks up earlier prefix totals in a dictionary.",
+    [
+     "hash"
+    ]
+   ]
+  ],
+  "intermediate/03": [
+   [
+    "basics/10",
+    "Interval scheduling starts by sorting intervals.",
+    [
+     "sort"
+    ]
+   ]
+  ],
+  "intermediate/04": [
+   [
+    "basics/07",
+    "Tree algorithms are structural recursion.",
+    [
+     "recursion"
+    ]
+   ],
+   [
+    "basics/08",
+    "Cycle detection on linked chains uses the fast and slow pointer proof.",
+    [
+     "cycle"
+    ]
+   ]
+  ],
+  "intermediate/05": [
+   [
+    "basics/03",
+    "A monotonic stack is a stack that discards candidates with a proof.",
+    [
+     "stack"
+    ]
+   ],
+   [
+    "basics/09",
+    "Sliding-window maximum keeps a monotonic deque.",
+    [
+     "deque"
+    ]
+   ]
+  ],
+  "intermediate/06": [
+   [
+    "basics/04",
+    "Binary search on the answer reuses binary search: it needs a predicate that flips from false to true exactly once, the monotonic precondition of searching sorted data.",
+    [
+     "binary search"
+    ]
+   ]
+  ],
+  "intermediate/07": [
+   [
+    "intermediate/04",
+    "Traversals and subtree information build on tree search invariants.",
+    [
+     "tree"
+    ]
+   ],
+   [
+    "basics/03",
+    "Iterative traversals replace recursion with an explicit stack.",
+    [
+     "stack"
+    ]
+   ]
+  ],
+  "intermediate/08": [
+   [
+    "intermediate/03",
+    "Heaps were introduced for scheduling; here they select the top k.",
+    [
+     "heap"
+    ]
+   ],
+   [
+    "basics/10",
+    "A heap avoids sorting everything when only k items matter.",
+    [
+     "sort"
+    ]
+   ]
+  ],
+  "intermediate/09": [
+   [
+    "basics/10",
+    "Many greedy algorithms sort by a key, then prove the choice safe.",
+    [
+     "sort"
+    ]
+   ]
+  ],
+  "intermediate/10": [
+   [
+    "intermediate/04",
+    "A trie is a tree indexed by characters.",
+    [
+     "tree"
+    ]
+   ]
+  ],
+  "intermediate/11": [
+   [
+    "basics/07",
+    "Backtracking is recursion that undoes each choice.",
+    [
+     "backtrack"
+    ]
+   ]
+  ],
+  "intermediate/12": [
+   [
+    "basics/05",
+    "Choosing a technique starts from the input size and the cost each technique allows.",
+    [
+     "complexity"
+    ]
+   ]
+  ],
+  "advanced/01": [
+   [
+    "basics/09",
+    "Breadth-first search keeps its frontier in a queue.",
+    [
+     "queue"
+    ]
+   ],
+   [
+    "intermediate/08",
+    "Deterministic dependency plans pop the smallest ready task from a heap.",
+    [
+     "heap"
+    ]
+   ]
+  ],
+  "advanced/02": [
+   [
+    "advanced/01",
+    "Weighted shortest paths extend unweighted graph traversal.",
+    [
+     "graph"
+    ]
+   ],
+   [
+    "intermediate/08",
+    "Dijkstra needs a priority queue to settle the closest vertex next.",
+    [
+     "heap"
+    ]
+   ]
+  ],
+  "advanced/03": [
+   [
+    "basics/04",
+    "One-dimensional DP was the first recurrence over a table.",
+    [
+     "dp"
+    ]
+   ],
+   [
+    "basics/07",
+    "DP stores the answers to repeated subproblems that plain recursion recomputes.",
+    [
+     "subproblem"
+    ]
+   ]
+  ],
+  "advanced/04": [
+   [
+    "intermediate/11",
+    "Partition search extends backtracking with pruning.",
+    [
+     "backtrack"
+    ]
+   ],
+   [
+    "intermediate/10",
+    "Word search uses a trie to prune prefixes.",
+    [
+     "trie"
+    ]
+   ]
+  ],
+  "advanced/05": [
+   [
+    "advanced/02",
+    "Choosing a shortest-path algorithm starts from Dijkstra's assumption of nonnegative weights.",
+    [
+     "dijkstra"
+    ]
+   ]
+  ],
+  "advanced/06": [
+   [
+    "advanced/01",
+    "Topological order and components build on directed-graph traversal.",
+    [
+     "topolog"
+    ]
+   ]
+  ],
+  "advanced/07": [
+   [
+    "advanced/03",
+    "Multidimensional DP keeps the state, transition and order discipline of one-dimensional DP.",
+    [
+     "state",
+     "transition"
+    ]
+   ]
+  ],
+  "advanced/08": [
+   [
+    "advanced/07",
+    "Space compression rewrites a multidimensional table you can already define.",
+    [
+     "state"
+    ]
+   ]
+  ],
+  "advanced/09": [
+   [
+    "intermediate/02",
+    "Range-query trees support updates that static prefix sums cannot.",
+    [
+     "prefix"
+    ]
+   ],
+   [
+    "basics/11",
+    "A Fenwick tree moves between indexes with bit operations.",
+    [
+     "bit"
+    ]
+   ]
+  ],
+  "advanced/10": [
+   [
+    "advanced/02",
+    "Union–find (disjoint sets) was introduced for spanning trees; here its amortized cost is analysed.",
+    [
+     "disjoint"
+    ]
+   ]
+  ],
+  "advanced/11": [
+   [
+    "basics/12",
+    "Property-based testing scales the oracle tests of the basics.",
+    [
+     "test"
+    ]
+   ]
+  ],
+  "advanced/12": [
+   [
+    "advanced/06",
+    "Scheduling with dependencies needs a topological order.",
+    [
+     "topolog"
+    ]
+   ],
+   [
+    "advanced/11",
+    "A capstone is only done when it is proven and tested.",
+    [
+     "test"
+    ]
+   ]
+  ]
+ }
+}

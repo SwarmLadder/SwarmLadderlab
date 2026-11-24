@@ -83,7 +83,7 @@ export function Roadmap({ data, courseTitle, courseId }: { data: Data; courseTit
           <div>
             <p className="eyebrow"><Link href={"/learn/" + courseId}>{courseTitle}</Link> · Roadmap</p>
             <h1>{courseTitle} roadmap</h1>
-            <p className="rm-sub">{done} of {stages.length} stages completed · {data.graph ? "dependencies from the curriculum's concept map" : "suggested order from the course outline"}</p>
+            <p className="rm-sub">{done} of {stages.length} stages completed · {data.graph ? (data.course === "dsa" ? "dependencies from the DSA concept map, each with its reason" : "dependencies from the curriculum's concept map") : "suggested order from the course outline"}</p>
           </div>
         </div>
         {resume && (
@@ -165,8 +165,15 @@ function StagePanel({ ref, stage, level, states, stageStates, titles, stages, on
                   <span>{LABEL[s]}</span>
                   {item.graded > 0 && <span>{item.graded} checks</span>}
                   {item.challenges.length > 0 && <span>Challenges: {item.challenges.join(", ")}</span>}
-                  {item.prerequisites.length > 0 && <span>After {item.prerequisites.map((p) => titles.get(p)?.replace(/^\d+ — /, "") ?? p).join(", ")}</span>}
+                  {item.prerequisites.length > 0 && !item.why && <span>After {item.prerequisites.map((p) => titles.get(p)?.replace(/^\d+ — /, "") ?? p).join(", ")}</span>}
                 </p>
+                {item.why && item.prerequisites.length > 0 && (
+                  <ul className="rm-why" aria-label={"Why " + item.title + " comes after its prerequisites"}>
+                    {item.prerequisites.map((p) => (
+                      <li key={p}><Link href={lessonPath(p)}>{titles.get(p) ?? p}</Link>: {item.why![p]}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </li>
           );
@@ -175,7 +182,7 @@ function StagePanel({ ref, stage, level, states, stageStates, titles, stages, on
       {stage.projects.length > 0 && (
         <div className="rm-projects">
           <h3>Apply it</h3>
-          <ul>{stage.projects.map((p) => <li key={p.id}><Link href={"/studio/" + studioSlug(p.id)}>{p.title}</Link></li>)}</ul>
+          <ul>{stage.projects.map((p) => <li key={p.id}><Link href={p.href ?? "/studio/" + studioSlug(p.id)}>{p.title}</Link></li>)}</ul>
         </div>
       )}
     </section>
