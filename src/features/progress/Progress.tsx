@@ -80,7 +80,7 @@ export function Progress({ catalogs }: {
   const totalChecks = r.levels.reduce((n, l) => n + l.total, 0);
   const finished = r.all.filter((s) => s.state === "done").length;
   // Evidence that no longer matches the code or the curriculum revision.
-  const stale = Object.values(state.current ?? {}).filter((e) => currentStatus(e) === "stale").length;
+  const stale = Object.entries(state.current ?? {}).filter(([k, e]) => currentStatus(e, k) === "stale").length;
   const pct = totalChecks ? Math.round((100 * r.levels.reduce((n, l) => n + l.done, 0)) / totalChecks) : 0;
   const ring = 2 * Math.PI * 54;
   return (

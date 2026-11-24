@@ -1,4 +1,7 @@
 import pythonRevision from "../../../build/python-revision.json" with { type: "json" };
+import upstream from "../../../build/upstream.json" with { type: "json" };
+// DSA evidence is current only for the pinned DSA curriculum revision.
+export const dsaRevision: string = upstream["Data-Structures-Algorithms"];
 export const STORE = "swarmladderlab.v1";
 export type Validation = "not_attempted" | "passed" | "failed" | "execution_error" | "stale";
 export type Evidence = { status: Validation; cells: string[]; revision: string; independent?: boolean };
@@ -27,13 +30,18 @@ function write(state: State) {
 // v1 timestamps remain historical. Code checks acquire current evidence on rerun.
 const pythonCheck = (id: string, key: string) =>
   /^(basics|intermediate|advanced)\//.test(id) && /^(ex\d+$|wb:|mastery:)/.test(key);
-export function currentStatus(e?: Evidence) {
-  return e && (e.revision === pythonRevision ? e.status : "stale");
+// Every DSA result except reading a page is a code or quiz check.
+const dsaCheck = (id: string, key: string) => id.startsWith("dsa/") && key !== "read";
+export const isCheck = (id: string, key: string) => pythonCheck(id, key) || dsaCheck(id, key);
+// The revision a check's evidence must carry to count as current, by course.
+export const revisionFor = (key = "") => key.startsWith("dsa/") ? dsaRevision : pythonRevision;
+export function currentStatus(e?: Evidence, key?: string) {
+  return e && (e.revision === revisionFor(key) ? e.status : "stale");
 }
 export function doneIn(id: string, s: Pick<State, "done" | "current"> = read()) {
   return Object.keys(s.done ?? {}).filter(k => k.startsWith(id + "#"))
     .map(k => k.slice(id.length + 1))
-    .filter(k => !pythonCheck(id, k) || currentStatus(s.current?.[id + "#" + k]) === "passed");
+    .filter(k => !isCheck(id, k) || currentStatus(s.current?.[id + "#" + k], id + "#" + k) === "passed");
 }
 export function validate(id: string, key: string, evidence: Evidence) {
   const s = read();
