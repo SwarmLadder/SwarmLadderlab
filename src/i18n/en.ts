@@ -123,6 +123,7 @@ export const en = {
   "lesson.yourCode": "Your code",
   "lesson.solved": "Solved",
   "lesson.checkHint": "Runs the hidden tests against your code above.",
+  "lesson.checkHintDsa": "Runs the six published cases against your solve() above. Passing them is evidence, not a proof.",
   "lesson.passed": "Passed",
   "lesson.failed": "Needs work",
   "lesson.tools": "Lesson tools",

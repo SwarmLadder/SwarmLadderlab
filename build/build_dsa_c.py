@@ -9,10 +9,16 @@ import re
 import html
 from pathlib import Path
 
+import shutil
+
 try:
     from .build_git_rust import LEVELS, first_code, heading, html_guide
+    from .dsa_notebooks import LessonBuilder
 except ImportError:  # python build/prepare.py runs with build/ on sys.path
     from build_git_rust import LEVELS, first_code, heading, html_guide
+    from dsa_notebooks import LessonBuilder
+
+HERE = Path(__file__).resolve().parent
 
 DSA_REPO = "https://github.com/SwarmLadder/Data-Structures-Algorithms"
 C_REPO = "https://github.com/SwarmLadder/C"
@@ -55,6 +61,18 @@ def dsa_short_explanation(markdown: str) -> str:
     return "Approach: " + first_paragraph(approach) + " Complexity: " + first_paragraph(complexity)
 
 
+def dsa_routes(course: Path) -> dict[str, str]:
+    """Course source files that have a Lab page, so lesson links stay inside the Lab."""
+    routes = {}
+    for level, _, _ in LEVELS:
+        for path in (course / "lessons" / level).glob("[0-9][0-9]_*.md"):
+            routes[path.relative_to(course).as_posix()] = f"/lesson/dsa/{level}/lessons/{path.stem}"
+        prefix = {"basics": "B", "intermediate": "I", "advanced": "A"}[level]
+        for n in range(1, 17):
+            routes[f"problems/{prefix}{n:02}.md"] = f"/lesson/dsa/{level}/problems/{prefix}{n:02}"
+    return routes
+
+
 def build_dsa(course: Path, out: Path) -> dict:
     course = course.resolve()
     cases = json.loads(read(course / "tests/cases.json"))
@@ -84,13 +102,24 @@ def build_dsa(course: Path, out: Path) -> dict:
         entries[id] = page
         return {"id": id, "title": title, "graded": 1 if problem else 0}
 
+    revision = json.loads((HERE / "upstream.json").read_text())["Data-Structures-Algorithms"]
+    routes = dsa_routes(course)
+    builder = LessonBuilder(course, DSA_REPO, routes, revision)
+    runtime = out / "course" / "dsa"
     for level, label, medal in LEVELS:
         lessons = []
+        folder = runtime / level / "lessons"
+        folder.mkdir(parents=True, exist_ok=True)
+        for name in ("lesson.py", "quiz.py"):
+            shutil.copy(HERE / "dsa_runtime" / name, folder / name)
+        (folder / "drills.json").write_text(
+            json.dumps(builder.runtime_drills(level), ensure_ascii=False), encoding="utf-8")
         for path in sorted((course / "lessons" / level).glob("[0-9][0-9]_*.md")):
-            source = path.relative_to(course).as_posix()
-            text = read(path)
-            lessons.append(add(level, "lessons", path.stem, heading(text), source, text,
-                               code=first_code(text, "python")))
+            page = builder.notebook(level, path)
+            if page["id"] in entries:
+                raise ValueError(f"Duplicate DSA activity {page['id']}")
+            entries[page["id"]] = page
+            lessons.append({"id": page["id"], "title": page["title"], "graded": len(page["graded"])})
         if len(lessons) != 12:
             raise ValueError(f"Expected 12 DSA lessons for {level}, got {len(lessons)}")
 

@@ -36,10 +36,15 @@ def test_complete_dsa_problem_bank_and_non_fake_grading(generated):
         section_sizes = [len(s["items"]) for s in level["sections"]]
         assert section_sizes == ([12, 16, 1, 1, 4] if level["id"] == "advanced"
                                  else [12, 16, 1, 1])
-    assert sum(entry["graded"] for entry in tasks) == 48
+    # 48 interview problems (one case suite each) + 36 notebook lessons (4 drills + 4 quiz questions).
+    assert sum(entry["graded"] for entry in tasks) == 48 + 36 * 8
     for entry in tasks:
         activity = page(out, entry["id"])
         assert activity["id"] == entry["id"]
+        if "/lessons/" in entry["id"]:
+            assert entry["graded"] == len(activity["graded"]) == 8
+            assert activity["folder"].endswith("/lessons") and activity["cells"]
+            continue
         assert activity["guideHtml"]
         assert activity["sourcePath"]
         if entry["graded"]:
