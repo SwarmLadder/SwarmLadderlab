@@ -12,7 +12,7 @@ test("DSA is a real navigable course with original algorithm lessons and challen
   await page.goto("/lesson/dsa/basics/lessons/01_hashing_and_frequency");
   await expect(page.getByRole("heading", { level: 1, name: /Hash maps/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark activity complete" })).toHaveCount(0);
-  await expect(page.locator('[data-cell-id="drill-DB01-check"]')).toBeVisible();
+  await expect(page.locator('[data-cell-id="drill-DB01"]')).toBeVisible();
   // A reading page (the capstone brief) is still finished by reading it.
   await page.goto("/lesson/dsa/basics/projects/01_log_signal_analyzer");
   await page.getByRole("button", { name: "Mark activity complete" }).click();

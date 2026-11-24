@@ -423,3 +423,9 @@ body:has(.nbook) .colophon { display: none; }
 .nb-next { min-width: 0; max-width: 24rem; flex-shrink: 1; overflow: hidden; }
 .nb-next > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nb-score { flex-shrink: 0; }
+/* DSA lessons: long explanations stay available but collapsed below the summary. */
+.nb-deep { margin: 2rem 0 1rem; border: 1px solid var(--rule); border-radius: var(--r-md, 10px); background: var(--sheet); }
+.nb-deep > summary { cursor: pointer; padding: 0.8rem 1rem; font: 600 0.95rem/1.3 var(--sans); color: var(--ink); }
+.nb-deep[open] > summary { border-bottom: 1px solid var(--rule); }
+.nb-deep > :not(summary) { margin-left: 1rem; margin-right: 1rem; }
+.drill-kind { font-size: 0.88rem; color: var(--muted); }

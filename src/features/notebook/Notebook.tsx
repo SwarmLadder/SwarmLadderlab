@@ -250,7 +250,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
     const practiceStep = isPractice(s);
     // An exercise's prompt moves into the cell header; the rest of its text stays as text.
     const promptCell = practiceStep && !s.quiz && s.cells.some(c => c.type === "code" && c.kind === "exercise") ? s.cells.find((c) => c.type === "md") : undefined;
-    const prompt = promptCell && promptCell.type === "md" ? plain(promptCell.html).replace(/^Exercise \d+\.\s*/, "") : "";
+    const prompt = promptCell && promptCell.type === "md" ? plain(promptCell.html).replace(/^Exercise (?:[A-Z]{2})?\d+\.\s*/, "") : "";
     // A challenge is a function cell plus a check cell: the task sits on the function.
     const checkCell = s.cells.find((c): c is CodeCell => c.type === "code" && c.kind === "check");
     const challenge = checkCell?.source.match(/check\('([^']+)'\)/)?.[1];
@@ -433,7 +433,7 @@ function cellName(nb: Notebook, id: string) {
 function label(cell: CodeCell) {
   if (cell.kind === "engineering") return "Engineering submission · human review";
   if (cell.assessment?.startsWith("mastery:")) return "Independent assessment";
-  if (cell.kind === "exercise") return t("lesson.exercise", { n: cell.source.match(/check\((\d+),/)?.[1] ?? "" });
+  if (cell.kind === "exercise") return t("lesson.exercise", { n: cell.source.match(/check\((\d+),/)?.[1] ?? cell.source.match(/check\('([A-Z]{2}\d+)'\)/)?.[1] ?? "" });
   if (cell.kind === "check") return t("lesson.check") + " · " + (cell.source.match(/check\('([^']+)'\)/)?.[1] ?? "");
   if (/___/.test(cell.source)) return t("lesson.yourCode");
   return t("lesson.example");

@@ -9,7 +9,8 @@ export type QuizData = { id: string; hashes: Record<number, string>; questions: 
 
 const strip = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
 const startsWithHeading = (html: string) => /^\s*<h[23][\s>]/.test(html);
-const isExercisePrompt = (html: string) => /^\s*<p><strong>Exercise \d+\.<\/strong>/.test(html);
+// "Exercise 3." (Python) and "Exercise DB09." (DSA drills) start an exercise step.
+const isExercisePrompt = (html: string) => /^\s*<p><strong>Exercise (?:[A-Z]{2})?\d+\.<\/strong>/.test(html);
 const isNextLink = (html: string) => /^\s*<p><strong>Next:<\/strong>/.test(html);
 
 export function keysFor(c: CodeCell): string[] {
@@ -75,11 +76,11 @@ export function buildSteps(nb: Notebook): Step[] {
       if (startsWithHeading(html) || isExercisePrompt(html)) {
         push();
         const heading = html.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/)?.[1];
-        const prompt = html.match(/<strong>(Exercise \d+)\.<\/strong>/)?.[1];
+        const prompt = html.match(/<strong>(Exercise (?:[A-Z]{2})?\d+)\.<\/strong>/)?.[1];
         step = { title: strip(isExercisePrompt(html) ? prompt! : heading ?? ""), cells: [], keys: [] };
         // The step header shows the title, so drop it from the text below.
         html = isExercisePrompt(html)
-          ? html.replace(/<strong>Exercise \d+\.<\/strong>\s*/, "")
+          ? html.replace(/<strong>Exercise (?:[A-Z]{2})?\d+\.<\/strong>\s*/, "")
           : html.replace(/^\s*<h[23][^>]*>[\s\S]*?<\/h[23]>\s*/, "");
         if (!html.trim()) {
           step.cells.push({ type: "md", html: "" });

@@ -133,14 +133,42 @@ class LessonBuilder:
         cells: list[dict] = []
         graded: list[str] = []
         counter = {"demo": 0}
-        self.prose(before_drills, cells, counter, source_path)
-        visuals = self.visuals.get(f"{level}/{path.stem}", [])
-        if visuals:
-            cells.append({"type": "md", "html": "<h2>See it run</h2><p>Step through a real run of this lesson's code: "
-                          "every state below is what Python executed, line by line. Predict the next state before you step. "
-                          "Edit the code or the input and trace again to test your own idea.</p>"})
-            for n, visual in enumerate(visuals, 1):
-                cells.append(self.visual_cell(path, visual, n))
+        lesson_drills = [d for d in self.drills.values() if d["lesson"] == source_path]
+        by_id = {d["id"]: d for d in lesson_drills}
+        listed = re.findall(r"`(D[BIA]\d{2})`", drills_md)
+        if [d["id"] for d in lesson_drills] != listed or len(listed) != 4:
+            raise ValueError(f"{source_path}: drill table and drill bank disagree: {listed}")
+        # Drills placed in the section that teaches them (<!-- drill DB09 --> … <!-- /drill -->)
+        # appear there as one exercise cell; any others follow under "Your turn".
+        pieces = re.split(r"(?s)<!-- drill (D[BIA]\d{2}) -->.*?<!-- /drill -->", before_drills)
+        inline = pieces[1::2]
+        if any(i not in by_id for i in inline):
+            raise ValueError(f"{source_path}: inline drill not in this lesson's bank: {inline}")
+        remaining = [d for d in lesson_drills if d["id"] not in inline]
+        if not remaining:
+            pieces[-1] = re.sub(r"(?m)^## Your turn\s*$", "", pieces[-1])
+        for n, piece in enumerate(pieces):
+            if n % 2:
+                graded.append("wb:" + piece)
+                cells.extend(self.drill_cells(by_id[piece]))
+            else:
+                self.prose(piece, cells, counter, source_path)
+        if remaining:
+            intro = drills_md.split("\n\n")[0].strip()
+            cells.append({"type": "md", "html": render(intro, source_path, self.routes, self.repo)})
+            for drill in remaining:
+                graded.append("wb:" + drill["id"])
+                cells.extend(self.drill_cells(drill))
+        # Each visual follows the example that defines its function, or closes the teaching part.
+        for n, visual in enumerate(self.visuals.get(f"{level}/{path.stem}", []), 1):
+            cell = self.visual_cell(path, visual, n)
+            name = visual["functions"][-1] if visual["functions"][0][0].isupper() else visual["functions"][0]
+            at = next((i + 1 for i, c in enumerate(cells) if c.get("kind") == "code" and re.search(rf"(?m)^(def|class) {name}\b", c["source"])), None)
+            if at is None:
+                at = next((i for i, c in enumerate(cells) if c.get("kind") == "exercise"), len(cells))
+            intro = {"type": "md", "html": f"<p><strong>See it run.</strong> Step through a real run of <code>{html.escape(name)}</code>: "
+                     "every state is what Python executed. Predict the next state before you step.</p>"}
+            cells[at:at] = [intro, cell]
         # Setup goes before the first runnable cell, as in Python notebooks.
         setup = {"type": "code", "id": "lesson-setup", "kind": "setup",
                  "source": f"from lesson import Exercises, ___\n\ncheck = Exercises({lesson_id!r})",
@@ -148,21 +176,17 @@ class LessonBuilder:
         first_code = next((i for i, c in enumerate(cells) if c["type"] == "code"), len(cells))
         cells.insert(first_code, setup)
 
-        lesson_drills = [d for d in self.drills.values() if d["lesson"] == source_path]
-        listed = re.findall(r"`(D[BIA]\d{2})`", drills_md)
-        if [d["id"] for d in lesson_drills] != listed or len(listed) != 4:
-            raise ValueError(f"{source_path}: drill table and drill bank disagree: {listed}")
-        intro = drills_md.split("\n\n")[0].strip()
-        cells.append({"type": "md", "html": render(intro, source_path, self.routes, self.repo)})
-        for drill in lesson_drills:
-            graded.append("wb:" + drill["id"])
-            cells.extend(self.drill_cells(drill))
-
         self.prose(between_parts, cells, counter, source_path)
         questions = self.quiz_cells(key, quiz_md, source_path)
         cells.extend(questions["cells"])
         graded.extend(f"q{n}" for n in range(1, questions["count"] + 1))
+        deep = re.search(r"(?ms)^## Deep dive \(optional\)\s*\n(.*?)(?=^\*\*Next|\Z)", after_quiz)
+        if deep:
+            after_quiz = after_quiz.replace(deep.group(0), "")
         self.prose(after_quiz, cells, counter, source_path)
+        if deep:
+            body = render(re.sub(r"(?m)^(#{3,4}) ", lambda m: "#" * (len(m.group(1)) + 1) + " ", deep.group(1)), source_path, self.routes, self.repo)
+            cells.append({"type": "md", "html": f'<details class="nb-deep"><summary>Deep dive (optional): why it works and how to test it</summary>{body}</details>'})
         title = text.splitlines()[0].removeprefix("# ").strip()
         return {"id": lesson_id, "title": title, "folder": f"dsa/{level}/lessons", "cells": cells,
                 "revision": self.revision, "graded": graded, "sourcePath": source_path,
@@ -220,16 +244,15 @@ class LessonBuilder:
             for case in self.cases[did][:2])
         kind = ("Guided: fill in each <code>___</code> blank." if guided
                 else "Independent: write the whole function.")
-        md = (f"<h3>{did} · {html.escape(drill['title'])}</h3>"
-              f"<p>{html.escape(drill['prompt'])}</p>"
-              f"<p class=\"drill-kind\">{kind} Checked on six published cases; a hint appears after each failed check.</p>"
-              f"<p>Examples:</p><ul>{examples}</ul>")
+        # quote=False: the header shows this text as plain text, where &#x27; would appear literally.
+        prompt = f"<p><strong>Exercise {did}.</strong> {html.escape(drill['title'], quote=False)}: {html.escape(drill['prompt'], quote=False)}</p>"
+        notes = f"<p class=\"drill-kind\">{kind} Six published cases; a hint appears after each failed check.</p><p>Examples:</p><ul>{examples}</ul>"
+        # One cell: the learner's code, then the check, as in Python exercises.
         return [
-            {"type": "md", "html": md},
-            {"type": "code", "id": f"drill-{did}", "kind": "code", "source": body,
-             "requires_cells": [], "assessment": None},
-            {"type": "code", "id": f"drill-{did}-check", "kind": "check", "source": f"check('{did}')",
-             "requires_cells": [f"drill-{did}"], "assessment": "wb:" + did},
+            {"type": "md", "html": prompt},
+            {"type": "md", "html": notes},
+            {"type": "code", "id": f"drill-{did}", "kind": "exercise", "source": body.rstrip() + f"\n\ncheck('{did}')\n",
+             "requires_cells": [], "assessment": "wb:" + did},
         ]
 
     def quiz_cells(self, key: str, md: str, source_path: str) -> dict:
