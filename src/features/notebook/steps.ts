@@ -109,8 +109,10 @@ export function buildSteps(nb: Notebook): Step[] {
   return steps;
 }
 
-export async function quizFingerprint(id: string, n: number, letter: string) {
-  const data = new TextEncoder().encode(`python-notebook-quiz|${id}|${n}|${letter}`);
+// Each course hashes quiz answers with its own prefix (see its quiz.py).
+export async function quizFingerprint(id: string, n: number, letter: string, course = "python") {
+  const prefix = course === "dsa" ? "dsa-course-quiz" : "python-notebook-quiz";
+  const data = new TextEncoder().encode(`${prefix}|${id}|${n}|${letter}`);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
 }

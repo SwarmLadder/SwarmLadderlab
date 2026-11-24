@@ -16,6 +16,14 @@ import { t } from "../../i18n";
 
 type Output = { name: string; text: string };
 
+// The course a notebook belongs to: Python notebooks, or DSA lessons built as notebooks.
+const COURSES = {
+  python: { name: "Python", repo: courseRepo },
+  dsa: { name: "Data Structures & Algorithms", repo: "https://github.com/SwarmLadder/Data-Structures-Algorithms" },
+} as const;
+type NotebookCourse = keyof typeof COURSES;
+const courseOf = (id: string): NotebookCourse => id.startsWith("dsa/") ? "dsa" : "python";
+
 export function Lesson({ id, catalog }: { id: string; catalog: Catalog }) {
   const [nb, setNb] = useState<Notebook>();
   const [error, setError] = useState("");
@@ -34,7 +42,7 @@ export function Lesson({ id, catalog }: { id: string; catalog: Catalog }) {
   if (nb) return <Workspace key={nb.id} nb={nb} catalog={catalog} />;
   return (
     <p className="page-loading" role="status">
-      {error ? t("lesson.notFound") : t("loading.lesson")} {error && <Link href={coursePath("python")}>{t("lesson.complete.route")}</Link>}
+      {error ? t("lesson.notFound") : t("loading.lesson")} {error && <Link href={coursePath(courseOf(id))}>{t("lesson.complete.route")}</Link>}
     </p>
   );
 }
@@ -50,6 +58,7 @@ const TOC_KEY = "swarmladderlab.toc";
 const plain = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
 
 function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
+  const course = courseOf(nb.id);
   const steps = useMemo(() => buildSteps(nb), [nb]);
   const done = useDone(nb.id);
   const evidence = read().current ?? {};
@@ -198,7 +207,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
   const stepStatus = (s: Step): "ok" | "no" | "todo" =>
     s.keys.length && s.keys.every((k) => done.includes(k))
       ? "ok"
-      : s.cells.some((c) => c.type === "code" && ["failed", "execution_error"].includes(outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment]) ?? ""))
+      : s.cells.some((c) => c.type === "code" && ["failed", "execution_error"].includes(outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment], nb.id + "#" + c.assessment) ?? ""))
         ? "no"
         : "todo";
   const practice = steps.map((s, i) => ({ s, i })).filter(({ s }) => isPractice(s));
@@ -249,7 +258,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
       <section key={i} id={`step-${i}`} className={"nb-step" + (practiceStep ? " is-practice" : "")} aria-labelledby={`step-h-${i}`}>
         {s.part && <p className="nb-part">{s.part}</p>}
         <h2 id={`step-h-${i}`} className={(practiceStep && !s.quiz) || (i === 0 && s.title === "Overview") ? "sr-only" : "nb-heading"}>{s.title}</h2>
-        {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} />}
+        {s.quiz && <Quiz quiz={s.quiz} nbId={nb.id} done={done} course={course} feedback={nb.quizFeedback} />}
         {s.cells.map((c, ci) => {
           if (c === promptCell) return null;
           if (c.type === "md") return <div key={ci} className="nb-text prose" dangerouslySetInnerHTML={{ __html: c.html }} />;
@@ -270,7 +279,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               tag={c === fnCell ? t("lesson.challenge", { name: challenge ?? "" }) : undefined}
               value={edits[c.id] ?? c.source}
               busy={busy}
-              validation={outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment])}
+              validation={outcomes[c.id] ?? currentStatus(evidence[nb.id + "#" + c.assessment], nb.id + "#" + c.assessment)}
               output={outputs[c.id]}
               count={counts[c.id]}
               solved={keysFor(c).length > 0 && keysFor(c).every((k) => done.includes(k))}
@@ -279,6 +288,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
               onChange={(v) => change(c, v)}
               onRun={() => execute([c])}
               requires={isCheckCell(c) ? (c.requires_cells ?? []).map((id) => ({ id, name: cellName(nb, id) })) : []}
+              checkHint={course === "dsa" ? t("lesson.checkHintDsa") : undefined}
             />
           );
         })}
@@ -294,10 +304,10 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           <PanelLeft size={16} />
         </button>
         <nav className="crumbs" aria-label="Breadcrumb">
-          <Link href={coursePath("python")}>Python</Link>
+          <Link href={coursePath(course)}>{COURSES[course].name}</Link>
           <span aria-hidden="true">/</span>
           <span>{stop?.level.title}</span>
-          <Link className="crumb-roadmap" href="/learn/python/roadmap">Roadmap</Link>
+          <Link className="crumb-roadmap" href={`/learn/${course}/roadmap`}>Roadmap</Link>
         </nav>
         <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
           <Play size={14} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
@@ -314,7 +324,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
         </span>
         {nextUp && (
           <button className="nb-btn nb-next" onClick={() => jump(nextUp.i)}>
-            {t("lesson.nextUp", { title: nextUp.s.quiz ? t("lesson.quiz") : nextUp.s.title })} <ArrowRight size={14} />
+            <span>{t("lesson.nextUp", { title: nextUp.s.quiz ? t("lesson.quiz") : nextUp.s.title })}</span> <ArrowRight size={14} />
           </button>
         )}
         {graded > 0 && (
@@ -357,8 +367,12 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                 {name}
               </h1>
               <p className="nb-links">
-                <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a>
-                <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
+                {course === "dsa" ? (
+                  <a href={COURSES.dsa.repo + "/blob/main/" + nb.sourcePath}>GitHub</a>
+                ) : <>
+                  <a href={courseRepo + "/blob/main/" + nb.id + ".ipynb"}>GitHub</a>
+                  <a href={"https://colab.research.google.com/github/SwarmLadder/python-notebook/blob/main/" + nb.id + ".ipynb"}>Colab</a>
+                </>}
               </p>
             </header>
 
@@ -380,7 +394,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
                         {t("lesson.complete.next", { title: topic(lessonNumber(nextStop.item.title).name) })} <ArrowRight size={18} strokeWidth={1.8} />
                       </Link>
                     )}
-                    <Link className="button quiet" href={coursePath("python")}>{t("lesson.complete.route")}</Link>
+                    <Link className="button quiet" href={coursePath(course)}>{t("lesson.complete.route")}</Link>
                   </div>
                 </div>
               </section>
@@ -430,11 +444,12 @@ function lineClass(line: string) {
   return "";
 }
 
-function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, validation, onChange, onRun, runner, error, requires = [] }: {
+function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, validation, onChange, onRun, runner, error, requires = [], checkHint }: {
   cell: CodeCell; prompt: string; tag?: string; value: string; busy: string | null; output?: Output[]; count?: number; solved: boolean;
   validation?: Outcome;
   onChange: (v?: string) => void; onRun: () => void; runner: { current: Runner | null }; error: RuntimeError;
   requires?: { id: string; name: string }[];
+  checkHint?: string;
 }) {
   const isCheck = cell.kind === "check";
   const isTask = cell.kind === "engineering" || cell.id === "build-work" || cell.kind === "exercise" || isCheck || /___/.test(cell.source);
@@ -487,7 +502,7 @@ function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, v
           </div>
         )}
         {isCheck ? (
-          <p className="check-line">{t("lesson.checkHint")}</p>
+          <p className="check-line">{checkHint ?? t("lesson.checkHint")}</p>
         ) : (
           <CodeEditor value={value} onChange={(v) => onChange(v)} onRun={onRun} runner={runner} error={error} />
         )}
@@ -520,7 +535,10 @@ function CodeSpecimen({ cell, prompt, tag, value, busy, output, count, solved, v
   );
 }
 
-function Quiz({ quiz, nbId, done }: { quiz: QuizData; nbId: string; done: string[] }) {
+function Quiz({ quiz, nbId, done, course, feedback }: {
+  quiz: QuizData; nbId: string; done: string[]; course: NotebookCourse;
+  feedback?: Notebook["quizFeedback"];
+}) {
   const [picked, setPicked] = useState<Record<number, { letter: string; ok: boolean }>>({});
   const [correct, setCorrect] = useState<Record<number, string>>({});
   // Reveal which option was right for questions already answered correctly.
@@ -530,14 +548,14 @@ function Quiz({ quiz, nbId, done }: { quiz: QuizData; nbId: string; done: string
       const found: Record<number, string> = {};
       for (const q of quiz.questions) {
         if (!done.includes("q" + q.number)) continue;
-        for (const o of q.options) if ((await quizFingerprint(quiz.id, q.number, o.letter)) === quiz.hashes[q.number]) found[q.number] = o.letter;
+        for (const o of q.options) if ((await quizFingerprint(quiz.id, q.number, o.letter, course)) === quiz.hashes[q.number]) found[q.number] = o.letter;
       }
       if (alive) setCorrect(found);
     })();
     return () => { alive = false; };
   }, [quiz, done]);
   async function choose(n: number, letter: string) {
-    const ok = (await quizFingerprint(quiz.id, n, letter)) === quiz.hashes[n];
+    const ok = (await quizFingerprint(quiz.id, n, letter, course)) === quiz.hashes[n];
     setPicked((p) => ({ ...p, [n]: { letter, ok } }));
     if (ok) {
       mark(nbId, ["q" + n]);
@@ -568,7 +586,9 @@ function Quiz({ quiz, nbId, done }: { quiz: QuizData; nbId: string; done: string
                 })}
               </div>
               <p className="quiz-feedback" role="status">
-                {answered ? t("lesson.quizCorrect") : pick && !pick.ok ? t("lesson.quizWrong") : ""}
+                {answered ? t("lesson.quizCorrect") + (feedback?.[q.number]?.explain ? " " + feedback[q.number].explain : "")
+                  : pick && !pick.ok ? (feedback?.[q.number] ? `Not quite. Re-read “${feedback[q.number].section}”, then try another answer.` : t("lesson.quizWrong"))
+                  : ""}
               </p>
             </fieldset>
           </li>

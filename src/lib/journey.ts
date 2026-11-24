@@ -23,6 +23,8 @@ const KIND: Record<string, StopKind> = {
   exercises: "practice",
   worked_examples: "example",
   projects: "build",
+  interview: "build", // DSA timed mock interviews
+  resources: "example", // DSA mastery guides
 };
 const ORDER: StopKind[] = ["lesson", "practice", "example", "build"];
 const PRACTICE_FIRST: StopKind[] = ["practice", "lesson", "build", "example"];
@@ -41,9 +43,10 @@ export function isComplete(item: Item) {
 
 export function route(catalog: Catalog): Route {
   const last = read().last;
-  // Python already teaches through runnable checked cells inside lessons.
-  // DSA and C begin with genuine checks; reading is available after practice.
-  const priority = /\/(?:Data-Structures-Algorithms|C|Java)$/.test(catalog.course ?? "") ? PRACTICE_FIRST : ORDER;
+  // Python and DSA teach through runnable checked cells inside lessons.
+  // C and Java begin with genuine checks; reading is available after practice.
+  // DSA lessons now teach with checked cells too, so DSA follows the Python order.
+  const priority = /\/(?:C|Java)$/.test(catalog.course ?? "") ? PRACTICE_FIRST : ORDER;
   const all: Stop[] = [];
   const levels = catalog.levels.map((level, chapter) => {
     const stops: Stop[] = [];

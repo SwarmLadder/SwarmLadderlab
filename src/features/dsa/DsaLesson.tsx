@@ -8,7 +8,7 @@ import { lessonPath, type Catalog } from "../../lib/course";
 import { route } from "../../lib/journey";
 import { Runner } from "../../workers/runner";
 import { DSA_RESULT_PREFIX, dsaPythonScript, parseDsaResults, type DsaCase, type DsaCaseResult } from "../../lib/dsaRunner";
-import { doneIn, finish, isFinished, mark, onProgress, read, save, setLast } from "../progress/store";
+import { currentStatus, doneIn, dsaRevision, finish, isFinished, onProgress, read, save, setLast, validate } from "../progress/store";
 
 type DsaPage = {
   id: string; title: string; sourcePath: string; guideHtml: string; source: string;
@@ -41,8 +41,12 @@ export function DsaLesson({ id, catalog }: { id: string; catalog: Catalog }) {
 function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
   const problem = page.mode === "browser-dsa" && Boolean(page.cases?.length);
   const [draft, setDraft] = useState(() => read().code?.[page.id]?.draft ?? page.source);
-  const [complete, setComplete] = useState(() =>
-    problem ? doneIn(page.id).includes("case-suite") : isFinished(page.id));
+  const suiteKey = page.id + "#case-suite";
+  const passing = () => doneIn(page.id).includes("case-suite");
+  // A pass recorded for earlier code (or an older curriculum revision) is stale.
+  const stale = () => !passing() && currentStatus(read().current?.[suiteKey], suiteKey) === "stale";
+  const [complete, setComplete] = useState(() => problem ? passing() : isFinished(page.id));
+  const [needsRecheck, setNeedsRecheck] = useState(() => problem && stale());
   const [status, setStatus] = useState("Starting Python…");
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<DsaCaseResult[] | null>(null);
@@ -58,9 +62,10 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
   const next = index >= 0 ? r.all[index + 1] ?? null : null;
   const level = index >= 0 ? r.all[index].level.title : "DSA";
 
-  useEffect(() => onProgress(() => setComplete(
-    problem ? doneIn(page.id).includes("case-suite") : isFinished(page.id),
-  )), [page.id, problem]);
+  useEffect(() => onProgress(() => {
+    setComplete(problem ? passing() : isFinished(page.id));
+    setNeedsRecheck(problem && stale());
+  }), [page.id, problem]);
   useEffect(() => {
     document.title = page.title + " · SwarmLadder Lab";
     return () => { document.title = "SwarmLadder Lab"; };
@@ -121,9 +126,10 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
       const checked = parseDsaResults(collected, selectedCases.length);
       setResults(checked);
       const count = checked.filter((test) => test.ok).length;
+      if (mode === "all") validate(page.id, "case-suite", {
+        status: count === selectedCases.length ? "passed" : "failed", cells: ["draft"], revision: dsaRevision,
+      });
       if (mode === "all" && count === selectedCases.length) {
-        mark(page.id, ["case-suite"]);
-        setComplete(true);
         setNotice("Passed all " + count + " published cases! Progress saved locally.");
       } else if (mode === "sample" && count === selectedCases.length) {
         setNotice("Both sample cases passed. Run all six published cases to earn completion.");
@@ -133,7 +139,10 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
       const marker = collected.lastIndexOf(DSA_RESULT_PREFIX);
       setConsoleOut(marker >= 0 ? collected.slice(0, marker).trim().slice(-3000) : "");
     } catch (error) {
-      if (runner.current === session) setNotice(String(error));
+      if (runner.current === session) {
+        setNotice(String(error));
+        if (mode === "all") validate(page.id, "case-suite", { status: "execution_error", cells: ["draft"], revision: dsaRevision });
+      }
     } finally {
       clearTimeout(timeout);
       if (runner.current === session) setRunning(false);
@@ -163,7 +172,8 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
       <h1 className="lesson-title">{page.title}</h1>
       <p className="lesson-meta">
         <span className={"meta-chip" + (complete ? " complete" : "")}>
-          {complete ? "✓ Completed" : problem ? "6 public cases · browser-graded" : "Guided reading"}
+          {complete ? (problem ? "✓ Passing with your current code" : "✓ Completed") : needsRecheck ? "Needs re-check: code changed since the last pass"
+            : problem ? "6 public cases · browser-graded" : "Guided reading"}
         </span>
         <span className="meta-links">Source:{" "}
           <a href={UPSTREAM + "/blob/main/" + page.sourcePath} target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -253,7 +263,9 @@ function Workspace({ page, catalog }: { page: DsaPage; catalog: Catalog }) {
           <div className="step-continue native-complete">
             {problem
               ? <span className={"meta-chip" + (complete ? " complete" : "")}>
-                  {complete ? "✓ Published case suite passed" : "Run every public case to earn completion"}
+                  {complete ? "✓ Your current code passes every published case"
+                    : needsRecheck ? "Your last pass was for different code. Run all cases again."
+                    : "Run every public case to earn completion"}
                 </span>
               : <button type="button" className="button primary" disabled={complete}
                 onClick={() => { finish(page.id); setComplete(true); setNotice("Reading completed. Progress saved."); }}>

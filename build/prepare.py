@@ -43,6 +43,8 @@ def main():
         files.extend(["sql/fixtures/base.sql", "sql/fixtures/edge.sql",
                       "sql/tools/run_sql.py", "sql/tools/schema_practice.py",
                       "sql/data/schema.sql", "sql/data/seed.sql"])
+        # DSA lesson graders: one lesson.py, quiz.py and drills.json per level.
+        files.extend(p.relative_to(out / "course").as_posix() for p in (out / "course" / "dsa").rglob("*") if p.is_file())
         manifest.write_text(json.dumps(sorted(set(files)), indent=1), encoding="utf-8")
 
         for name in ("data", "course"):

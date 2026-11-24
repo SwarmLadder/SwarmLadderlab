@@ -29,17 +29,26 @@ def test_complete_dsa_problem_bank_and_non_fake_grading(generated):
     dsa, _, out = generated
     assert len(dsa["levels"]) == 3
     tasks = items(dsa)
-    assert len(tasks) == 94
-    assert len({entry["id"] for entry in tasks}) == 94
+    # 36 lessons, 48 problems, 18 worked examples, 6 tested projects + 3 capstones, 3 mocks, 4 guides.
+    assert len(tasks) == 118
+    assert len({entry["id"] for entry in tasks}) == 118
     assert [level["total"] for level in dsa["levels"]] == [16, 16, 16]
     for level in dsa["levels"]:
         section_sizes = [len(s["items"]) for s in level["sections"]]
-        assert section_sizes == ([12, 16, 1, 1, 4] if level["id"] == "advanced"
-                                 else [12, 16, 1, 1])
-    assert sum(entry["graded"] for entry in tasks) == 48
+        assert section_sizes == ([12, 16, 6, 3, 1, 4] if level["id"] == "advanced"
+                                 else [12, 16, 6, 3, 1])
+    # Problems (one case suite each), lessons (4 drills + 4 quiz questions), projects (one test suite).
+    assert sum(entry["graded"] for entry in tasks) == 48 + 36 * 8 + 6
     for entry in tasks:
         activity = page(out, entry["id"])
         assert activity["id"] == entry["id"]
+        if "/worked/" in entry["id"] or "/builds/" in entry["id"]:
+            assert entry["graded"] == len(activity["graded"]) and activity["cells"]
+            continue
+        if "/lessons/" in entry["id"]:
+            assert entry["graded"] == len(activity["graded"]) == 8
+            assert activity["folder"].endswith("/lessons") and activity["cells"]
+            continue
         assert activity["guideHtml"]
         assert activity["sourcePath"]
         if entry["graded"]:

@@ -60,8 +60,9 @@ test("the chosen theme persists across pages and reloads", async ({ page }) => {
 
 test("no page scrolls sideways at phone, tablet and laptop widths", async ({ page }) => {
   const paths = ["/", "/learn", "/learn/python", "/learn/python/roadmap", "/schools", "/studio", "/studio/transactional-event-processor",
-    "/community", "/playground", "/progress", "/achievements", "/lesson/basics/notebooks/05_conditional_statements"];
-  for (const width of [320, 768, 1024]) {
+    "/community", "/playground", "/progress", "/achievements", "/lesson/basics/notebooks/05_conditional_statements",
+    "/lesson/dsa/advanced/lessons/09_fenwick_segment_trees_and_range_queries"];
+  for (const width of [320, 768, 1024, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     for (const path of paths) {
       await page.goto(path);
@@ -70,6 +71,16 @@ test("no page scrolls sideways at phone, tablet and laptop widths", async ({ pag
       expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0);
     }
   }
+});
+
+test("course rungs give unnumbered titles the full row (DSA lessons)", async ({ page }) => {
+  await page.goto("/learn/dsa");
+  const name = page.locator(".rung-name").first();
+  await expect(name).toContainText("Hash maps");
+  // One line of text, not one word per line in the number column.
+  const box = await name.boundingBox();
+  expect(box!.width).toBeGreaterThan(250);
+  expect(box!.height).toBeLessThan(60);
 });
 
 test("the header collapses into a menu below laptop width and keeps the theme toggle visible", async ({ page }) => {
