@@ -11,6 +11,7 @@ import { Runner } from "../../workers/runner";
 import { LadderMark } from "../../components/Brand";
 import { CodeEditor, type RuntimeError } from "../../components/CodeEditor";
 import { executionPlan } from "./plan";
+import { Visualizer, type VisualCell } from "../visual/Visualizer";
 import { buildSteps, keysFor, quizFingerprint, type QuizData, type Step } from "./steps";
 import { t } from "../../i18n";
 
@@ -263,6 +264,8 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           if (c === promptCell) return null;
           if (c.type === "md") return <div key={ci} className="nb-text prose" dangerouslySetInnerHTML={{ __html: c.html }} />;
           if (c.kind === "quiz" && s.quiz) return null;
+          if (c.kind === "visual")
+            return <Visualizer key={c.id} cell={c as unknown as VisualCell} runner={runner} folder={nb.folder} ready={status === t("runtime.ready")} />;
           if (c.kind === "setup")
             return (
               <p key={c.id} className={"setup-cell" + (setupDone ? " ready" : "")}>
@@ -309,7 +312,7 @@ function Workspace({ nb, catalog }: { nb: Notebook; catalog: Catalog }) {
           <span>{stop?.level.title}</span>
           <Link className="crumb-roadmap" href={`/learn/${course}/roadmap`}>Roadmap</Link>
         </nav>
-        <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
+        <button className="nb-btn" disabled={!!busy} onClick={() => execute(nb.cells.filter((c): c is CodeCell => c.type === "code" && c.kind !== "visual"), true)} aria-label={batch ? t("lesson.runningAll") : t("lesson.runAll")}>
           <Play size={14} /> <span className="bl">{batch ? t("lesson.runningAll") : t("lesson.runAll")}</span>
         </button>
         <button className="nb-btn" onClick={() => restart(false)} aria-label={t("lesson.stop")}>

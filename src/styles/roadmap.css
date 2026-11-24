@@ -52,3 +52,8 @@
   .rm-panel { position: static; padding: 1.2rem; scroll-margin-top: 5rem; }
 }
 @media (prefers-reduced-motion: no-preference) { .rm-stage { transition: background 0.12s, border-color 0.12s; } }
+
+/* DSA: each prerequisite with the reason it is needed. */
+.rm-why { margin: 0.35rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; font-size: 0.86rem; color: var(--ink-2); }
+.rm-why li::before { content: "↳ "; color: var(--muted); }
+.rm-why a { font-weight: 600; }

@@ -45,7 +45,7 @@ test("Python roadmap: stages, dependencies, keyboard and accurate progress", asy
 });
 
 test("roadmaps exist for every course and work on a phone", async ({ page }) => {
-  for (const id of ["sql", "git", "rust", "linux", "dsa", "c", "java"]) {
+  for (const id of ["sql", "git", "rust", "linux", "c", "java"]) {
     await page.goto(`/learn/${id}/roadmap`);
     await expect(page.getByText("suggested order from the course outline")).toBeVisible();
     await expect(page.locator(".rm-stage").first()).toBeVisible();
@@ -54,4 +54,15 @@ test("roadmaps exist for every course and work on a phone", async ({ page }) => 
   await page.goto("/learn/python/roadmap");
   await expect(page.locator(".rm-panel")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test("the DSA roadmap shows checked dependencies and why each is needed", async ({ page }) => {
+  await page.goto("/learn/dsa/roadmap");
+  await expect(page.getByText("dependencies from the DSA concept map, each with its reason")).toBeVisible();
+  await expect(page.locator(".rm-stage")).toHaveCount(14);
+  await page.locator(".rm-stage", { hasText: "Graphs" }).click();
+  const why = page.getByRole("list", { name: /Why Weighted paths, disjoint sets and minimum networks/ });
+  await expect(why).toContainText("Dijkstra needs a priority queue");
+  await expect(why.getByRole("link", { name: /Heaps/ })).toHaveAttribute("href", /\/lesson\/dsa\/intermediate\/lessons\/08_heaps/);
+  await expect(page.locator(".rm-builds")).toContainText("Priority and greed");
 });
