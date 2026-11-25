@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "status": "research_inventory_only_no_reuse_approved",
+  "note": "External repositories may include differently licensed files, third-party links, trademarks or media. Do not import automatically. Recheck exact file and revision prior to adaptation.",
+  "resources": [
+    {
+      "id": "thealgorithms-python",
+      "url": "https://github.com/TheAlgorithms/Python",
+      "category": "algorithm_references",
+      "license": "MIT",
+      "scope": "repository_code",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "python",
+        "dsa"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "thealgorithms-cpp",
+      "url": "https://github.com/TheAlgorithms/C-Plus-Plus",
+      "category": "algorithm_references",
+      "license": "MIT",
+      "scope": "repository_code",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "cpp",
+        "dsa"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "thealgorithms-java",
+      "url": "https://github.com/TheAlgorithms/Java",
+      "category": "algorithm_references",
+      "license": "MIT",
+      "scope": "repository_code",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "java",
+        "dsa"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "thealgorithms-rust",
+      "url": "https://github.com/TheAlgorithms/Rust",
+      "category": "algorithm_references",
+      "license": "MIT",
+      "scope": "repository_code",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "rust",
+        "dsa"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "ossu-cs",
+      "url": "https://github.com/ossu/computer-science",
+      "category": "cs_pathways",
+      "license": "MIT",
+      "scope": "index_only_external_courses_vary",
+      "recommended_mode": "link_only",
+      "skills": [
+        "computer_science",
+        "curriculum"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "exercism-python",
+      "url": "https://github.com/exercism/python",
+      "category": "practice",
+      "license": "MIT",
+      "scope": "track_repo_not_exercism_website",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "python",
+        "mentoring"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "exercism-website",
+      "url": "https://github.com/exercism/website",
+      "category": "platform_reference",
+      "license": "AGPL-3.0",
+      "scope": "website_source",
+      "recommended_mode": "design_research_only",
+      "skills": [
+        "community",
+        "mentoring"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "rustlings",
+      "url": "https://github.com/rust-lang/rustlings",
+      "category": "practice",
+      "license": "MIT",
+      "scope": "repository",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "rust"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "first-contributions",
+      "url": "https://github.com/firstcontributions/first-contributions",
+      "category": "contribution_onboarding",
+      "license": "MIT",
+      "scope": "repository",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "git",
+        "open_source"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "github-open-source-guides",
+      "url": "https://github.com/github/opensource.guide",
+      "category": "governance",
+      "license": "CC-BY-4.0",
+      "scope": "repository_material",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "open_source",
+        "governance"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "project-based-learning",
+      "url": "https://github.com/practical-tutorials/project-based-learning",
+      "category": "projects",
+      "license": "MIT",
+      "scope": "index_only_linked_tutorials_vary",
+      "recommended_mode": "link_only",
+      "skills": [
+        "projects"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "build-your-own-x",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "category": "projects",
+      "license": "CC0_statement_in_readme",
+      "scope": "index_only_linked_tutorials_vary",
+      "recommended_mode": "link_only",
+      "skills": [
+        "systems",
+        "projects"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "system-design-primer",
+      "url": "https://github.com/donnemartin/system-design-primer",
+      "category": "system_design",
+      "license": "CC-BY-4.0",
+      "scope": "repository_material",
+      "recommended_mode": "link_then_manual_file_review",
+      "skills": [
+        "architecture",
+        "systems"
+      ],
+      "priority": "pilot"
+    },
+    {
+      "id": "coding-interview-university",
+      "url": "https://github.com/jwasham/coding-interview-university",
+      "category": "study_paths",
+      "license": "CC-BY-SA-4.0",
+      "scope": "repository_content",
+      "recommended_mode": "link_only",
+      "skills": [
+        "dsa",
+        "interviews"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "freecodecamp",
+      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+      "category": "learning_platform",
+      "license": "BSD-3-Clause_software;curriculum_requires_separate_review",
+      "scope": "mixed_software_and_educational_content",
+      "recommended_mode": "design_research_only",
+      "skills": [
+        "web",
+        "curriculum"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "odin-curriculum",
+      "url": "https://github.com/TheOdinProject/curriculum",
+      "category": "web_education",
+      "license": "CC-BY-NC-SA-4.0",
+      "scope": "curriculum_content",
+      "recommended_mode": "link_only",
+      "skills": [
+        "web"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "roadmap",
+      "url": "https://roadmap.sh/about/",
+      "category": "roadmaps",
+      "license": "website_content_redistribution_not_permitted",
+      "scope": "website_content",
+      "recommended_mode": "design_research_only",
+      "skills": [
+        "roadmaps"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "mit-ocw",
+      "url": "https://ocw.mit.edu/",
+      "category": "university_courses",
+      "license": "usually_CC-BY-NC-SA_check_each_course",
+      "scope": "educational_content",
+      "recommended_mode": "link_only",
+      "skills": [
+        "cs_theory",
+        "math"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "missing-semester",
+      "url": "https://github.com/missing-semester/missing-semester",
+      "category": "developer_fundamentals",
+      "license": "CC-BY-NC-SA-4.0",
+      "scope": "course_material",
+      "recommended_mode": "link_only",
+      "skills": [
+        "linux",
+        "git",
+        "developer_tools"
+      ],
+      "priority": "reference"
+    },
+    {
+      "id": "microsoft-ml-beginners",
+      "url": "https://github.com/microsoft/ML-For-Beginners",
+      "category": "future_curriculum",
+      "license": "MIT",
+      "scope": "repository_metadata_verify_file_scope",
+      "recommended_mode": "link_only",
+      "skills": [
+        "machine_learning"
+      ],
+      "priority": "future"
+    },
+    {
+      "id": "pwncollege-dojo",
+      "url": "https://github.com/pwncollege/dojo",
+      "category": "platform_reference",
+      "license": "BSD-2-Clause",
+      "scope": "infrastructure_source_only",
+      "recommended_mode": "design_research_only",
+      "skills": [
+        "security",
+        "labs"
+      ],
+      "priority": "reference"
+    }
+  ]
+}
